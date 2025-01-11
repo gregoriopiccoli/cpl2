@@ -31,23 +31,24 @@ cmd ::= stm.
 
 // --- import ---
 
-import ::= IMPORT dottedid_list.                  {printf("da fare import ...\n");}
-import ::= FROM dottedid IMPORT dottedid_list.    {printf("da fare from ... import ...\n");}
+import ::= IMPORT dottedid_list(N).               {printf("da fare import %d ...\n",N);}
+import ::= FROM dottedid IMPORT dottedid_list(N). {printf("da fare from ... import %d ...\n",N);}
 
-dottedid_list ::= dottedid_list COMMA dottedid.
-dottedid_list ::= dottedid.
+%type dottedid_list {int}
+dottedid_list(N) ::= dottedid_list(P) COMMA dottedid.   {N = P+1;}
+dottedid_list(N) ::= dottedid.                    {N = 1;}
 
 // --- funzioni e procedure ---
 
-funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR ABSTRACT. {printf("da fare abstract funcdecl %s ...\n",value);dispose(&value);}
+funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl ABSTRACT. {printf("da fare abstract funcdecl %s ...\n",value);dispose(&value);}
 
-funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR EOL 
+funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl EOL 
                stm_list 
              END.                                 {printf("da fare funcdecl %s ...\n",value);dispose(&value);}
 
-procdecl ::= PROC generic ID(value) LPAR  pardecl_list RPAR ABSTRACT. {printf("da fare abstract procdecl %s ...\n",value);dispose(&value);}
+procdecl ::= PROC generic ID(value) LPAR  pardecl_list RPAR impl ABSTRACT. {printf("da fare abstract procdecl %s ...\n",value);dispose(&value);}
 
-procdecl ::= PROC generic ID(value) LPAR  pardecl_list RPAR EOL 
+procdecl ::= PROC generic ID(value) LPAR  pardecl_list RPAR impl EOL 
                stm_list 
              END.                                 {printf("da fare procdecl %s ...\n",value);dispose(&value);}
              
@@ -62,15 +63,18 @@ pardecl ::= type ID(value) ASSIGN expr.           {dispose(&value);}
 pardecl ::= type ID(value) DOT DOT DOT.           {dispose(&value);}
 pardecl ::= type ID(value) MULT.                  {dispose(&value);}
 
+impl ::= .
+impl ::= LT dottedid_list(N) GT.                  {printf("implements %d ...\n",N);}
+
 // --- classi ---
 
 classdecl ::= CLASS generic ID(value) EOL
                  classcmd_list
               END.                                {printf("da fare classdecl %s ...\n",value);dispose(&value);}
 
-classdecl ::= CLASS generic ID(value) LPAR dottedid_list RPAR EOL
+classdecl ::= CLASS generic ID(value) LPAR dottedid_list(N) RPAR EOL
                  classcmd_list
-              END.                                {printf("da fare classdecl %s ...\n",value);dispose(&value);}
+              END.                                {printf("da fare classdecl %s impl %d...\n",value,N);dispose(&value);}
 
 classcmd_list ::=.
 classcmd_list ::= classcmd_list classcmd.
