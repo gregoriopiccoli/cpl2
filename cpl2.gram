@@ -113,6 +113,7 @@ stm ::= switch_stm EOL.
 stm ::= for_stm EOL.
 stm ::= foreach_stm EOL.
 stm ::= while_stm EOL.
+stm ::= repeat_stm EOL.
 stm ::= print_stm EOL.
 stm ::= EOL.
 
@@ -220,6 +221,14 @@ foreach_stm ::= FOR EACH ID(value) COMMA ID(key) IN expr WITH expr EOL stm_list 
 while_stm ::= while_expr(N) stm_list END.           {printf("GOTO L%d\nLABEL L%d\n",N.start,N.last);} 
 while_expr(N) ::= while_tok(P) expr EOL.            {N.start=P;N.last=sState->labelCnt++;printf("IF-FALSE L%d\n",N.last);}
 while_tok(N) ::= WHILE.                             {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
+
+// --- repeat statement ---
+
+%type repeat_tok {int}
+
+repeat_stm ::= repeat_tok(N) stm_list UNTIL expr.   {printf("IF-FALSE L%d\n",N);}              
+repeat_tok(N) ::= REPEAT.                           {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
+
 
 // --- print statement ---
 

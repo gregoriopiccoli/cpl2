@@ -82,6 +82,9 @@ int getTokenCodeFromString(char* token){
 		case 'p':
 		  if (strcmp(token,"proc")==0) return TOK_PROC;
 		  break;
+		case 'r':
+		  if (strcmp(token,"repeat")==0) return TOK_REPEAT;
+		  break;
 		case 's':
 		  if (strcmp(token,"str")==0) return TOK_STR;
 		  if (strcmp(token,"switch")==0) return TOK_SWITCH;
@@ -93,6 +96,9 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"to")==0) return TOK_TO;
 		  if (strcmp(token,"type")==0) return TOK_TYPE;
 		  break;
+		case 'u':
+		  if (strcmp(token,"until")==0) return TOK_UNTIL;
+		  break;		  
 		case 'v':
 		  if (strcmp(token,"var")==0) return TOK_VAR;
 		  break;		  
