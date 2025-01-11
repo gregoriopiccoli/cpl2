@@ -1,0 +1,79 @@
+LINE <n>
+
+LABEL <id>
+GOTO <id>
+IF-FALSE <id>
+IF-TRUE <id>
+CALL <id>
+
+VAR <id>
+VAR+STORE <id>
+
+LOAD <id>
+LOADX <id>
+SLICE 
+
+STORE <id>
+STOREX <id>
+STORESLICE 
+NAMEDPARM <id>
+
+INT_CONST <int value>
+STR_CONST <str value>
+TRUE
+FALSE
+FLOAT_CONST <float value>
+DATE_CONST <date value>
+DATETIME_CONST <datetime value>
+TIME_CONST <time value>
+ARRAY <n>
+DICT <n>
+TUPLE <n>
+
+INT_TYPE
+STR_TYPE
+BOOL_TYPE
+FLOAT_TYPE
+DATE_TYPE
+DATETIME_TYPE
+TIME_TYPE
+ANY_TYPE
+ARRAY_TYPE
+DICT_TYPE
+TUPLE_TYPE
+FUNC_TYPE
+PROC_TYPE
+OR_TYPE
+
+PLUS
+MINUS
+UMINUS
+UPLUS
+MULT
+DIV
+MOD
+
+LT
+LE
+EQ
+GE
+GT
+NE
+LT-LT
+LE-LT
+LT-LE
+LE-LE
+
+OR
+AND
+NOT
+
+POP
+OK!
+ERROR
+
+hash veloce
+https://github.com/Tessil/robin-map
+
+
+

@@ -1,0 +1,104 @@
+-- espressioni
+10
+a+b+c
+10+c
+"alfa"+"beta"
+alfa(1,2,3)
+[1,2,a+10]
+a[1]
+a[1][2]
+|1,2,"alfa"|
+a.b.c[1].z
+a or b and c
+(a or b) and c
+{"alfa":100,"beta":|1,2,3|}
+
+-- assegnazioni
+a:="alfa"+"beta"+f(1,2,3)
+a.b.c:=100
+a[10].z:=32
+
+-- dichiarazione di variabili
+var int i
+var int i,j,k
+var int i:=100,j:=200
+var int|str i
+var (int:) f
+var (int:int,str,bool) f
+var (int:int a, str b, bool c) f
+var () p
+var int i:=100
+
+is(1,int)
+is("alfa",str)
+
+func int doppio(int x)
+  result:=x+x
+end
+
+proc p(int x)
+  if x>0
+    x:=1
+  else
+    x:=2
+  end
+end
+
+class test
+  var int i,j,k
+  var str s1,s2:="alfa"
+  func int f(int x)
+    result:=x+x
+  end
+end
+
+-- classe con ereditarietà multipla
+class t(t1,t2)
+end
+
+-- classe con generici
+class [T] ttt
+  var T i,j,k
+  func T f(T x)
+    result:=x
+  end  
+end
+      
+enum stato occupato,libero,errore
+
+type array[int|str] ttt
+  
+? 1,2,3
+? "alfa ",[1,2,3],' ',|1,2,3|
+
+if true
+  100
+end
+
+if false
+  100
+else
+  200
+end
+
+if 1=0
+  100
+elseif 1=1
+  200
+end
+
+if 1=0
+  100
+elseif 1=1
+  200
+else
+  300  
+end
+
+while i<10
+  100
+end
+  
+proc p(int i ...) abstract
+proc p(int d*) abstract
+          
