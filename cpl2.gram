@@ -1,0 +1,306 @@
+%token_type {char*}
+%token_prefix TOK_
+
+%type par_list {int}
+%type array_list {int}
+%type dict_list {int}
+%type tuple_list {int}
+%type type_list {int}
+%type print_list {int}
+%type or_type {int}
+%type iif_test {int}
+%type iif_then {int}
+
+%extra_argument {parserState *sState}
+%syntax_error {printf("syntax error at line %d!\n",sState->lineNo);sState->errors++;}
+
+start ::= cmd_list.                               {if (sState->errors>0) printf("ERRORS!\n"); else printf("OK!\n");}
+
+// --- comandi --- livello esterno che permette import, class, func, proc, ... enum, type 
+
+cmd_list ::= cmd_list cmd.
+cmd_list ::= .
+
+cmd ::= import EOL.
+cmd ::= funcdecl EOL.
+cmd ::= procdecl EOL.
+cmd ::= classdecl EOL.
+cmd ::= enum EOL.
+cmd ::= typedecl EOL.
+cmd ::= stm.
+
+// --- import ---
+
+import ::= IMPORT dottedid_list.                  {printf("da fare import ...\n");}
+import ::= FROM dottedid IMPORT dottedid_list.    {printf("da fare from ... import ...\n");}
+
+dottedid_list ::= dottedid_list COMMA dottedid.
+dottedid_list ::= dottedid.
+
+// --- funzioni e procedure ---
+
+funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR ABSTRACT. {printf("da fare abstract funcdecl %s ...\n",value);dispose(&value);}
+
+funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR EOL 
+               stm_list 
+             END.                                 {printf("da fare funcdecl %s ...\n",value);dispose(&value);}
+
+procdecl ::= PROC generic ID(value) LPAR  pardecl_list RPAR ABSTRACT. {printf("da fare abstract procdecl %s ...\n",value);dispose(&value);}
+
+procdecl ::= PROC generic ID(value) LPAR  pardecl_list RPAR EOL 
+               stm_list 
+             END.                                 {printf("da fare procdecl %s ...\n",value);dispose(&value);}
+             
+pardecl_list ::= .
+pardecl_list ::= pardecl.
+pardecl_list ::= pardecl_list COMMA pardecl.
+             
+pardecl ::= type ID(value).                       {dispose(&value);}     
+pardecl ::= type AT ID(value).                    {dispose(&value);}
+pardecl ::= type ID(value) ASSIGN expr.           {dispose(&value);}     
+//pardecl ::= type AT ID(value) ASSIGN expr.        {dispose(&value);} // si puo' fare un parametro per referenza inizializzato?
+pardecl ::= type ID(value) DOT DOT DOT.           {dispose(&value);}
+pardecl ::= type ID(value) MULT.                  {dispose(&value);}
+
+// --- classi ---
+
+classdecl ::= CLASS generic ID(value) EOL
+                 classcmd_list
+              END.                                {printf("da fare classdecl %s ...\n",value);dispose(&value);}
+
+classdecl ::= CLASS generic ID(value) LPAR dottedid_list RPAR EOL
+                 classcmd_list
+              END.                                {printf("da fare classdecl %s ...\n",value);dispose(&value);}
+
+classcmd_list ::=.
+classcmd_list ::= classcmd_list classcmd.
+
+classcmd ::= funcdecl EOL.
+classcmd ::= procdecl EOL.
+classcmd ::= vardecl EOL.
+classcmd ::= enum EOL.
+
+generic ::=.
+generic ::= LSQ generic_list RSQ.                 {printf("da fare generics ...\n");}
+             
+generic_list ::= ID(value).                       {dispose(&value);}
+generic_list ::= generic_list COMMA ID(value).    {dispose(&value);}
+
+// --- enum ---
+
+enum ::= ENUM ID(value) enum_list.                {printf("da fare enum %s ...\n",value);dispose(&value);}
+
+enum_list ::= ID(value).                          {dispose(&value);}
+enum_list ::= enum_list COMMA ID(value).          {dispose(&value);}
+
+// --- type ---
+
+typedecl ::= TYPE type ID(value).                 {printf("da fare user type %s ...\n",value);dispose(&value);}
+
+// --- statements --- 
+
+stm_list ::= stm_list stm.
+stm_list ::= .
+ 
+stm ::= expr EOL.                                 {printf("POP #value\n");}
+stm ::= vardecl EOL.                              {printf("POP #type\n");}
+stm ::= if_stm EOL.
+stm ::= for_stm EOL.
+stm ::= foreach_stm EOL.
+stm ::= while_stm EOL.
+stm ::= print_stm EOL.
+stm ::= EOL.
+
+// --- dichiarazione di variabili ---
+
+vardecl ::= VAR type var_list.
+
+var_list ::= ID(value).                           {printf("VAR %s\n",value);dispose(&value);}
+var_list ::= ID(value) ASSIGN lexpr.              {printf("VAR+STORE %s\n",value);dispose(&value);}
+var_list ::= var_list COMMA ID(value).            {printf("VAR %s\n",value);dispose(&value);}
+var_list ::= var_list COMMA ID(value) ASSIGN lexpr.     {printf("VAR+STORE %s\n",value);dispose(&value);}
+
+// --- dichiarazione di tipo ---
+
+type ::= btype.
+type ::= or_type(N).                              {printf("OR_TYPE %d\n",N);}
+
+or_type(N) ::= btype VBAR btype.                  {N = 2;}
+or_type(N) ::= or_type(P) VBAR btype.             {N = P+1;}
+ 
+btype ::= INT.                                    {printf("INT_TYPE\n");}
+btype ::= STR.                                    {printf("STR_TYPE\n");}
+btype ::= BOOL.                                   {printf("BOOL_TYPE\n");}
+btype ::= FLOAT.                                  {printf("FLOAT_TYPE\n");}
+btype ::= DATE.                                   {printf("DATE_TYPE\n");}
+btype ::= TIME.                                   {printf("TIME_TYPE\n");}
+btype ::= DATETIME.                               {printf("DATETIME_TYPE\n");}
+btype ::= ANY.                                    {printf("ANY_TYPE\n");}
+btype ::= QUESTIONMARK.                           {printf("ANY_TYPE\n");}    
+// da fare: tipo definito dall' utente id[.id...]
+btype ::= dottedid.                               {printf("da fare user type\n");}
+
+dottedid ::= ID(value).                           {printf("LOAD %s\n",value);dispose(&value);}         
+dottedid ::= dottedid DOT ID(value).              {printf("LOADX %s\n",value);dispose(&value);}
+
+btype ::= ARRAY LSQ type RSQ.                     {printf("ARRAY_TYPE\n");}
+btype ::= DICT LSQ type RSQ.                      {printf("DICT_TYPE\n");}
+btype ::= TUPLE LSQ type_list(N) RSQ.             {printf("TUPLE_TYPE %d\n",N);}
+btype ::= LPAR type COLON type_list(N) RPAR.      {printf("FUNC_TYPE %d\n",N);}
+btype ::= LPAR type COLON RPAR.                   {printf("FUNC_TYPE 0\n");}
+btype ::= LPAR type_list(N) RPAR.                 {printf("PROC_TYPE %d\n",N);}
+btype ::= LPAR RPAR.                              {printf("PROC_TYPE 0\n");}
+
+//type ::= VBAR type_list(N) VBAR.                {printf("OR_TYPE %d\n",N);}
+
+type_list(N) ::= type.                            {N = 1;} 
+type_list(N) ::= type ID(value).                  {N = 1;printf("PARMNAME %s\n",value);dispose(&value);} 
+type_list(N) ::= type_list(P) COMMA type.         {N = P+1;}
+type_list(N) ::= type_list(P) COMMA type ID(value). {N = P+1;printf("PARMNAME %s\n",value);dispose(&value);}
+
+// --- if statement ---
+
+%type ifelseif_list {ifelseif}
+%type if_else       {ifelseif}
+%type if_elseif     {ifelseif}
+%type if_expr       {int}
+
+if_stm ::= ifelseif_list(N) END.                  {printf("LABEL L%d\n",N.start);if(N.start!=N.last) printf("LABEL L%d\n",N.last);}
+if_stm ::= if_else(N) stm_list END.               {printf("LABEL L%d\n",N.start);}
+
+if_else(N) ::= ifelseif_list(N) ELSE EOL.         {if(N.start==N.last) N.start=sState->labelCnt++;printf("GOTO L%d\nLABEL L%d\n",N.start,N.last);}
+if_elseif(N) ::= ifelseif_list(N) ELSEIF.         {if(N.start==N.last) N.start=sState->labelCnt++;printf("GOTO L%d\nLABEL L%d\n",N.start,N.last);}
+
+ifelseif_list(N) ::= if_elseif(NN) if_expr(P) stm_list. {N.start=NN.start;N.last=P;}
+ifelseif_list(N) ::= IF if_expr(P) stm_list.      {N.start=P;N.last=P;} 
+ 
+if_expr(N) ::= expr EOL.                          {N=sState->labelCnt++;printf("IF-FALSE L%d\n",N);}
+
+// --- for statement ---
+
+for_stm ::= FOR ID(value) ASSIGN expr TO expr EOL stm_list END.                  {printf("da fare for\n");dispose(&value);}
+for_stm ::= FOR ID(value) ASSIGN expr TO expr STEP expr EOL stm_list END.        {printf("da fare for\n");dispose(&value);}
+
+// --- for each statement ---
+
+foreach_stm ::= FOR EACH ID(value) IN expr EOL stm_list END.                     {printf("da fare for-each\n");dispose(&value);}
+foreach_stm ::= FOR EACH ID(value) COMMA ID(key) IN expr EOL stm_list END.       {printf("da fare for-each\n");dispose(&value);dispose(&key);}
+foreach_stm ::= FOR EACH ID(value) IN expr WITH expr EOL stm_list END.           {printf("da fare for-each-with\n");dispose(&value);}
+foreach_stm ::= FOR EACH ID(value) COMMA ID(key) IN expr WITH expr EOL stm_list END. {printf("da fare for-each-with\n");dispose(&value);dispose(&key);}
+
+// --- while statement ---
+
+%type while_expr {ifelseif}
+%type while_tok {int}
+
+while_stm ::= while_expr(N) stm_list END.           {printf("GOTO L%d\nLABEL L%d\n",N.start,N.last);} 
+while_expr(N) ::= while_tok(P) expr EOL.            {N.start=P;N.last=sState->labelCnt++;printf("IF-FALSE L%d\n",N.last);}
+while_tok(N) ::= WHILE.                             {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
+
+// --- print statement ---
+
+print_stm ::= QUESTIONMARK print_list(N).         {printf("PRINT %d\n",N);}
+
+print_list(N) ::= expr.                           {N = 1;}
+print_list(N) ::= print_list(P) COMMA expr.       {N = P+1;}
+
+// --- espressioni con assegnazione ---
+
+expr ::= lexpr.                            
+expr ::= ID(value) ASSIGN expr.                   {printf("STORE %s\n",value);dispose(&value);}
+expr ::= ref DOT ID(value) ASSIGN expr.           {printf("STOREX %s\n",value);dispose(&value);}
+expr ::= ref LSQ expr RSQ ASSIGN expr.            {printf("STORESLICE\n");}
+
+// --- espressioni logiche ---
+// da fare: shortcut evaluation
+lexpr ::= lexpra.
+lexpr ::= lexpr OR lexpra.                        {printf("OR\n");}
+lexpra ::= rexpr.
+lexpra ::= lexpra AND rexpr.                      {printf("AND\n");}
+
+// --- espressioni relazionali
+rexpr ::= term.
+rexpr ::= term LT term.                           {printf("LT\n");}
+rexpr ::= term LE term.                           {printf("LE\n");}
+rexpr ::= term EQ term.                           {printf("EQ\n");}
+rexpr ::= term GE term.                           {printf("GE\n");}
+rexpr ::= term GT term.                           {printf("GT\n");}
+rexpr ::= term NE term.                           {printf("NE\n");}
+rexpr ::= term LT term LT term.                   {printf("LT-LT\n");}
+rexpr ::= term LE term LE term.                   {printf("LE-LE\n");}
+rexpr ::= term LT term LE term.                   {printf("LT-LE\n");}
+rexpr ::= term LE term LT term.                   {printf("LE-LT\n");}
+
+// --- operazioni + - * / %
+term ::= mterm.
+term ::= term PLUS mterm.                         {printf("PLUS\n");}
+term ::= term MINUS mterm.                        {printf("MINUS\n");}
+
+mterm ::= fact.
+mterm ::= mterm MULT fact.                        {printf("MULT\n");}
+mterm ::= mterm DIV fact.                         {printf("DIV\n");}
+mterm ::= mterm MOD fact.                         {printf("MOD\n");}
+
+// --- elementi base delle espressioni ---
+
+fact ::= NOT fact.                                {printf("NOT\n");} 
+fact ::= MINUS fact.                              {printf("UMINUS\n");} 
+fact ::= PLUS fact.                               {printf("UPLUS\n");}
+fact ::= iif_fact.
+fact ::= INT_CONST(value).                        {printf("INT_CONST %s\n",value);dispose(&value);}
+fact ::= STR_CONST(value).                        {printf("STR_CONST %s\n",value);dispose(&value);}
+fact ::= FLOAT_CONST(value).                      {printf("FLOAT_CONST %s\n",value);dispose(&value);}
+fact ::= TRUE.                                    {printf("TRUE\n");} 
+fact ::= FALSE.                                   {printf("FALSE\n");}
+fact ::= NIL.                                     {printf("NIL\n");}
+fact ::= LPAR expr RPAR.
+fact ::= ref.
+fact ::= array_const.
+fact ::= dict_const.
+fact ::= tuple_const.
+fact ::= array_compr.
+fact ::= dict_compr.
+fact ::= IS LPAR expr COMMA type RPAR.            {printf("IS\n");}
+
+// --- codice per la iif ---
+
+iif_fact ::= iif_then(N) expr RPAR.               {printf("LABEL L%d\n",N);}
+iif_test(N) ::= IIF LPAR expr COMMA.              {N=sState->labelCnt++;printf("IF-FALSE L%d\n",N);}
+iif_then(N) ::= iif_test(P) expr COMMA.           {N=sState->labelCnt++;printf("GOTO L%d\nLABEL L%d\n",N,P);}
+
+// --- riferimenti a variabili e chiamata di funzione ---
+
+ref ::= ID(value).                                {printf("LOAD %s\n",value);dispose(&value);}
+ref ::= AT ID(value).                             {printf("LOADREF %s\n",value);dispose(&value);}
+ref ::= ref DOT ID(value).                        {printf("LOADX %s\n",value);dispose(&value);}
+ref ::= ref LSQ expr RSQ.                         {printf("SLICE\n");}
+ref ::= ref LPAR par_list(N) RPAR.                {printf("CALL %d\n",N);}
+
+par_list(N) ::= .                                 {N=0;}
+par_list(N) ::= par_expr.                         {N=1;}
+par_list(N) ::= par_list(P) COMMA par_expr.       {N=P+1;}
+par_expr ::= ID(value) ASSIGN lexpr.              {printf("NAMEDPARM %s\n",value);dispose(&value);}       
+par_expr ::= lexpr.
+
+// --- costanti ARRAY, DIZIONARI e TUPLE
+
+array_const ::= LSQ RSQ.                          {printf("ARRAY 0\n");}
+array_const ::= LSQ array_list(N) RSQ.            {printf("ARRAY %d\n",N);}  
+array_list(N) ::= array_list(P) COMMA expr.       {N=P+1;}
+array_list(N) ::= expr.                           {N=1;}
+
+array_compr ::= LSQ expr FOR EACH ID(value) IN expr WITH expr RSQ. {printf("da fare array comprehension %s\n",value);dispose(&value);}
+array_compr ::= LSQ expr FOR EACH ID(value) IN expr RSQ.           {printf("da fare array comprehension %s\n",value);dispose(&value);}
+
+dict_const ::= LBR RBR.                           {printf("DICT 0\n");}
+dict_const ::= LBR dict_list(N) RBR.              {printf("DICT %d\n",N);}
+dict_list(N) ::= dict_list_elem.                  {N=1;}    
+dict_list(N) ::= dict_list(P) COMMA dict_list_elem. {N=P+1;}
+dict_list_elem ::= STR_CONST(value) COLON expr.   {printf("STR_CONST %s\n",value);dispose(&value);} 
+
+dict_compr ::= LSQ expr COLON expr FOR EACH ID(value) IN expr WITH expr RSQ. {printf("da fare dict comprehension %s\n",value);dispose(&value);}
+dict_compr ::= LSQ expr COLON expr FOR EACH ID(value) IN expr RSQ.           {printf("da fare dict comprehension %s\n",value);dispose(&value);}
+
+tuple_const ::= VBAR tuple_list(N) VBAR.          {printf("TUPLE %d\n",N);}
+tuple_list(N) ::= tuple_list(P) COMMA expr.       {N=P+1;}
+tuple_list(N) ::= expr.                           {N=1;}
