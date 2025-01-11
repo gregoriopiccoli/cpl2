@@ -109,6 +109,7 @@ stm_list ::= .
 stm ::= expr EOL.                                 {printf("POP #value\n");}
 stm ::= vardecl EOL.                              {printf("POP #type\n");}
 stm ::= if_stm EOL.
+stm ::= switch_stm EOL.
 stm ::= for_stm EOL.
 stm ::= foreach_stm EOL.
 stm ::= while_stm EOL.
@@ -182,8 +183,27 @@ if_expr(N) ::= expr EOL.                          {N=sState->labelCnt++;printf("
 
 // --- for statement ---
 
-for_stm ::= FOR ID(value) ASSIGN expr TO expr EOL stm_list END.                  {printf("da fare for\n");dispose(&value);}
-for_stm ::= FOR ID(value) ASSIGN expr TO expr STEP expr EOL stm_list END.        {printf("da fare for\n");dispose(&value);}
+for_stm ::= FOR ID(value) ASSIGN expr TO expr EOL stm_list END.                  {printf("da fare for ...\n");dispose(&value);}
+for_stm ::= FOR ID(value) ASSIGN expr TO expr STEP expr EOL stm_list END.        {printf("da fare for ...\n");dispose(&value);}
+
+// --- switch statement ---
+
+switch_stm ::= SWITCH expr EOL case_list case_else END.                          {printf("da fare switch ...\n");}
+
+case_list ::= .
+case_list ::= case_list case_case.
+case_else ::=.
+case_else ::= ELSE EOL stm_list.
+
+case_case ::= CASE case_const_list EOL stm_list.
+
+case_const_list ::= case_const.
+case_const_list ::= case_const_list COMMA case_const.
+
+case_const ::= INT_CONST.
+case_const ::= STR_CONST.
+case_const ::= TRUE.
+case_const ::= FALSE.
 
 // --- for each statement ---
 
