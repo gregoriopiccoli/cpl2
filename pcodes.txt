@@ -69,6 +69,7 @@ LE-LE
 OR
 AND
 NOT
+IS
 
 POP
 OK!

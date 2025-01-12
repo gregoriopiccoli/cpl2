@@ -313,6 +313,7 @@ fact ::= tuple_const.
 fact ::= array_compr.
 fact ::= dict_compr.
 fact ::= IS LPAR expr COMMA type RPAR.            {printf("IS\n");}
+fact ::= LPAR expr IS type RPAR.            {printf("IS\n");}
 
 // --- codice per la iif ---
 
