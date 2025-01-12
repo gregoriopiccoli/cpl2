@@ -8,7 +8,7 @@
 var int i
 var str s
 
--- variabile con espressione di inizializzazione
+// variabile con espressione di inizializzazione
 var int i2:=100
 
 -- variabili di tipo complesso
@@ -26,4 +26,6 @@ var int i3:=1,j3:=2,k3:=3
 -- il tipo or
 var int|str i_or_s
 
+var myClass cc
+var a.b.c c2
 

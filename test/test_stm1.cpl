@@ -19,6 +19,15 @@ repeat
   i:=i-1
 until i<0       
 
+switch xx
+  case 1,2,3
+    100
+  case 'a','b'
+    200
+  else
+    300
+end
+
 class ccc
   var int i,j,k
   func int f(int i) abstract

@@ -234,6 +234,11 @@ void tokenize(scannerStatus* s){
   		    strcpy(s->token,line+i);
 		    s->tokenCode=-1;
 		    return;				    
+		} else if (nextch=='/' && line[i+1]=='/') {
+			// commento in linea --
+  		    strcpy(s->token,line+i);
+		    s->tokenCode=-1;
+		    return;				    
 		} else {
 			tokenCode=getTokenCodeFromString(token);
 			if (nextch=='(' || nextch=='[' || nextch=='{') s->nPar++;
