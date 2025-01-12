@@ -49,6 +49,7 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"dict")==0) return TOK_DICT;
 		  if (strcmp(token,"date")==0) return TOK_DATE;
 		  if (strcmp(token,"datetime")==0) return TOK_DATETIME;
+		  if (strcmp(token,"downto")==0) return TOK_DOWNTO;
   		  break;  
 		case 'e':
 		  if (strcmp(token,"end")==0) return TOK_END;

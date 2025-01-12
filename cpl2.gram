@@ -117,6 +117,7 @@ stm ::= foreach_stm EOL.
 stm ::= while_stm EOL.
 stm ::= repeat_stm EOL.
 stm ::= try_catch_stm EOL.
+stm ::= raise_stm EOL.
 stm ::= print_stm EOL.
 stm ::= EOL.
 
@@ -160,8 +161,6 @@ btype ::= LPAR type COLON RPAR.                   {printf("FUNC_TYPE 0\n");}
 btype ::= LPAR type_list(N) RPAR.                 {printf("PROC_TYPE %d\n",N);}
 btype ::= LPAR RPAR.                              {printf("PROC_TYPE 0\n");}
 
-//type ::= VBAR type_list(N) VBAR.                {printf("OR_TYPE %d\n",N);}
-
 type_list(N) ::= type.                            {N = 1;} 
 type_list(N) ::= type ID(value).                  {N = 1;printf("PARMNAME %s\n",value);dispose(&value);} 
 type_list(N) ::= type_list(P) COMMA type.         {N = P+1;}
@@ -189,6 +188,8 @@ if_expr(N) ::= expr EOL.                          {N=sState->labelCnt++;printf("
 
 for_stm ::= FOR ID(value) ASSIGN expr TO expr EOL stm_list END.                  {printf("da fare for ...\n");dispose(&value);}
 for_stm ::= FOR ID(value) ASSIGN expr TO expr STEP expr EOL stm_list END.        {printf("da fare for ...\n");dispose(&value);}
+for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr EOL stm_list END.                  {printf("da fare for ...\n");dispose(&value);}
+for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr STEP expr EOL stm_list END.        {printf("da fare for ...\n");dispose(&value);}
 
 // --- switch statement ---
 
@@ -238,6 +239,10 @@ try_catch_stm ::= TRY EOL stm_list catch_list END.  {printf("da fare try/catch .
 catch_list ::= catch_catch.
 catch_list ::= catch_list catch_catch.
 catch_catch ::= CATCH LPAR type ID(value) RPAR EOL stm_list. {dispose(&value);}
+
+raise_stm ::= RAISE.                              {printf("da fare raise ...\n");}
+raise_stm ::= RAISE LPAR expr RPAR.               {printf("da fare raise ...\n");}
+raise_stm ::= RAISE LPAR expr COMMA RPAR.         {printf("da fare raise ...\n");}
 
 // --- print statement ---
 
