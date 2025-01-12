@@ -60,7 +60,8 @@ class ccc <intf>
   invariant i<j and k<j
 end
 
-var int i:=0
+var int i:=0,j:=0
 pre i=0
 i:=i+1
 post i>old.i
+post j=0      // i due post fanno blocco con il pre
