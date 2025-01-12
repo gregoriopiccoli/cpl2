@@ -14,7 +14,7 @@
 %extra_argument {parserState *sState}
 %syntax_error {printf("syntax error at line %d!\n",sState->lineNo);sState->errors++;}
 
-start ::= cmd_list.                               {if (sState->errors>0) printf("ERRORS!\n"); else printf("OK!\n");}
+start ::= cmd_list.                               {int errs=sState->errors; if (errs>0) printf("ERRORS! %d\n",errs); else printf("OK!\n");}
 
 // --- comandi --- livello esterno che permette import, class, func, proc, ... enum, type 
 
@@ -38,7 +38,7 @@ import ::= FROM dottedid IMPORT dottedid_list(N). {printf("da fare from ... impo
 dottedid_list(N) ::= dottedid_list(P) COMMA dottedid.   {N = P+1;}
 dottedid_list(N) ::= dottedid.                    {N = 1;}
 
-// --- funzioni e procedure ---
+// --- funzioni, procedure ed eventi ---
 
 funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl ABSTRACT. {printf("da fare abstract funcdecl %s ...\n",value);dispose(&value);}
 
@@ -46,9 +46,10 @@ funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl EOL
                stm_list 
              END.                                 {printf("da fare funcdecl %s ...\n",value);dispose(&value);}
 
-procdecl ::= PROC generic ID(value) LPAR  pardecl_list RPAR impl ABSTRACT. {printf("da fare abstract procdecl %s ...\n",value);dispose(&value);}
+procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl ABSTRACT. {printf("da fare abstract procdecl %s ...\n",value);dispose(&value);}
+procdecl ::= EVENT ID(value) LPAR pardecl_list RPAR.                      {printf("da fare eventdecl %s ...\n",value);dispose(&value);}
 
-procdecl ::= PROC generic ID(value) LPAR  pardecl_list RPAR impl EOL 
+procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl EOL 
                stm_list 
              END.                                 {printf("da fare procdecl %s ...\n",value);dispose(&value);}
              
@@ -114,6 +115,7 @@ stm ::= for_stm EOL.
 stm ::= foreach_stm EOL.
 stm ::= while_stm EOL.
 stm ::= repeat_stm EOL.
+stm ::= try_catch_stm EOL.
 stm ::= print_stm EOL.
 stm ::= EOL.
 
@@ -229,6 +231,9 @@ while_tok(N) ::= WHILE.                             {N=sState->labelCnt++;printf
 repeat_stm ::= repeat_tok(N) stm_list UNTIL expr.   {printf("IF-FALSE L%d\n",N);}              
 repeat_tok(N) ::= REPEAT.                           {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
 
+// --- try/catch statement ---
+
+try_catch_stm ::= TRY EOL stm_list CATCH LPAR RPAR EOL stm_list END. {printf("da fare try/catch ...\n");}
 
 // --- print statement ---
 

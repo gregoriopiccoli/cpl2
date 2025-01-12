@@ -43,6 +43,7 @@ int getTokenCodeFromString(char* token){
 		case 'c':
 		  if (strcmp(token,"class")==0) return TOK_CLASS;
 		  if (strcmp(token,"case")==0) return TOK_CASE;
+		  if (strcmp(token,"catch")==0) return TOK_CATCH;
 		  break;  
 		case 'd':
 		  if (strcmp(token,"dict")==0) return TOK_DICT;
@@ -55,6 +56,7 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"each")==0) return TOK_EACH;
 		  if (strcmp(token,"enum")==0) return TOK_ENUM;
 		  if (strcmp(token,"elseif")==0) return TOK_ELSEIF;
+		  if (strcmp(token,"event")==0) return TOK_EVENT;
 		 break;  
 		case 'f':
 		  if (strcmp(token,"func")==0) return TOK_FUNC;
@@ -95,6 +97,7 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"tuple")==0) return TOK_TUPLE;
 		  if (strcmp(token,"to")==0) return TOK_TO;
 		  if (strcmp(token,"type")==0) return TOK_TYPE;
+		  if (strcmp(token,"try")==0) return TOK_TRY;
 		  break;
 		case 'u':
 		  if (strcmp(token,"until")==0) return TOK_UNTIL;
