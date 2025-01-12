@@ -1,12 +1,29 @@
+/*
+
+   vari test sulle dichiarazioni di variabili
+
+*/
+
+-- tipi di base
 var int i
 var str s
 
-var int i:=100
+-- variabile con espressione di inizializzazione
+var int i2:=100
 
+-- variabili di tipo complesso
 var array[int] a:=[1,2,3]
 var dict[str] d
-var tuple[int,int,str] tt
+var tuple[int,int,str] tt:=|1,2,"alfa"|
 
+-- puntatori a funzioni
 var (int:int,int) f
 var (int,int) p
+
+-- inizializzazioni multiple
+var int i3:=1,j3:=2,k3:=3
+
+-- il tipo or
+var int|str i_or_s
+
 

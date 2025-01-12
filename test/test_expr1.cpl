@@ -5,6 +5,10 @@
 'alfa'+"beta"
 true
 false
+True
+False
+TRUE
+FALSE
 
 f(1)
 1+f(1)
@@ -37,4 +41,11 @@ a<b or b<c
 {"a":100,"b":200,'c':300}
 |1,2,"pippo"|
 [[1,2],[3,4]]
+
+1+(2*3)
+
+-- prova di sospensione delle parentesi
+1+(2
+  *3
+)
 

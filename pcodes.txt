@@ -4,6 +4,8 @@ LABEL <id>
 GOTO <id>
 IF-FALSE <id>
 IF-TRUE <id>
+IF-OR <id>
+IF-AND <id
 CALL <id>
 
 VAR <id>
@@ -70,7 +72,7 @@ NOT
 
 POP
 OK!
-ERROR
+ERROR <n>
 
 hash veloce
 https://github.com/Tessil/robin-map

@@ -110,6 +110,14 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"while")==0) return TOK_WHILE;
 		  if (strcmp(token,"with")==0) return TOK_WITH;
 		  break;		  
+		case 'F':
+		  if (strcmp(token,"False")==0) return TOK_FALSE;
+		  if (strcmp(token,"FALSE")==0) return TOK_FALSE;
+		  break;		  
+		case 'T':
+		  if (strcmp(token,"True")==0) return TOK_TRUE;
+		  if (strcmp(token,"TRUE")==0) return TOK_TRUE;
+		  break;		  		  
   }
   return TOK_ID;
 }
