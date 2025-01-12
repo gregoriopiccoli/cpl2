@@ -48,6 +48,7 @@ funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl EOL
 
 procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl ABSTRACT. {printf("da fare abstract procdecl %s ...\n",value);dispose(&value);}
 procdecl ::= EVENT ID(value) LPAR pardecl_list RPAR.                      {printf("da fare eventdecl %s ...\n",value);dispose(&value);}
+procdecl ::= OBSERVER ID(value) LPAR pardecl_list RPAR EOL stm_list END.  {printf("da fare observerdecl %s ...\n",value);dispose(&value);}
 
 procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl EOL 
                stm_list 

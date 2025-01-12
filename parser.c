@@ -80,6 +80,7 @@ int getTokenCodeFromString(char* token){
 		  break;
 		case 'o':
 		  if (strcmp(token,"or")==0) return TOK_OR;
+		  if (strcmp(token,"observer")==0) return TOK_OBSERVER;
 		  break;
 		case 'p':
 		  if (strcmp(token,"proc")==0) return TOK_PROC;
