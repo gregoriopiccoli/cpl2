@@ -251,11 +251,21 @@ expr ::= ref DOT ID(value) ASSIGN expr.           {printf("STOREX %s\n",value);d
 expr ::= ref LSQ expr RSQ ASSIGN expr.            {printf("STORESLICE\n");}
 
 // --- espressioni logiche ---
-// da fare: shortcut evaluation
+// da fare: shortcut evaluation --- forse sono riuscito a farlo per la AND
 lexpr ::= lexpra.
 lexpr ::= lexpr OR lexpra.                        {printf("OR\n");}
 lexpra ::= rexpr.
-lexpra ::= lexpra AND rexpr.                      {printf("AND\n");}
+lexpra ::= and_short(P).                          {printf("LABEL L%d\n",P);}
+
+%type and_short {int}
+%type and_short_and1 {int}
+%type and_short_and2 {int}
+
+and_short(N) ::= and_short_and1(P) rexpr.        {N=P;}
+and_short_and1(N) ::= rexpr AND.                 {N=sState->labelCnt++;printf("IF-FALSE L%d\n",N);} // riserva la label che verrà messa alla fine
+and_short(N) ::= and_short_and2(P) rexpr.        {N=P;}
+and_short_and2(N) ::=and_short(P) AND.           {N=P;printf("IF-FALSE L%d\n",N);} 
+//lexpra ::= lexpra AND rexpr.                      {printf("AND\n");}
 
 // --- espressioni relazionali
 rexpr ::= term.
