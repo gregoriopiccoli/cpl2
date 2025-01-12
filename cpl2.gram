@@ -266,7 +266,7 @@ invariant_stm ::= INVARIANT expr.                {printf("da fare invariant ....
 
 expr ::= lexpr.                            
 expr ::= ID(value) ASSIGN expr.                   {printf("STORE %s\n",value);dispose(&value);}
-expr ::= RESULT ASSIGN expr.                      {printf("STORE RESULT\n");}
+expr ::= RESULT ASSIGN expr.                      {printf("STORE-RESULT\n");}
 expr ::= ref DOT ID(value) ASSIGN expr.           {printf("STOREX %s\n",value);dispose(&value);}
 expr ::= ref LSQ expr RSQ ASSIGN expr.            {printf("STORESLICE\n");}
 
@@ -341,9 +341,9 @@ iif_then(N) ::= iif_test(P) expr COMMA.           {N=sState->labelCnt++;printf("
 // --- riferimenti a variabili e chiamata di funzione ---
 
 ref ::= ID(value).                                {printf("LOAD %s\n",value);dispose(&value);}
-ref ::= RESULT.                                   {printf("LOAD RESULT\n");} 
-ref ::= OLD.                                      {printf("LOAD OLD\n");} 
-ref ::= INHERITED.                                {printf("LOAD INHERITED\n");} 
+ref ::= RESULT.                                   {printf("LOAD-RESULT\n");} 
+ref ::= OLD.                                      {printf("OLD\n");} 
+ref ::= INHERITED.                                {printf("LOAD-INHERITED\n");} 
 ref ::= AT ID(value).                             {printf("LOADREF %s\n",value);dispose(&value);}
 ref ::= ref DOT ID(value).                        {printf("LOADX %s\n",value);dispose(&value);}
 ref ::= ref LSQ expr RSQ.                         {printf("SLICE\n");}

@@ -3082,7 +3082,7 @@ static YYACTIONTYPE yy_reduce(
         break;
       case 92: /* expr ::= RESULT ASSIGN expr */
 #line 269 "cpl2.gram"
-{printf("STORE RESULT\n");}
+{printf("STORE-RESULT\n");}
 #line 3086 "cpl2.c"
         break;
       case 93: /* expr ::= ref DOT ID ASSIGN expr */
@@ -3267,17 +3267,17 @@ static YYACTIONTYPE yy_reduce(
         break;
       case 131: /* ref ::= RESULT */
 #line 344 "cpl2.gram"
-{printf("LOAD RESULT\n");}
+{printf("LOAD-RESULT\n");}
 #line 3271 "cpl2.c"
         break;
       case 132: /* ref ::= OLD */
 #line 345 "cpl2.gram"
-{printf("LOAD OLD\n");}
+{printf("OLD\n");}
 #line 3276 "cpl2.c"
         break;
       case 133: /* ref ::= INHERITED */
 #line 346 "cpl2.gram"
-{printf("LOAD INHERITED\n");}
+{printf("LOAD-INHERITED\n");}
 #line 3281 "cpl2.c"
         break;
       case 134: /* ref ::= AT ID */
