@@ -265,9 +265,9 @@ lexpra ::= and_short(P).                          {printf("LABEL L%d\n",P);}
 %type and_short_and2 {int}
 
 and_short(N) ::= and_short_and1(P) rexpr.         {N = P;}
-and_short_and1(N) ::= rexpr AND.                  {N = sState->labelCnt++;printf("IF-FALSE L%d\n",N);} // riserva la label che verrà messa alla fine
+and_short_and1(N) ::= rexpr AND.                  {N = sState->labelCnt++;printf("IF-AND L%d\n",N);} // riserva la label che verrà messa alla fine
 and_short(N) ::= and_short_and2(P) rexpr.         {N = P;}
-and_short_and2(N) ::=and_short(P) AND.            {N = P;printf("IF-FALSE L%d\n",N);} 
+and_short_and2(N) ::=and_short(P) AND.            {N = P;printf("IF-AND L%d\n",N);} 
 //lexpra ::= lexpra AND rexpr.                      {printf("AND\n");}
 
 // --- espressioni relazionali

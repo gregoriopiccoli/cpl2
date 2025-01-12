@@ -2865,12 +2865,12 @@ static YYACTIONTYPE yy_reduce(
         break;
       case 88: /* and_short_and1 ::= rexpr AND */
 #line 268 "cpl2.gram"
-{yymsp[-1].minor.yy236 = sState->labelCnt++;printf("IF-FALSE L%d\n",yymsp[-1].minor.yy236);}
+{yymsp[-1].minor.yy236 = sState->labelCnt++;printf("IF-AND L%d\n",yymsp[-1].minor.yy236);}
 #line 2869 "cpl2.c"
         break;
       case 90: /* and_short_and2 ::= and_short AND */
 #line 270 "cpl2.gram"
-{yylhsminor.yy236 = yymsp[-1].minor.yy236;printf("IF-FALSE L%d\n",yylhsminor.yy236);}
+{yylhsminor.yy236 = yymsp[-1].minor.yy236;printf("IF-AND L%d\n",yylhsminor.yy236);}
 #line 2874 "cpl2.c"
   yymsp[-1].minor.yy236 = yylhsminor.yy236;
         break;
