@@ -1,0 +1,40 @@
+1
+1+2
+"pippo"
+'pippo'
+'alfa'+"beta"
+true
+false
+
+f(1)
+1+f(1)
+1+f(1,2,3)
+1+f(1+1,2,3)
+1+f(i:=1,j:=2,k:=3)
+
+iif(true,1,2)
+
+true and true 
+false or true
+true and true and true and false
+
+1<2
+1<=2
+1=2
+1<>2
+1>=2
+1>2
+
+1<x<2
+1<=x<2
+1<x<=2
+1<=x<=2
+
+a<b and b<c
+a<b or b<c
+
+[1,2,3]
+{"a":100,"b":200,'c':300}
+|1,2,"pippo"|
+[[1,2],[3,4]]
+

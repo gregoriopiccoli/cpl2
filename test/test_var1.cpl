@@ -1,0 +1,12 @@
+var int i
+var str s
+
+var int i:=100
+
+var array[int] a:=[1,2,3]
+var dict[str] d
+var tuple[int,int,str] tt
+
+var (int:int,int) f
+var (int,int) p
+
