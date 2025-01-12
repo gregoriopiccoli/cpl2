@@ -36,6 +36,7 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"array")==0) return TOK_ARRAY;
 		  if (strcmp(token,"any")==0) return TOK_ANY;	
 		  if (strcmp(token,"abstract")==0) return TOK_ABSTRACT;	  
+		  if (strcmp(token,"assert")==0) return TOK_ABSTRACT;	  
 		  break;
 		case 'b':
 		  if (strcmp(token,"bool")==0) return TOK_BOOL;
@@ -71,6 +72,8 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"import")==0) return TOK_IMPORT;  
 		  if (strcmp(token,"in")==0) return TOK_IN;  
 		  if (strcmp(token,"is")==0) return TOK_IS;  
+		  if (strcmp(token,"inherited")==0) return TOK_INHERITED;  
+		  if (strcmp(token,"invariant")==0) return TOK_INVARIANT;  
 		  break;
 		case 'm':
 		  if (strcmp(token,"mod")==0) return TOK_MOD;  
@@ -82,12 +85,16 @@ int getTokenCodeFromString(char* token){
 		case 'o':
 		  if (strcmp(token,"or")==0) return TOK_OR;
 		  if (strcmp(token,"observer")==0) return TOK_OBSERVER;
+		  if (strcmp(token,"old")==0) return TOK_OLD;
 		  break;
 		case 'p':
 		  if (strcmp(token,"proc")==0) return TOK_PROC;
+		  if (strcmp(token,"pre")==0) return TOK_PRE;
+		  if (strcmp(token,"post")==0) return TOK_POST;
 		  break;
 		case 'r':
 		  if (strcmp(token,"repeat")==0) return TOK_REPEAT;
+		  if (strcmp(token,"result")==0) return TOK_RESULT;
 		  break;
 		case 's':
 		  if (strcmp(token,"str")==0) return TOK_STR;

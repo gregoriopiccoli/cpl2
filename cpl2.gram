@@ -119,6 +119,10 @@ stm ::= repeat_stm EOL.
 stm ::= try_catch_stm EOL.
 stm ::= raise_stm EOL.
 stm ::= print_stm EOL.
+stm ::= pre_stm EOL.
+stm ::= post_stm EOL.
+stm ::= assert_stm EOL.
+stm ::= invariant_stm EOL. 
 stm ::= EOL.
 
 // --- dichiarazione di variabili ---
@@ -251,10 +255,18 @@ print_stm ::= QUESTIONMARK print_list(N).         {printf("PRINT %d\n",N);}
 print_list(N) ::= expr.                           {N = 1;}
 print_list(N) ::= print_list(P) COMMA expr.       {N = P+1;}
 
+// --- gli statement di controllo/test
+
+pre_stm ::= PRE expr.                            {printf("da fare pre ....\n");} 
+post_stm ::= POST expr.                          {printf("da fare post ....\n");}
+assert_stm ::= ASSERT expr.                      {printf("da fare assert ....\n");}
+invariant_stm ::= INVARIANT expr.                {printf("da fare invariant ....\n");}
+
 // --- espressioni con assegnazione ---
 
 expr ::= lexpr.                            
 expr ::= ID(value) ASSIGN expr.                   {printf("STORE %s\n",value);dispose(&value);}
+expr ::= RESULT ASSIGN expr.                      {printf("STORE RESULT\n");}
 expr ::= ref DOT ID(value) ASSIGN expr.           {printf("STOREX %s\n",value);dispose(&value);}
 expr ::= ref LSQ expr RSQ ASSIGN expr.            {printf("STORESLICE\n");}
 
@@ -318,7 +330,7 @@ fact ::= tuple_const.
 fact ::= array_compr.
 fact ::= dict_compr.
 fact ::= IS LPAR expr COMMA type RPAR.            {printf("IS\n");}
-fact ::= LPAR expr IS type RPAR.            {printf("IS\n");}
+fact ::= LPAR expr IS type RPAR.                  {printf("IS\n");}
 
 // --- codice per la iif ---
 
@@ -329,6 +341,9 @@ iif_then(N) ::= iif_test(P) expr COMMA.           {N=sState->labelCnt++;printf("
 // --- riferimenti a variabili e chiamata di funzione ---
 
 ref ::= ID(value).                                {printf("LOAD %s\n",value);dispose(&value);}
+ref ::= RESULT.                                   {printf("LOAD RESULT\n");} 
+ref ::= OLD.                                      {printf("LOAD OLD\n");} 
+ref ::= INHERITED.                                {printf("LOAD INHERITED\n");} 
 ref ::= AT ID(value).                             {printf("LOADREF %s\n",value);dispose(&value);}
 ref ::= ref DOT ID(value).                        {printf("LOADX %s\n",value);dispose(&value);}
 ref ::= ref LSQ expr RSQ.                         {printf("SLICE\n");}

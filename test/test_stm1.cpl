@@ -19,3 +19,16 @@ repeat
   i:=i-1
 until i<0       
 
+class ccc
+  var int i,j,k
+  func int f(int i) abstract
+  proc p() abstract
+end  
+
+class c2(ccc)
+  func int f(int i)
+    result:=100
+  end
+  proc p()
+  end
+end
