@@ -221,20 +221,23 @@ foreach_stm ::= FOR EACH ID(value) COMMA ID(key) IN expr WITH expr EOL stm_list 
 %type while_expr {ifelseif}
 %type while_tok {int}
 
-while_stm ::= while_expr(N) stm_list END.           {printf("GOTO L%d\nLABEL L%d\n",N.start,N.last);} 
-while_expr(N) ::= while_tok(P) expr EOL.            {N.start=P;N.last=sState->labelCnt++;printf("IF-FALSE L%d\n",N.last);}
-while_tok(N) ::= WHILE.                             {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
+while_stm ::= while_expr(N) stm_list END.         {printf("GOTO L%d\nLABEL L%d\n",N.start,N.last);} 
+while_expr(N) ::= while_tok(P) expr EOL.          {N.start=P;N.last=sState->labelCnt++;printf("IF-FALSE L%d\n",N.last);}
+while_tok(N) ::= WHILE.                           {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
 
 // --- repeat statement ---
 
 %type repeat_tok {int}
 
-repeat_stm ::= repeat_tok(N) stm_list UNTIL expr.   {printf("IF-FALSE L%d\n",N);}              
-repeat_tok(N) ::= REPEAT.                           {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
+repeat_stm ::= repeat_tok(N) stm_list UNTIL expr. {printf("IF-FALSE L%d\n",N);}              
+repeat_tok(N) ::= REPEAT.                         {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
 
 // --- try/catch statement ---
 
-try_catch_stm ::= TRY EOL stm_list CATCH LPAR RPAR EOL stm_list END. {printf("da fare try/catch ...\n");}
+try_catch_stm ::= TRY EOL stm_list catch_list END.  {printf("da fare try/catch ...\n");}
+catch_list ::= catch_catch.
+catch_list ::= catch_list catch_catch.
+catch_catch ::= CATCH LPAR type ID(value) RPAR EOL stm_list. {dispose(&value);}
 
 // --- print statement ---
 
@@ -261,10 +264,10 @@ lexpra ::= and_short(P).                          {printf("LABEL L%d\n",P);}
 %type and_short_and1 {int}
 %type and_short_and2 {int}
 
-and_short(N) ::= and_short_and1(P) rexpr.        {N=P;}
-and_short_and1(N) ::= rexpr AND.                 {N=sState->labelCnt++;printf("IF-FALSE L%d\n",N);} // riserva la label che verrà messa alla fine
-and_short(N) ::= and_short_and2(P) rexpr.        {N=P;}
-and_short_and2(N) ::=and_short(P) AND.           {N=P;printf("IF-FALSE L%d\n",N);} 
+and_short(N) ::= and_short_and1(P) rexpr.         {N = P;}
+and_short_and1(N) ::= rexpr AND.                  {N = sState->labelCnt++;printf("IF-FALSE L%d\n",N);} // riserva la label che verrà messa alla fine
+and_short(N) ::= and_short_and2(P) rexpr.         {N = P;}
+and_short_and2(N) ::=and_short(P) AND.            {N = P;printf("IF-FALSE L%d\n",N);} 
 //lexpra ::= lexpra AND rexpr.                      {printf("AND\n");}
 
 // --- espressioni relazionali
