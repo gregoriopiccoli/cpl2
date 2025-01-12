@@ -1,9 +1,11 @@
+import alfa.beta
+from gamma import a,b,c
+
 func int doppio(int i)
   result:=i+i
 end
 
 proc p()
-  
 end
 
 if 1<2
@@ -41,3 +43,24 @@ class c2(ccc)
   proc p()
   end
 end
+
+enum stati aperto,chiuso,occupato
+
+type int|array[tuple[int,int]] i_or_a
+
+func float distance(point x, point y) abstract
+func float euclidean(point x, point y) <distance> ; end
+
+class ccc <intf>
+  var int i,j,k
+  proc p(int i)
+    pre i>=0
+    post i>=old.i
+  end
+  invariant i<j and k<j
+end
+
+var int i:=0
+pre i=0
+i:=i+1
+post i>old.i

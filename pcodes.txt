@@ -23,6 +23,7 @@ STOREX <id>
 STORESLICE 
 NAMEDPARM <id>
 
+NIL
 INT_CONST <int value>
 STR_CONST <str value>
 TRUE

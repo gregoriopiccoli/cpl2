@@ -70,11 +70,11 @@ impl ::= LT dottedid_list(N) GT.                  {printf("implements %d ...\n",
 
 // --- classi ---
 
-classdecl ::= CLASS generic ID(value) EOL
+classdecl ::= CLASS generic ID(value) impl EOL
                  classcmd_list
               END.                                {printf("da fare classdecl %s ...\n",value);dispose(&value);}
 
-classdecl ::= CLASS generic ID(value) LPAR dottedid_list(N) RPAR EOL
+classdecl ::= CLASS generic ID(value) LPAR dottedid_list(N) RPAR impl EOL
                  classcmd_list
               END.                                {printf("da fare classdecl %s impl %d...\n",value,N);dispose(&value);}
 
@@ -85,6 +85,7 @@ classcmd ::= funcdecl EOL.
 classcmd ::= procdecl EOL.
 classcmd ::= vardecl EOL.
 classcmd ::= enum EOL.
+classcmd ::= invariant_stm EOL.
 
 generic ::=.
 generic ::= LSQ generic_list RSQ.                 {printf("da fare generics ...\n");}
@@ -122,7 +123,6 @@ stm ::= print_stm EOL.
 stm ::= pre_stm EOL.
 stm ::= post_stm EOL.
 stm ::= assert_stm EOL.
-stm ::= invariant_stm EOL. 
 stm ::= EOL.
 
 // --- dichiarazione di variabili ---
