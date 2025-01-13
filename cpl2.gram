@@ -244,9 +244,9 @@ catch_list ::= catch_catch.
 catch_list ::= catch_list catch_catch.
 catch_catch ::= CATCH LPAR type ID(value) RPAR EOL stm_list. {dispose(&value);}
 
-raise_stm ::= RAISE.                              {printf("da fare raise ...\n");}
-raise_stm ::= RAISE LPAR expr RPAR.               {printf("da fare raise ...\n");}
-raise_stm ::= RAISE LPAR expr COMMA RPAR.         {printf("da fare raise ...\n");}
+raise_stm ::= RAISE.                              {printf("RAISE 0\n");}
+raise_stm ::= RAISE LPAR expr RPAR.               {printf("RAISE 1\n");}
+raise_stm ::= RAISE LPAR expr COMMA RPAR.         {printf("RAISE 2\n");}
 
 // --- print statement ---
 

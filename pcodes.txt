@@ -80,6 +80,8 @@ POP
 OK!
 ERROR <n>
 
+RAISE <n>
+
 hash veloce
 https://github.com/Tessil/robin-map
 
