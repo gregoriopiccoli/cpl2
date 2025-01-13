@@ -350,7 +350,7 @@ int main(){
 	  // setta il numero di riga per riportare la posizione degli errori
 	  s.lineNo++;
 	  sState.lineNo++;
-	  printf("LINE %d -- %s",s.lineNo,line);
+	  printf("LINE %d # %s",s.lineNo,line);
 	  // inizializza la linea
       initScannerLine(&s,line);		
       while( GetNextToken(&s, &hTokenId, &sToken) ){
