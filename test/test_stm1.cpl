@@ -1,4 +1,5 @@
-import alfa.beta
+import alfa,beta
+import a.b.c
 from gamma import a,b,c
 
 func int doppio(int i)
