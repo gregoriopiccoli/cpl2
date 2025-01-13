@@ -41,7 +41,7 @@ public:
 	value=v;
   }  
 };
-
+		
 // --- gli oggetti dell'esecuzione dell'interprete
 
 int theObjCounter=0;
@@ -84,11 +84,6 @@ public:
     floatObj(float f){v=f;};	
     virtual string print(){return to_string(v);};
 };
-	
-// --- True e False sono due oggetti sempre presenti
-
-shared_ptr<boolObj> theTrue(new boolObj(true));
-shared_ptr<boolObj> theFalse(new boolObj(false));
 
 // --- gli array e i dizionari
 
@@ -154,18 +149,22 @@ public:
 class pcodeProgram {
 	vector<pcode> prg;
 };
-	
-class cpl2System {
-	unordered_map<string,pcodeProgram> modules;
+	 	
+class sys {
+public:
+  // i moduli caricati
+  unordered_map<string,pcodeProgram> modules;
+  // dei valori che esistono sempre
+  shared_ptr<boolObj> True{new boolObj(true)};
+  shared_ptr<boolObj> False{new boolObj(false)};
 };
- 
-// --- l'interprete --- posso avere più interpreti per le co-routine, i thread e i generatori ...
+sys theSys;
 
-class cpl2Interpreter {
-	vector<shared_ptr<obj>> stack;
-	int pc;  	
+class interp {
+public:
+  vector<shared_ptr<obj>> stack;
+  int sp{0},pc{0};
 };
-	
 
 // ------------------------------------------------
 	
@@ -185,8 +184,8 @@ int main(){
   shared_ptr<arrayObj> aa(new arrayObj());
   aa->append(n);
   aa->append(s);  
-  aa->append(theTrue);
-  aa->append(theFalse);
+  aa->append(theSys.True);
+  aa->append(theSys.False);
   cout << aa->slice(0)->print() << " " << aa->slice(1)->print() << " len:" << aa->len() << endl;  
   aa->storeslice(0,s);
   shared_ptr<obj> ff(new floatObj(12.34));
@@ -211,6 +210,6 @@ int main(){
   shared_ptr<strObj> iii(dynamic_cast<strObj*>(n.get()));
   if (iii.get()==0) printf("non riuscito come dovrebbe essere!\n");
   u8string utf8=u8"Hello € world! ↗";
-  printf("%s\n",utf8.c_str());
+  printf("%s\n",(char*)utf8.c_str());
   return 0;
 }
