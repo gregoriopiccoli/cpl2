@@ -364,12 +364,24 @@ int main(){
       //terminata la linea, deve passare alla prossima
       if (s.nPar==0) // il fine linea è sospeso quando le parentesi sono sbilanciate
         Parse(pParser,TOK_EOL,"",&sState);
-      //
-      //yyStackEntry* p=pParser->yytos;
-      //printf("stk: %d %d\n",p->stateno,p->major);
+      // verifica la posizione nello stack di riconoscimento, utile per l'interattivo.
+      yyStackEntry* p=pParser->yytos;            
+      yyStackEntry* s=pParser->yystack; 
+      printf("yytos: %d %d\n",p->stateno,p->major);      
+      printf("yyend: %d %d\n",s->stateno,s->major);      
+      int nnn=0;while(p>s) {p--;nnn++;}     
+      printf("stk: %d \n",nnn);
       //
       fgets(line,200,stdin);
     }
     Parse(pParser, 0, sToken, &sState);
+      // verifica finale, si arriva sempre alla base dello stack
+      yyStackEntry* pp=pParser->yytos;            
+      yyStackEntry* ps=pParser->yystack; 
+      printf("yytos: %d %d\n",pp->stateno,pp->major);      
+      printf("yyend: %d %d\n",ps->stateno,ps->major);      
+      int nnnn=0;while(pp>ps) {pp--;nnnn++;}     
+      printf("stk: %d \n",nnnn);
+      //
     ParseFree(pParser, free );
 }
