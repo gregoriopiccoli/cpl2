@@ -341,7 +341,7 @@ int main(){
     // parte lemon
     char* sToken;
     int hTokenId;
-    void *pParser;
+    yyParser *pParser;
     parserState sState;
     pParser = ParseAlloc(malloc);
     initParserState(&sState);
@@ -353,17 +353,21 @@ int main(){
 	  printf("LINE %d # %s",s.lineNo,line);
 	  // inizializza la linea
       initScannerLine(&s,line);		
-      while( GetNextToken(&s, &hTokenId, &sToken) ){
+      while (GetNextToken(&s, &hTokenId, &sToken)){
         //printf("token = %s\n",sToken);
 		// i token che devono essere stampati sul p-code vanno salvati in memoria, possono essere processati dopo il prossimo token
-        if(hTokenId==TOK_INT_CONST || hTokenId==TOK_STR_CONST || hTokenId==TOK_FLOAT_CONST|| hTokenId==TOK_ID) {
+        if (hTokenId==TOK_INT_CONST || hTokenId==TOK_STR_CONST || hTokenId==TOK_FLOAT_CONST|| hTokenId==TOK_ID) {
 		  char* sss=malloc(strlen(sToken)+1);strcpy(sss,sToken);sToken=sss;
 	    }
 	    Parse(pParser, hTokenId, sToken, &sState);
       }
-      //printf("token = %s\n",sToken);
+      //terminata la linea, deve passare alla prossima
       if (s.nPar==0) // il fine linea è sospeso quando le parentesi sono sbilanciate
-	    Parse(pParser,TOK_EOL,"",&sState);
+        Parse(pParser,TOK_EOL,"",&sState);
+      //
+      //yyStackEntry* p=pParser->yytos;
+      //printf("stk: %d %d\n",p->stateno,p->major);
+      //
       fgets(line,200,stdin);
     }
     Parse(pParser, 0, sToken, &sState);
