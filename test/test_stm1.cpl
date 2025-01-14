@@ -10,7 +10,7 @@ proc p()
 end
 
 if 1<2
-  ? 'ok'
+  ? 'ok ',100,"  pippo  "
 end
 
 var int i:=1
@@ -25,7 +25,7 @@ until i<0
 switch xx
   case 1,2,3
     100
-  case 'a','b'
+  case 'a','b',"c"
     200
   else
     300
