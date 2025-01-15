@@ -13,7 +13,7 @@ if 1<2
   ? 'ok ',100,"  pippo  "
 end
 
-var int i:=1
+var int i:=1 local
 while i<10
   i:=i+1
 end
@@ -62,8 +62,9 @@ class ccc <intf>
   invariant i<j and k<j
 end
 
-var int i:=0,j:=0
+var int i:=0,j:=0 const
 pre i=0
 i:=i+1
 post i>old.i  -- prova di commento breve
 post j=0      // i due post fanno blocco con il pre
+

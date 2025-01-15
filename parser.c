@@ -46,6 +46,7 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"class")==0) return TOK_CLASS;
 		  if (strcmp(token,"case")==0) return TOK_CASE;
 		  if (strcmp(token,"catch")==0) return TOK_CATCH;
+		  if (strcmp(token,"const")==0) return TOK_CONST;
 		  break;  
 		case 'd':
 		  if (strcmp(token,"dict")==0) return TOK_DICT;
@@ -381,6 +382,7 @@ int main(){
       if (s.nPar==0) // il fine linea è sospeso quando le parentesi sono sbilanciate
         Parse(pParser,TOK_EOL,"",&sState);
       stkl=stackLevel(pParser);
+      if (stkl>3) printf("> ");
       fgets(line,200,stdin);
     }
     Parse(pParser, 0, sToken, &sState);

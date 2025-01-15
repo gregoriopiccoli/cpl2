@@ -52,10 +52,14 @@ procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl local observer E
                stm_list 
              END.                                 {printf("da fare procdecl %s ...\n",value);dispose(&value);}
 local ::=.
-local ::=LOCAL.
+local ::= LOCAL.                                  {printf("LOCAL\n");}
 
 observer ::=.
-observer ::= OBSERVER.             
+observer ::= OBSERVER.
+             
+const ::= .
+const ::= CONST.                                  {printf("CONST\n");}
+             
 pardecl_list ::= .
 pardecl_list ::= pardecl.
 pardecl_list ::= pardecl_list COMMA pardecl.
@@ -129,7 +133,7 @@ stm ::= EOL.
 
 // --- dichiarazione di variabili ---
 
-vardecl ::= VAR type var_list.
+vardecl ::= VAR type var_list const local.
 
 var_list ::= ID(value).                           {printf("VAR %s\n",value);dispose(&value);}
 var_list ::= ID(value) ASSIGN lexpr.              {printf("VAR+STORE %s\n",value);dispose(&value);}
