@@ -40,20 +40,22 @@ dottedid_list(N) ::= dottedid.                    {N = 1;}
 
 // --- funzioni, procedure ed eventi ---
 
-funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl ABSTRACT. {printf("da fare abstract funcdecl %s ...\n",value);dispose(&value);}
+funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl local ABSTRACT. {printf("da fare abstract funcdecl %s ...\n",value);dispose(&value);}
 
-funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl EOL 
+funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl local observer EOL 
                stm_list 
              END.                                 {printf("da fare funcdecl %s ...\n",value);dispose(&value);}
 
-procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl ABSTRACT. {printf("da fare abstract procdecl %s ...\n",value);dispose(&value);}
+procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl local ABSTRACT. {printf("da fare abstract procdecl %s ...\n",value);dispose(&value);}
 procdecl ::= EVENT ID(value) LPAR pardecl_list RPAR.                      {printf("da fare eventdecl %s ...\n",value);dispose(&value);}
-procdecl ::= OBSERVER ID(value) LPAR pardecl_list RPAR EOL stm_list END.  {printf("da fare observerdecl %s ...\n",value);dispose(&value);}
-
-procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl EOL 
+procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl local observer EOL 
                stm_list 
              END.                                 {printf("da fare procdecl %s ...\n",value);dispose(&value);}
-             
+local ::=.
+local ::=LOCAL.
+
+observer ::=.
+observer ::= OBSERVER.             
 pardecl_list ::= .
 pardecl_list ::= pardecl.
 pardecl_list ::= pardecl_list COMMA pardecl.
@@ -309,12 +311,13 @@ mterm ::= fact.
 mterm ::= mterm MULT fact.                        {printf("MULT\n");}
 mterm ::= mterm DIV fact.                         {printf("DIV\n");}
 mterm ::= mterm MOD fact.                         {printf("MOD\n");}
+mterm ::= mterm IDIV fact.                         {printf("IDIV\n");}
 
 // --- elementi base delle espressioni ---
 
 fact ::= NOT fact.                                {printf("NOT\n");} 
 fact ::= MINUS fact.                              {printf("UMINUS\n");} 
-fact ::= PLUS fact.                               {printf("UPLUS\n");}
+fact ::= PLUS fact.                               // {printf("UPLUS\n");} non serve!
 fact ::= iif_fact.
 fact ::= INT_CONST(value).                        {printf("INT_CONST %s\n",value);dispose(&value);}
 fact ::= STR_CONST(value).                        {printf("STR_CONST %s\n",value);dispose(&value);}

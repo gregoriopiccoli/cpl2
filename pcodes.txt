@@ -7,6 +7,9 @@ IF-TRUE <id>
 IF-OR <id>
 IF-AND <id
 CALL <id>
+FUNC <id>
+PROC <id>
+CLASS <id>
 
 VAR <id>
 VAR+STORE <id>
@@ -54,11 +57,10 @@ OR_TYPE
 PLUS
 MINUS
 UMINUS
-UPLUS
 MULT
 DIV
 MOD
-OLD
+IDIV
 
 LT
 LE
@@ -66,21 +68,27 @@ EQ
 GE
 GT
 NE
-LT-LT
-LE-LT
-LT-LE
-LE-LE
+LT_LT
+LE_LT
+LT_LE
+LE_LE
 
 OR
 AND
 NOT
 IS
-
 POP
+
+TRY
+RAISE <n>
+OLD
+
 OK!
 ERROR <n>
 
-RAISE <n>
+LOCAL
+CONST
+OBSERVER
 
 hash veloce
 https://github.com/Tessil/robin-map

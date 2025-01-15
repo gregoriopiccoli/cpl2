@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "cpl2.h"
+#include "pcodes.h"
 
 const char* separators="+-*/%()[]{}!|<>= \t\r\n.:;,@?";
 const char* blankchars=" \t\r\n";
@@ -51,6 +52,7 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"date")==0) return TOK_DATE;
 		  if (strcmp(token,"datetime")==0) return TOK_DATETIME;
 		  if (strcmp(token,"downto")==0) return TOK_DOWNTO;
+		  if (strcmp(token,"div")==0) return TOK_IDIV;
   		  break;  
 		case 'e':
 		  if (strcmp(token,"end")==0) return TOK_END;
@@ -74,6 +76,9 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"is")==0) return TOK_IS;  
 		  if (strcmp(token,"inherited")==0) return TOK_INHERITED;  
 		  if (strcmp(token,"invariant")==0) return TOK_INVARIANT;  
+		  break;
+		case 'l':
+		  if (strcmp(token,"local")==0) return TOK_LOCAL;  
 		  break;
 		case 'm':
 		  if (strcmp(token,"mod")==0) return TOK_MOD;  
@@ -331,6 +336,16 @@ typedef struct ifelseif {
 		
 #include "cpl2.c"
 
+int stackLevel(yyParser* p){
+    yyStackEntry* t=p->yytos;            
+    yyStackEntry* s=p->yystack; 
+    //printf("yytos: %d %d\n",t->stateno,t->major);      
+    //printf("yyend: %d %d\n",s->stateno,s->major);      
+    int n=0;while(t>s) {t--;n++;}     
+    //printf("stk: %d \n",n);
+	return n;
+}
+
 int main(){
 	// parte mia
     char line[200];
@@ -338,6 +353,7 @@ int main(){
     scannerStatus s;
     initScanner(&s);
     initScannerLine(&s,line);
+    int stkl;
     // parte lemon
     char* sToken;
     int hTokenId;
@@ -364,24 +380,10 @@ int main(){
       //terminata la linea, deve passare alla prossima
       if (s.nPar==0) // il fine linea è sospeso quando le parentesi sono sbilanciate
         Parse(pParser,TOK_EOL,"",&sState);
-      // verifica la posizione nello stack di riconoscimento, utile per l'interattivo.
-      yyStackEntry* p=pParser->yytos;            
-      yyStackEntry* s=pParser->yystack; 
-      printf("yytos: %d %d\n",p->stateno,p->major);      
-      printf("yyend: %d %d\n",s->stateno,s->major);      
-      int nnn=0;while(p>s) {p--;nnn++;}     
-      printf("stk: %d \n",nnn);
-      //
+      stkl=stackLevel(pParser);
       fgets(line,200,stdin);
     }
     Parse(pParser, 0, sToken, &sState);
-      // verifica finale, si arriva sempre alla base dello stack
-      yyStackEntry* pp=pParser->yytos;            
-      yyStackEntry* ps=pParser->yystack; 
-      printf("yytos: %d %d\n",pp->stateno,pp->major);      
-      printf("yyend: %d %d\n",ps->stateno,ps->major);      
-      int nnnn=0;while(pp>ps) {pp--;nnnn++;}     
-      printf("stk: %d \n",nnnn);
-      //
+    stkl=stackLevel(pParser);
     ParseFree(pParser, free );
 }
