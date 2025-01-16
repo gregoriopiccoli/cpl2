@@ -55,6 +55,31 @@ public:
   virtual shared_ptr<obj> slice(int pos) {throw domain_error("slice not implemented");};
   virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {throw domain_error("store not implemented");};
   virtual shared_ptr<obj> storeslice(int pos,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");};
+  virtual shared_ptr<obj> call(int n) {throw domain_error("call not implemented");};
+  //
+  virtual shared_ptr<obj> plus() {throw domain_error("plus not implemented");};
+  virtual shared_ptr<obj> minus() {throw domain_error("minus not implemented");};
+  virtual shared_ptr<obj> uminus() {throw domain_error("uminus not implemented");};
+  virtual shared_ptr<obj> mult() {throw domain_error("mult not implemented");};
+  virtual shared_ptr<obj> div() {throw domain_error("div not implemented");};
+  virtual shared_ptr<obj> idiv() {throw domain_error("idiv not implemented");};
+  //
+  virtual shared_ptr<obj> lt() {throw domain_error("lt not implemented");};
+  virtual shared_ptr<obj> le() {throw domain_error("le not implemented");};
+  virtual shared_ptr<obj> eq() {throw domain_error("eq not implemented");};
+  virtual shared_ptr<obj> ge() {throw domain_error("ge not implemented");};
+  virtual shared_ptr<obj> gt() {throw domain_error("gt not implemented");};
+  virtual shared_ptr<obj> ne() {throw domain_error("ne not implemented");};
+  virtual shared_ptr<obj> ltgt() {throw domain_error("lt-gt not implemented");};
+  virtual shared_ptr<obj> legt() {throw domain_error("le-gt not implemented");};
+  virtual shared_ptr<obj> ltge() {throw domain_error("lt-ge not implemented");};
+  virtual shared_ptr<obj> lege() {throw domain_error("le-ge not implemented");};
+  //
+  virtual shared_ptr<obj> _or() {throw domain_error("or not implemented");};
+  virtual shared_ptr<obj> _and() {throw domain_error("and not implemented");};
+  virtual shared_ptr<obj> _not() {throw domain_error("not not implemented");};
+  virtual shared_ptr<obj> is() {throw domain_error("is not implemented");};
+
 };
 
 class intObj:public obj {
