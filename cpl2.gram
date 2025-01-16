@@ -14,7 +14,7 @@
 %extra_argument {parserState *sState}
 %syntax_error {printf("syntax error at line %d!\n",sState->lineNo);sState->errors++;}
 
-start ::= cmd_list.                               {int errs=sState->errors; if (errs>0) printf("ERRORS! %d\n",errs); else printf("OK!\n");}
+start ::= cmd_list.                               {int errs=sState->errors; if (errs>0) emit_i(P_ERROR,errs); else emit(P_OK);}
 
 // --- comandi --- livello esterno che permette import, class, func, proc, ... enum, type 
 
@@ -52,13 +52,13 @@ procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl local observer E
                stm_list 
              END.                                 {printf("da fare procdecl %s ...\n",value);dispose(&value);}
 local ::=.
-local ::= LOCAL.                                  {printf("LOCAL\n");}
+local ::= LOCAL.                                  {emit(P_LOCAL);}
 
 observer ::=.
 observer ::= OBSERVER.
              
 const ::= .
-const ::= CONST.                                  {printf("CONST\n");}
+const ::= CONST.                                  {emit(P_CONST);}
              
 pardecl_list ::= .
 pardecl_list ::= pardecl.
@@ -115,8 +115,8 @@ typedecl ::= TYPE type ID(value).                 {printf("da fare user type %s 
 stm_list ::= stm_list stm.
 stm_list ::= .
  
-stm ::= expr EOL.                                 {printf("POP #value\n");}
-stm ::= vardecl EOL.                              {printf("POP #type\n");}
+stm ::= expr EOL.                                 {emit(P_POP);}
+stm ::= vardecl EOL.                              {emit(P_POP);}
 stm ::= if_stm EOL.
 stm ::= switch_stm EOL.
 stm ::= for_stm EOL.
@@ -135,46 +135,46 @@ stm ::= EOL.
 
 vardecl ::= VAR type var_list const local.
 
-var_list ::= ID(value).                           {printf("VAR %s\n",value);dispose(&value);}
-var_list ::= ID(value) ASSIGN lexpr.              {printf("VAR+STORE %s\n",value);dispose(&value);}
-var_list ::= var_list COMMA ID(value).            {printf("VAR %s\n",value);dispose(&value);}
-var_list ::= var_list COMMA ID(value) ASSIGN lexpr.     {printf("VAR+STORE %s\n",value);dispose(&value);}
+var_list ::= ID(value).                           {emit_s(P_VAR,value);dispose(&value);}
+var_list ::= ID(value) ASSIGN lexpr.              {emit_s(P_VAR_STORE,value);dispose(&value);}
+var_list ::= var_list COMMA ID(value).            {emit_s(P_VAR,value);dispose(&value);}
+var_list ::= var_list COMMA ID(value) ASSIGN lexpr.     {emit_s(P_VAR_STORE,value);dispose(&value);}
 
 // --- dichiarazione di tipo ---
 
 type ::= btype.
-type ::= or_type(N).                              {printf("OR_TYPE %d\n",N);}
+type ::= or_type(N).                              {emit_i(P_OR_TYPE,N);}
 
 or_type(N) ::= btype VBAR btype.                  {N = 2;}
 or_type(N) ::= or_type(P) VBAR btype.             {N = P+1;}
  
-btype ::= INT.                                    {printf("INT_TYPE\n");}
-btype ::= STR.                                    {printf("STR_TYPE\n");}
-btype ::= BOOL.                                   {printf("BOOL_TYPE\n");}
-btype ::= FLOAT.                                  {printf("FLOAT_TYPE\n");}
-btype ::= DATE.                                   {printf("DATE_TYPE\n");}
-btype ::= TIME.                                   {printf("TIME_TYPE\n");}
-btype ::= DATETIME.                               {printf("DATETIME_TYPE\n");}
-btype ::= ANY.                                    {printf("ANY_TYPE\n");}
-btype ::= QUESTIONMARK.                           {printf("ANY_TYPE\n");}    
+btype ::= INT.                                    {emit(P_INT_TYPE);}
+btype ::= STR.                                    {emit(P_STR_TYPE);}
+btype ::= BOOL.                                   {emit(P_BOOL_TYPE);}
+btype ::= FLOAT.                                  {emit(P_FLOAT_TYPE);}
+btype ::= DATE.                                   {emit(P_DATE_TYPE);}
+btype ::= TIME.                                   {emit(P_TIME_TYPE);}
+btype ::= DATETIME.                               {emit(P_DATETIME_TYPE);}
+btype ::= ANY.                                    {emit(P_ANY_TYPE);}
+btype ::= QUESTIONMARK.                           {emit(P_ANY_TYPE);}    
 // da fare: tipo definito dall' utente id[.id...]
 btype ::= dottedid.                               {printf("da fare user type\n");}
 
-dottedid ::= ID(value).                           {printf("LOAD %s\n",value);dispose(&value);}         
-dottedid ::= dottedid DOT ID(value).              {printf("LOADX %s\n",value);dispose(&value);}
+dottedid ::= ID(value).                           {emit_s(P_LOAD,value);dispose(&value);}         
+dottedid ::= dottedid DOT ID(value).              {emit_s(P_LOADX,value);dispose(&value);}
 
-btype ::= ARRAY LSQ type RSQ.                     {printf("ARRAY_TYPE\n");}
-btype ::= DICT LSQ type RSQ.                      {printf("DICT_TYPE\n");}
-btype ::= TUPLE LSQ type_list(N) RSQ.             {printf("TUPLE_TYPE %d\n",N);}
-btype ::= LPAR type COLON type_list(N) RPAR.      {printf("FUNC_TYPE %d\n",N);}
-btype ::= LPAR type COLON RPAR.                   {printf("FUNC_TYPE 0\n");}
-btype ::= LPAR type_list(N) RPAR.                 {printf("PROC_TYPE %d\n",N);}
-btype ::= LPAR RPAR.                              {printf("PROC_TYPE 0\n");}
+btype ::= ARRAY LSQ type RSQ.                     {emit(P_ARRAY_TYPE);}
+btype ::= DICT LSQ type RSQ.                      {emit(P_DICT_TYPE);}
+btype ::= TUPLE LSQ type_list(N) RSQ.             {emit_i(P_TUPLE_TYPE,N);}
+btype ::= LPAR type COLON type_list(N) RPAR.      {emit_i(P_FUNC_TYPE,N);}
+btype ::= LPAR type COLON RPAR.                   {emit_i(P_FUNC_TYPE,0);}
+btype ::= LPAR type_list(N) RPAR.                 {emit_i(P_PROC_TYPE,N);}
+btype ::= LPAR RPAR.                              {emit_i(P_PROC_TYPE,0);}
 
 type_list(N) ::= type.                            {N = 1;} 
-type_list(N) ::= type ID(value).                  {N = 1;printf("PARMNAME %s\n",value);dispose(&value);} 
+type_list(N) ::= type ID(value).                  {N = 1;emit_s(P_PARMNAME,value);dispose(&value);} 
 type_list(N) ::= type_list(P) COMMA type.         {N = P+1;}
-type_list(N) ::= type_list(P) COMMA type ID(value). {N = P+1;printf("PARMNAME %s\n",value);dispose(&value);}
+type_list(N) ::= type_list(P) COMMA type ID(value). {N = P+1;emit_s(P_PARMNAME,value);dispose(&value);}
 
 // --- if statement ---
 
@@ -183,16 +183,16 @@ type_list(N) ::= type_list(P) COMMA type ID(value). {N = P+1;printf("PARMNAME %s
 %type if_elseif     {ifelseif}
 %type if_expr       {int}
 
-if_stm ::= ifelseif_list(N) END.                  {printf("LABEL L%d\n",N.start);if(N.start!=N.last) printf("LABEL L%d\n",N.last);}
-if_stm ::= if_else(N) stm_list END.               {printf("LABEL L%d\n",N.start);}
+if_stm ::= ifelseif_list(N) END.                  {emit_i(P_LABEL,N.start);if(N.start!=N.last) emit_i(P_LABEL,N.last);}
+if_stm ::= if_else(N) stm_list END.               {emit_i(P_LABEL,N.start);}
 
-if_else(N) ::= ifelseif_list(N) ELSE EOL.         {if(N.start==N.last) N.start=sState->labelCnt++;printf("GOTO L%d\nLABEL L%d\n",N.start,N.last);}
-if_elseif(N) ::= ifelseif_list(N) ELSEIF.         {if(N.start==N.last) N.start=sState->labelCnt++;printf("GOTO L%d\nLABEL L%d\n",N.start,N.last);}
+if_else(N) ::= ifelseif_list(N) ELSE EOL.         {if(N.start==N.last) N.start=sState->labelCnt++;emit_i(P_GOTO,N.start);emit_i(P_LABEL,N.last);}
+if_elseif(N) ::= ifelseif_list(N) ELSEIF.         {if(N.start==N.last) N.start=sState->labelCnt++;emit_i(P_GOTO,N.start);emit_i(P_LABEL,N.last);}
 
 ifelseif_list(N) ::= if_elseif(NN) if_expr(P) stm_list. {N.start=NN.start;N.last=P;}
 ifelseif_list(N) ::= IF if_expr(P) stm_list.      {N.start=P;N.last=P;} 
  
-if_expr(N) ::= expr EOL.                          {N=sState->labelCnt++;printf("IF-FALSE L%d\n",N);}
+if_expr(N) ::= expr EOL.                          {N=sState->labelCnt++;emit_i(P_IF_FALSE,N);}
 
 // --- for statement ---
 
@@ -295,40 +295,40 @@ and_short_and2(N) ::=and_short(P) AND.            {N = P;printf("IF-AND L%d\n",N
 
 // --- espressioni relazionali
 rexpr ::= term.
-rexpr ::= term LT term.                           {printf("LT\n");}
-rexpr ::= term LE term.                           {printf("LE\n");}
-rexpr ::= term EQ term.                           {printf("EQ\n");}
-rexpr ::= term GE term.                           {printf("GE\n");}
-rexpr ::= term GT term.                           {printf("GT\n");}
-rexpr ::= term NE term.                           {printf("NE\n");}
-rexpr ::= term LT term LT term.                   {printf("LT-LT\n");}
-rexpr ::= term LE term LE term.                   {printf("LE-LE\n");}
-rexpr ::= term LT term LE term.                   {printf("LT-LE\n");}
-rexpr ::= term LE term LT term.                   {printf("LE-LT\n");}
+rexpr ::= term LT term.                           {emit(P_LT);}
+rexpr ::= term LE term.                           {emit(P_LE);}
+rexpr ::= term EQ term.                           {emit(P_EQ);}
+rexpr ::= term GE term.                           {emit(P_GE);}
+rexpr ::= term GT term.                           {emit(P_GT);}
+rexpr ::= term NE term.                           {emit(P_NE);}
+rexpr ::= term LT term LT term.                   {emit(P_LT_LT);}
+rexpr ::= term LE term LE term.                   {emit(P_LE_LE);}
+rexpr ::= term LT term LE term.                   {emit(P_LT_LE);}
+rexpr ::= term LE term LT term.                   {emit(P_LE_LT);}
 
 // --- operazioni + - * / %
 term ::= mterm.
-term ::= term PLUS mterm.                         {printf("PLUS\n");}
-term ::= term MINUS mterm.                        {printf("MINUS\n");}
+term ::= term PLUS mterm.                         {emit(P_PLUS);}
+term ::= term MINUS mterm.                        {emit(P_MINUS);}
 
 mterm ::= fact.
-mterm ::= mterm MULT fact.                        {printf("MULT\n");}
-mterm ::= mterm DIV fact.                         {printf("DIV\n");}
-mterm ::= mterm MOD fact.                         {printf("MOD\n");}
-mterm ::= mterm IDIV fact.                         {printf("IDIV\n");}
+mterm ::= mterm MULT fact.                        {emit(P_MULT);}
+mterm ::= mterm DIV fact.                         {emit(P_DIV);}
+mterm ::= mterm MOD fact.                         {emit(P_MOD);}
+mterm ::= mterm IDIV fact.                        {emit(P_IDIV);}
 
 // --- elementi base delle espressioni ---
 
-fact ::= NOT fact.                                {printf("NOT\n");} 
-fact ::= MINUS fact.                              {printf("UMINUS\n");} 
+fact ::= NOT fact.                                {emit(P_NOT);} 
+fact ::= MINUS fact.                              {emit(P_UMINUS);} 
 fact ::= PLUS fact.                               // {printf("UPLUS\n");} non serve!
 fact ::= iif_fact.
-fact ::= INT_CONST(value).                        {printf("INT_CONST %s\n",value);dispose(&value);}
-fact ::= STR_CONST(value).                        {printf("STR_CONST %s\n",value);dispose(&value);}
-fact ::= FLOAT_CONST(value).                      {printf("FLOAT_CONST %s\n",value);dispose(&value);}
-fact ::= TRUE.                                    {printf("TRUE\n");} 
-fact ::= FALSE.                                   {printf("FALSE\n");}
-fact ::= NIL.                                     {printf("NIL\n");}
+fact ::= INT_CONST(value).                        {emit_s(P_INT_CONST,value);dispose(&value);}
+fact ::= STR_CONST(value).                        {emit_s(P_STR_CONST,value);dispose(&value);}
+fact ::= FLOAT_CONST(value).                      {emit_s(P_FLOAT_CONST,value);dispose(&value);}
+fact ::= TRUE.                                    {emit(P_TRUE);} 
+fact ::= FALSE.                                   {emit(P_FALSE);}
+fact ::= NIL.                                     {emit(P_NIL);}
 fact ::= LPAR expr RPAR.
 fact ::= ref.
 fact ::= array_const.
@@ -336,8 +336,8 @@ fact ::= dict_const.
 fact ::= tuple_const.
 fact ::= array_compr.
 fact ::= dict_compr.
-fact ::= IS LPAR expr COMMA type RPAR.            {printf("IS\n");}
-fact ::= LPAR expr IS type RPAR.                  {printf("IS\n");}
+fact ::= IS LPAR expr COMMA type RPAR.            {emit(P_IS);}
+fact ::= LPAR expr IS type RPAR.                  {emit(P_IS);}
 
 // --- codice per la iif ---
 

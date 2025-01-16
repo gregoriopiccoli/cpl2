@@ -2659,7 +2659,7 @@ static YYACTIONTYPE yy_reduce(
         YYMINORTYPE yylhsminor;
       case 0: /* start ::= cmd_list */
 #line 17 "cpl2.gram"
-{int errs=sState->errors; if (errs>0) printf("ERRORS! %d\n",errs); else printf("OK!\n");}
+{int errs=sState->errors; if (errs>0) emit_i(P_ERROR,errs); else emit(P_OK);}
 #line 2663 "cpl2.c"
         break;
       case 1: /* import ::= IMPORT dottedid_list */
@@ -2715,12 +2715,12 @@ static YYACTIONTYPE yy_reduce(
         break;
       case 10: /* local ::= LOCAL */
 #line 55 "cpl2.gram"
-{printf("LOCAL\n");}
+{emit(P_LOCAL);}
 #line 2719 "cpl2.c"
         break;
       case 11: /* const ::= CONST */
 #line 61 "cpl2.gram"
-{printf("CONST\n");}
+{emit(P_CONST);}
 #line 2724 "cpl2.c"
         break;
       case 12: /* pardecl ::= type ID */
@@ -2780,505 +2780,509 @@ static YYACTIONTYPE yy_reduce(
 #line 2780 "cpl2.c"
         break;
       case 27: /* stm ::= expr EOL */
+      case 28: /* stm ::= vardecl EOL */ yytestcase(yyruleno==28);
 #line 118 "cpl2.gram"
-{printf("POP #value\n");}
-#line 2785 "cpl2.c"
-        break;
-      case 28: /* stm ::= vardecl EOL */
-#line 119 "cpl2.gram"
-{printf("POP #type\n");}
-#line 2790 "cpl2.c"
+{emit(P_POP);}
+#line 2786 "cpl2.c"
         break;
       case 29: /* var_list ::= ID */
       case 31: /* var_list ::= var_list COMMA ID */ yytestcase(yyruleno==31);
 #line 138 "cpl2.gram"
-{printf("VAR %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 2796 "cpl2.c"
+{emit_s(P_VAR,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 2792 "cpl2.c"
         break;
       case 30: /* var_list ::= ID ASSIGN lexpr */
       case 32: /* var_list ::= var_list COMMA ID ASSIGN lexpr */ yytestcase(yyruleno==32);
 #line 139 "cpl2.gram"
-{printf("VAR+STORE %s\n",yymsp[-2].minor.yy0);dispose(&yymsp[-2].minor.yy0);}
-#line 2802 "cpl2.c"
+{emit_s(P_VAR_STORE,yymsp[-2].minor.yy0);dispose(&yymsp[-2].minor.yy0);}
+#line 2798 "cpl2.c"
         break;
       case 33: /* type ::= or_type */
 #line 146 "cpl2.gram"
-{printf("OR_TYPE %d\n",yymsp[0].minor.yy236);}
-#line 2807 "cpl2.c"
+{emit_i(P_OR_TYPE,yymsp[0].minor.yy236);}
+#line 2803 "cpl2.c"
         break;
       case 34: /* or_type ::= btype VBAR btype */
 #line 148 "cpl2.gram"
 {yymsp[-2].minor.yy236 = 2;}
-#line 2812 "cpl2.c"
+#line 2808 "cpl2.c"
         break;
       case 36: /* btype ::= INT */
 #line 151 "cpl2.gram"
-{printf("INT_TYPE\n");}
-#line 2817 "cpl2.c"
+{emit(P_INT_TYPE);}
+#line 2813 "cpl2.c"
         break;
       case 37: /* btype ::= STR */
 #line 152 "cpl2.gram"
-{printf("STR_TYPE\n");}
-#line 2822 "cpl2.c"
+{emit(P_STR_TYPE);}
+#line 2818 "cpl2.c"
         break;
       case 38: /* btype ::= BOOL */
 #line 153 "cpl2.gram"
-{printf("BOOL_TYPE\n");}
-#line 2827 "cpl2.c"
+{emit(P_BOOL_TYPE);}
+#line 2823 "cpl2.c"
         break;
       case 39: /* btype ::= FLOAT */
 #line 154 "cpl2.gram"
-{printf("FLOAT_TYPE\n");}
-#line 2832 "cpl2.c"
+{emit(P_FLOAT_TYPE);}
+#line 2828 "cpl2.c"
         break;
       case 40: /* btype ::= DATE */
 #line 155 "cpl2.gram"
-{printf("DATE_TYPE\n");}
-#line 2837 "cpl2.c"
+{emit(P_DATE_TYPE);}
+#line 2833 "cpl2.c"
         break;
       case 41: /* btype ::= TIME */
 #line 156 "cpl2.gram"
-{printf("TIME_TYPE\n");}
-#line 2842 "cpl2.c"
+{emit(P_TIME_TYPE);}
+#line 2838 "cpl2.c"
         break;
       case 42: /* btype ::= DATETIME */
 #line 157 "cpl2.gram"
-{printf("DATETIME_TYPE\n");}
-#line 2847 "cpl2.c"
+{emit(P_DATETIME_TYPE);}
+#line 2843 "cpl2.c"
         break;
       case 43: /* btype ::= ANY */
       case 44: /* btype ::= QUESTIONMARK */ yytestcase(yyruleno==44);
 #line 158 "cpl2.gram"
-{printf("ANY_TYPE\n");}
-#line 2853 "cpl2.c"
+{emit(P_ANY_TYPE);}
+#line 2849 "cpl2.c"
         break;
       case 45: /* btype ::= dottedid */
 #line 161 "cpl2.gram"
 {printf("da fare user type\n");}
-#line 2858 "cpl2.c"
+#line 2854 "cpl2.c"
         break;
       case 46: /* dottedid ::= ID */
-      case 131: /* ref ::= ID */ yytestcase(yyruleno==131);
 #line 163 "cpl2.gram"
-{printf("LOAD %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 2864 "cpl2.c"
+{emit_s(P_LOAD,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 2859 "cpl2.c"
         break;
       case 47: /* dottedid ::= dottedid DOT ID */
-      case 136: /* ref ::= ref DOT ID */ yytestcase(yyruleno==136);
 #line 164 "cpl2.gram"
-{printf("LOADX %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 2870 "cpl2.c"
+{emit_s(P_LOADX,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 2864 "cpl2.c"
         break;
       case 48: /* btype ::= ARRAY LSQ type RSQ */
 #line 166 "cpl2.gram"
-{printf("ARRAY_TYPE\n");}
-#line 2875 "cpl2.c"
+{emit(P_ARRAY_TYPE);}
+#line 2869 "cpl2.c"
         break;
       case 49: /* btype ::= DICT LSQ type RSQ */
 #line 167 "cpl2.gram"
-{printf("DICT_TYPE\n");}
-#line 2880 "cpl2.c"
+{emit(P_DICT_TYPE);}
+#line 2874 "cpl2.c"
         break;
       case 50: /* btype ::= TUPLE LSQ type_list RSQ */
 #line 168 "cpl2.gram"
-{printf("TUPLE_TYPE %d\n",yymsp[-1].minor.yy236);}
-#line 2885 "cpl2.c"
+{emit_i(P_TUPLE_TYPE,yymsp[-1].minor.yy236);}
+#line 2879 "cpl2.c"
         break;
       case 51: /* btype ::= LPAR type COLON type_list RPAR */
 #line 169 "cpl2.gram"
-{printf("FUNC_TYPE %d\n",yymsp[-1].minor.yy236);}
-#line 2890 "cpl2.c"
+{emit_i(P_FUNC_TYPE,yymsp[-1].minor.yy236);}
+#line 2884 "cpl2.c"
         break;
       case 52: /* btype ::= LPAR type COLON RPAR */
 #line 170 "cpl2.gram"
-{printf("FUNC_TYPE 0\n");}
-#line 2895 "cpl2.c"
+{emit_i(P_FUNC_TYPE,0);}
+#line 2889 "cpl2.c"
         break;
       case 53: /* btype ::= LPAR type_list RPAR */
 #line 171 "cpl2.gram"
-{printf("PROC_TYPE %d\n",yymsp[-1].minor.yy236);}
-#line 2900 "cpl2.c"
+{emit_i(P_PROC_TYPE,yymsp[-1].minor.yy236);}
+#line 2894 "cpl2.c"
         break;
       case 54: /* btype ::= LPAR RPAR */
 #line 172 "cpl2.gram"
-{printf("PROC_TYPE 0\n");}
-#line 2905 "cpl2.c"
+{emit_i(P_PROC_TYPE,0);}
+#line 2899 "cpl2.c"
         break;
       case 56: /* type_list ::= type ID */
 #line 175 "cpl2.gram"
-{yymsp[-1].minor.yy236 = 1;printf("PARMNAME %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 2910 "cpl2.c"
+{yymsp[-1].minor.yy236 = 1;emit_s(P_PARMNAME,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 2904 "cpl2.c"
         break;
       case 58: /* type_list ::= type_list COMMA type ID */
 #line 177 "cpl2.gram"
-{yylhsminor.yy236 = yymsp[-3].minor.yy236+1;printf("PARMNAME %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 2915 "cpl2.c"
+{yylhsminor.yy236 = yymsp[-3].minor.yy236+1;emit_s(P_PARMNAME,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 2909 "cpl2.c"
   yymsp[-3].minor.yy236 = yylhsminor.yy236;
         break;
       case 59: /* if_stm ::= ifelseif_list END */
 #line 186 "cpl2.gram"
-{printf("LABEL L%d\n",yymsp[-1].minor.yy232.start);if(yymsp[-1].minor.yy232.start!=yymsp[-1].minor.yy232.last) printf("LABEL L%d\n",yymsp[-1].minor.yy232.last);}
-#line 2921 "cpl2.c"
+{emit_i(P_LABEL,yymsp[-1].minor.yy232.start);if(yymsp[-1].minor.yy232.start!=yymsp[-1].minor.yy232.last) emit_i(P_LABEL,yymsp[-1].minor.yy232.last);}
+#line 2915 "cpl2.c"
         break;
       case 60: /* if_stm ::= if_else stm_list END */
 #line 187 "cpl2.gram"
-{printf("LABEL L%d\n",yymsp[-2].minor.yy232.start);}
-#line 2926 "cpl2.c"
+{emit_i(P_LABEL,yymsp[-2].minor.yy232.start);}
+#line 2920 "cpl2.c"
         break;
       case 61: /* if_else ::= ifelseif_list ELSE EOL */
 #line 189 "cpl2.gram"
-{if(yymsp[-2].minor.yy232.start==yymsp[-2].minor.yy232.last) yymsp[-2].minor.yy232.start=sState->labelCnt++;printf("GOTO L%d\nLABEL L%d\n",yymsp[-2].minor.yy232.start,yymsp[-2].minor.yy232.last);}
-#line 2931 "cpl2.c"
+{if(yymsp[-2].minor.yy232.start==yymsp[-2].minor.yy232.last) yymsp[-2].minor.yy232.start=sState->labelCnt++;emit_i(P_GOTO,yymsp[-2].minor.yy232.start);emit_i(P_LABEL,yymsp[-2].minor.yy232.last);}
+#line 2925 "cpl2.c"
         break;
       case 62: /* if_elseif ::= ifelseif_list ELSEIF */
 #line 190 "cpl2.gram"
-{if(yymsp[-1].minor.yy232.start==yymsp[-1].minor.yy232.last) yymsp[-1].minor.yy232.start=sState->labelCnt++;printf("GOTO L%d\nLABEL L%d\n",yymsp[-1].minor.yy232.start,yymsp[-1].minor.yy232.last);}
-#line 2936 "cpl2.c"
+{if(yymsp[-1].minor.yy232.start==yymsp[-1].minor.yy232.last) yymsp[-1].minor.yy232.start=sState->labelCnt++;emit_i(P_GOTO,yymsp[-1].minor.yy232.start);emit_i(P_LABEL,yymsp[-1].minor.yy232.last);}
+#line 2930 "cpl2.c"
         break;
       case 63: /* ifelseif_list ::= if_elseif if_expr stm_list */
 #line 192 "cpl2.gram"
 {yylhsminor.yy232.start=yymsp[-2].minor.yy232.start;yylhsminor.yy232.last=yymsp[-1].minor.yy236;}
-#line 2941 "cpl2.c"
+#line 2935 "cpl2.c"
   yymsp[-2].minor.yy232 = yylhsminor.yy232;
         break;
       case 64: /* ifelseif_list ::= IF if_expr stm_list */
 #line 193 "cpl2.gram"
 {yymsp[-2].minor.yy232.start=yymsp[-1].minor.yy236;yymsp[-2].minor.yy232.last=yymsp[-1].minor.yy236;}
-#line 2947 "cpl2.c"
+#line 2941 "cpl2.c"
         break;
       case 65: /* if_expr ::= expr EOL */
 #line 195 "cpl2.gram"
-{yymsp[-1].minor.yy236=sState->labelCnt++;printf("IF-FALSE L%d\n",yymsp[-1].minor.yy236);}
-#line 2952 "cpl2.c"
+{yymsp[-1].minor.yy236=sState->labelCnt++;emit_i(P_IF_FALSE,yymsp[-1].minor.yy236);}
+#line 2946 "cpl2.c"
         break;
       case 66: /* for_stm ::= FOR ID ASSIGN expr TO expr EOL stm_list END */
       case 68: /* for_stm ::= FOR ID ASSIGN expr DOWNTO expr EOL stm_list END */ yytestcase(yyruleno==68);
 #line 199 "cpl2.gram"
 {printf("da fare for ...\n");dispose(&yymsp[-7].minor.yy0);}
-#line 2958 "cpl2.c"
+#line 2952 "cpl2.c"
         break;
       case 67: /* for_stm ::= FOR ID ASSIGN expr TO expr STEP expr EOL stm_list END */
       case 69: /* for_stm ::= FOR ID ASSIGN expr DOWNTO expr STEP expr EOL stm_list END */ yytestcase(yyruleno==69);
 #line 200 "cpl2.gram"
 {printf("da fare for ...\n");dispose(&yymsp[-9].minor.yy0);}
-#line 2964 "cpl2.c"
+#line 2958 "cpl2.c"
         break;
       case 70: /* switch_stm ::= SWITCH expr EOL case_list case_else END */
 #line 206 "cpl2.gram"
 {printf("da fare switch ...\n");}
-#line 2969 "cpl2.c"
+#line 2963 "cpl2.c"
         break;
       case 71: /* foreach_stm ::= FOR EACH ID IN expr EOL stm_list END */
 #line 225 "cpl2.gram"
 {printf("da fare for-each\n");dispose(&yymsp[-5].minor.yy0);}
-#line 2974 "cpl2.c"
+#line 2968 "cpl2.c"
         break;
       case 72: /* foreach_stm ::= FOR EACH ID COMMA ID IN expr EOL stm_list END */
 #line 226 "cpl2.gram"
 {printf("da fare for-each\n");dispose(&yymsp[-7].minor.yy0);dispose(&yymsp[-5].minor.yy0);}
-#line 2979 "cpl2.c"
+#line 2973 "cpl2.c"
         break;
       case 73: /* foreach_stm ::= FOR EACH ID IN expr WITH expr EOL stm_list END */
 #line 227 "cpl2.gram"
 {printf("da fare for-each-with\n");dispose(&yymsp[-7].minor.yy0);}
-#line 2984 "cpl2.c"
+#line 2978 "cpl2.c"
         break;
       case 74: /* foreach_stm ::= FOR EACH ID COMMA ID IN expr WITH expr EOL stm_list END */
 #line 228 "cpl2.gram"
 {printf("da fare for-each-with\n");dispose(&yymsp[-9].minor.yy0);dispose(&yymsp[-7].minor.yy0);}
-#line 2989 "cpl2.c"
+#line 2983 "cpl2.c"
         break;
       case 75: /* while_stm ::= while_expr stm_list END */
 #line 235 "cpl2.gram"
 {printf("GOTO L%d\nLABEL L%d\n",yymsp[-2].minor.yy232.start,yymsp[-2].minor.yy232.last);}
-#line 2994 "cpl2.c"
+#line 2988 "cpl2.c"
         break;
       case 76: /* while_expr ::= while_tok expr EOL */
 #line 236 "cpl2.gram"
 {yylhsminor.yy232.start=yymsp[-2].minor.yy236;yylhsminor.yy232.last=sState->labelCnt++;printf("IF-FALSE L%d\n",yylhsminor.yy232.last);}
-#line 2999 "cpl2.c"
+#line 2993 "cpl2.c"
   yymsp[-2].minor.yy232 = yylhsminor.yy232;
         break;
       case 77: /* while_tok ::= WHILE */
       case 79: /* repeat_tok ::= REPEAT */ yytestcase(yyruleno==79);
 #line 237 "cpl2.gram"
 {yymsp[0].minor.yy236=sState->labelCnt++;printf("LABEL L%d\n",yymsp[0].minor.yy236);}
-#line 3006 "cpl2.c"
+#line 3000 "cpl2.c"
         break;
       case 78: /* repeat_stm ::= repeat_tok stm_list UNTIL expr */
 #line 243 "cpl2.gram"
 {printf("IF-FALSE L%d\n",yymsp[-3].minor.yy236);}
-#line 3011 "cpl2.c"
+#line 3005 "cpl2.c"
         break;
       case 80: /* try_catch_stm ::= TRY EOL stm_list catch_list END */
 #line 248 "cpl2.gram"
 {printf("da fare try/catch ...\n");}
-#line 3016 "cpl2.c"
+#line 3010 "cpl2.c"
         break;
       case 82: /* raise_stm ::= RAISE */
 #line 253 "cpl2.gram"
 {printf("RAISE 0\n");}
-#line 3021 "cpl2.c"
+#line 3015 "cpl2.c"
         break;
       case 83: /* raise_stm ::= RAISE LPAR expr RPAR */
 #line 254 "cpl2.gram"
 {printf("RAISE 1\n");}
-#line 3026 "cpl2.c"
+#line 3020 "cpl2.c"
         break;
       case 84: /* raise_stm ::= RAISE LPAR expr COMMA RPAR */
 #line 255 "cpl2.gram"
 {printf("RAISE 2\n");}
-#line 3031 "cpl2.c"
+#line 3025 "cpl2.c"
         break;
       case 85: /* print_stm ::= QUESTIONMARK print_list */
 #line 259 "cpl2.gram"
 {printf("PRINT %d\n",yymsp[0].minor.yy236);}
-#line 3036 "cpl2.c"
+#line 3030 "cpl2.c"
         break;
       case 88: /* pre_stm ::= PRE expr */
 #line 266 "cpl2.gram"
 {printf("da fare pre ....\n");}
-#line 3041 "cpl2.c"
+#line 3035 "cpl2.c"
         break;
       case 89: /* post_stm ::= POST expr */
 #line 267 "cpl2.gram"
 {printf("da fare post ....\n");}
-#line 3046 "cpl2.c"
+#line 3040 "cpl2.c"
         break;
       case 90: /* assert_stm ::= ASSERT expr */
 #line 268 "cpl2.gram"
 {printf("da fare assert ....\n");}
-#line 3051 "cpl2.c"
+#line 3045 "cpl2.c"
         break;
       case 91: /* invariant_stm ::= INVARIANT expr */
 #line 269 "cpl2.gram"
 {printf("da fare invariant ....\n");}
-#line 3056 "cpl2.c"
+#line 3050 "cpl2.c"
         break;
       case 92: /* expr ::= ID ASSIGN expr */
 #line 274 "cpl2.gram"
 {printf("STORE %s\n",yymsp[-2].minor.yy0);dispose(&yymsp[-2].minor.yy0);}
-#line 3061 "cpl2.c"
+#line 3055 "cpl2.c"
         break;
       case 93: /* expr ::= RESULT ASSIGN expr */
 #line 275 "cpl2.gram"
 {printf("STORE-RESULT\n");}
-#line 3066 "cpl2.c"
+#line 3060 "cpl2.c"
         break;
       case 94: /* expr ::= ref DOT ID ASSIGN expr */
 #line 276 "cpl2.gram"
 {printf("STOREX %s\n",yymsp[-2].minor.yy0);dispose(&yymsp[-2].minor.yy0);}
-#line 3071 "cpl2.c"
+#line 3065 "cpl2.c"
         break;
       case 95: /* expr ::= ref LSQ expr RSQ ASSIGN expr */
 #line 277 "cpl2.gram"
 {printf("STORESLICE\n");}
-#line 3076 "cpl2.c"
+#line 3070 "cpl2.c"
         break;
       case 96: /* lexpr ::= lexpr OR lexpra */
 #line 282 "cpl2.gram"
 {printf("OR\n");}
-#line 3081 "cpl2.c"
+#line 3075 "cpl2.c"
         break;
       case 97: /* lexpra ::= and_short */
 #line 284 "cpl2.gram"
 {printf("LABEL L%d\n",yymsp[0].minor.yy236);}
-#line 3086 "cpl2.c"
+#line 3080 "cpl2.c"
         break;
       case 98: /* and_short ::= and_short_and1 rexpr */
       case 100: /* and_short ::= and_short_and2 rexpr */ yytestcase(yyruleno==100);
 #line 290 "cpl2.gram"
 {yylhsminor.yy236 = yymsp[-1].minor.yy236;}
-#line 3092 "cpl2.c"
+#line 3086 "cpl2.c"
   yymsp[-1].minor.yy236 = yylhsminor.yy236;
         break;
       case 99: /* and_short_and1 ::= rexpr AND */
 #line 291 "cpl2.gram"
 {yymsp[-1].minor.yy236 = sState->labelCnt++;printf("IF-AND L%d\n",yymsp[-1].minor.yy236);}
-#line 3098 "cpl2.c"
+#line 3092 "cpl2.c"
         break;
       case 101: /* and_short_and2 ::= and_short AND */
 #line 293 "cpl2.gram"
 {yylhsminor.yy236 = yymsp[-1].minor.yy236;printf("IF-AND L%d\n",yylhsminor.yy236);}
-#line 3103 "cpl2.c"
+#line 3097 "cpl2.c"
   yymsp[-1].minor.yy236 = yylhsminor.yy236;
         break;
       case 102: /* rexpr ::= term LT term */
 #line 298 "cpl2.gram"
-{printf("LT\n");}
-#line 3109 "cpl2.c"
+{emit(P_LT);}
+#line 3103 "cpl2.c"
         break;
       case 103: /* rexpr ::= term LE term */
 #line 299 "cpl2.gram"
-{printf("LE\n");}
-#line 3114 "cpl2.c"
+{emit(P_LE);}
+#line 3108 "cpl2.c"
         break;
       case 104: /* rexpr ::= term EQ term */
 #line 300 "cpl2.gram"
-{printf("EQ\n");}
-#line 3119 "cpl2.c"
+{emit(P_EQ);}
+#line 3113 "cpl2.c"
         break;
       case 105: /* rexpr ::= term GE term */
 #line 301 "cpl2.gram"
-{printf("GE\n");}
-#line 3124 "cpl2.c"
+{emit(P_GE);}
+#line 3118 "cpl2.c"
         break;
       case 106: /* rexpr ::= term GT term */
 #line 302 "cpl2.gram"
-{printf("GT\n");}
-#line 3129 "cpl2.c"
+{emit(P_GT);}
+#line 3123 "cpl2.c"
         break;
       case 107: /* rexpr ::= term NE term */
 #line 303 "cpl2.gram"
-{printf("NE\n");}
-#line 3134 "cpl2.c"
+{emit(P_NE);}
+#line 3128 "cpl2.c"
         break;
       case 108: /* rexpr ::= term LT term LT term */
 #line 304 "cpl2.gram"
-{printf("LT-LT\n");}
-#line 3139 "cpl2.c"
+{emit(P_LT_LT);}
+#line 3133 "cpl2.c"
         break;
       case 109: /* rexpr ::= term LE term LE term */
 #line 305 "cpl2.gram"
-{printf("LE-LE\n");}
-#line 3144 "cpl2.c"
+{emit(P_LE_LE);}
+#line 3138 "cpl2.c"
         break;
       case 110: /* rexpr ::= term LT term LE term */
 #line 306 "cpl2.gram"
-{printf("LT-LE\n");}
-#line 3149 "cpl2.c"
+{emit(P_LT_LE);}
+#line 3143 "cpl2.c"
         break;
       case 111: /* rexpr ::= term LE term LT term */
 #line 307 "cpl2.gram"
-{printf("LE-LT\n");}
-#line 3154 "cpl2.c"
+{emit(P_LE_LT);}
+#line 3148 "cpl2.c"
         break;
       case 112: /* term ::= term PLUS mterm */
 #line 311 "cpl2.gram"
-{printf("PLUS\n");}
-#line 3159 "cpl2.c"
+{emit(P_PLUS);}
+#line 3153 "cpl2.c"
         break;
       case 113: /* term ::= term MINUS mterm */
 #line 312 "cpl2.gram"
-{printf("MINUS\n");}
-#line 3164 "cpl2.c"
+{emit(P_MINUS);}
+#line 3158 "cpl2.c"
         break;
       case 114: /* mterm ::= mterm MULT fact */
 #line 315 "cpl2.gram"
-{printf("MULT\n");}
-#line 3169 "cpl2.c"
+{emit(P_MULT);}
+#line 3163 "cpl2.c"
         break;
       case 115: /* mterm ::= mterm DIV fact */
 #line 316 "cpl2.gram"
-{printf("DIV\n");}
-#line 3174 "cpl2.c"
+{emit(P_DIV);}
+#line 3168 "cpl2.c"
         break;
       case 116: /* mterm ::= mterm MOD fact */
 #line 317 "cpl2.gram"
-{printf("MOD\n");}
-#line 3179 "cpl2.c"
+{emit(P_MOD);}
+#line 3173 "cpl2.c"
         break;
       case 117: /* mterm ::= mterm IDIV fact */
 #line 318 "cpl2.gram"
-{printf("IDIV\n");}
-#line 3184 "cpl2.c"
+{emit(P_IDIV);}
+#line 3178 "cpl2.c"
         break;
       case 118: /* fact ::= NOT fact */
 #line 322 "cpl2.gram"
-{printf("NOT\n");}
-#line 3189 "cpl2.c"
+{emit(P_NOT);}
+#line 3183 "cpl2.c"
         break;
       case 119: /* fact ::= MINUS fact */
 #line 323 "cpl2.gram"
-{printf("UMINUS\n");}
-#line 3194 "cpl2.c"
+{emit(P_UMINUS);}
+#line 3188 "cpl2.c"
         break;
       case 120: /* fact ::= INT_CONST */
 #line 326 "cpl2.gram"
-{printf("INT_CONST %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3199 "cpl2.c"
+{emit_s(P_INT_CONST,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 3193 "cpl2.c"
         break;
       case 121: /* fact ::= STR_CONST */
 #line 327 "cpl2.gram"
-{printf("STR_CONST %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3204 "cpl2.c"
+{emit_s(P_STR_CONST,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 3198 "cpl2.c"
         break;
       case 122: /* fact ::= FLOAT_CONST */
 #line 328 "cpl2.gram"
-{printf("FLOAT_CONST %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3209 "cpl2.c"
+{emit_s(P_FLOAT_CONST,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 3203 "cpl2.c"
         break;
       case 123: /* fact ::= TRUE */
 #line 329 "cpl2.gram"
-{printf("TRUE\n");}
-#line 3214 "cpl2.c"
+{emit(P_TRUE);}
+#line 3208 "cpl2.c"
         break;
       case 124: /* fact ::= FALSE */
 #line 330 "cpl2.gram"
-{printf("FALSE\n");}
-#line 3219 "cpl2.c"
+{emit(P_FALSE);}
+#line 3213 "cpl2.c"
         break;
       case 125: /* fact ::= NIL */
 #line 331 "cpl2.gram"
-{printf("NIL\n");}
-#line 3224 "cpl2.c"
+{emit(P_NIL);}
+#line 3218 "cpl2.c"
         break;
       case 126: /* fact ::= IS LPAR expr COMMA type RPAR */
       case 127: /* fact ::= LPAR expr IS type RPAR */ yytestcase(yyruleno==127);
 #line 339 "cpl2.gram"
-{printf("IS\n");}
-#line 3230 "cpl2.c"
+{emit(P_IS);}
+#line 3224 "cpl2.c"
         break;
       case 128: /* iif_fact ::= iif_then expr RPAR */
 #line 344 "cpl2.gram"
 {printf("LABEL L%d\n",yymsp[-2].minor.yy236);}
-#line 3235 "cpl2.c"
+#line 3229 "cpl2.c"
         break;
       case 129: /* iif_test ::= IIF LPAR expr COMMA */
 #line 345 "cpl2.gram"
 {yymsp[-3].minor.yy236=sState->labelCnt++;printf("IF-FALSE L%d\n",yymsp[-3].minor.yy236);}
-#line 3240 "cpl2.c"
+#line 3234 "cpl2.c"
         break;
       case 130: /* iif_then ::= iif_test expr COMMA */
 #line 346 "cpl2.gram"
 {yylhsminor.yy236=sState->labelCnt++;printf("GOTO L%d\nLABEL L%d\n",yylhsminor.yy236,yymsp[-2].minor.yy236);}
-#line 3245 "cpl2.c"
+#line 3239 "cpl2.c"
   yymsp[-2].minor.yy236 = yylhsminor.yy236;
+        break;
+      case 131: /* ref ::= ID */
+#line 350 "cpl2.gram"
+{printf("LOAD %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 3245 "cpl2.c"
         break;
       case 132: /* ref ::= RESULT */
 #line 351 "cpl2.gram"
 {printf("LOAD-RESULT\n");}
-#line 3251 "cpl2.c"
+#line 3250 "cpl2.c"
         break;
       case 133: /* ref ::= OLD */
 #line 352 "cpl2.gram"
 {printf("OLD\n");}
-#line 3256 "cpl2.c"
+#line 3255 "cpl2.c"
         break;
       case 134: /* ref ::= INHERITED */
 #line 353 "cpl2.gram"
 {printf("LOAD-INHERITED\n");}
-#line 3261 "cpl2.c"
+#line 3260 "cpl2.c"
         break;
       case 135: /* ref ::= AT ID */
 #line 354 "cpl2.gram"
 {printf("LOADREF %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3266 "cpl2.c"
+#line 3265 "cpl2.c"
+        break;
+      case 136: /* ref ::= ref DOT ID */
+#line 355 "cpl2.gram"
+{printf("LOADX %s\n",yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
+#line 3270 "cpl2.c"
         break;
       case 137: /* ref ::= ref LSQ expr RSQ */
 #line 356 "cpl2.gram"
 {printf("SLICE\n");}
-#line 3271 "cpl2.c"
+#line 3275 "cpl2.c"
         break;
       case 138: /* ref ::= ref LPAR par_list RPAR */
 #line 357 "cpl2.gram"
 {printf("CALL %d\n",yymsp[-1].minor.yy236);}
-#line 3276 "cpl2.c"
+#line 3280 "cpl2.c"
         break;
       case 139: /* par_list ::= */
 #line 359 "cpl2.gram"
 {yymsp[1].minor.yy236=0;}
-#line 3281 "cpl2.c"
+#line 3285 "cpl2.c"
         break;
       case 140: /* par_list ::= par_expr */
       case 146: /* array_list ::= expr */ yytestcase(yyruleno==146);
@@ -3286,7 +3290,7 @@ static YYACTIONTYPE yy_reduce(
       case 158: /* tuple_list ::= expr */ yytestcase(yyruleno==158);
 #line 360 "cpl2.gram"
 {yymsp[0].minor.yy236=1;}
-#line 3289 "cpl2.c"
+#line 3293 "cpl2.c"
         break;
       case 141: /* par_list ::= par_list COMMA par_expr */
       case 145: /* array_list ::= array_list COMMA expr */ yytestcase(yyruleno==145);
@@ -3294,63 +3298,63 @@ static YYACTIONTYPE yy_reduce(
       case 157: /* tuple_list ::= tuple_list COMMA expr */ yytestcase(yyruleno==157);
 #line 361 "cpl2.gram"
 {yylhsminor.yy236=yymsp[-2].minor.yy236+1;}
-#line 3297 "cpl2.c"
+#line 3301 "cpl2.c"
   yymsp[-2].minor.yy236 = yylhsminor.yy236;
         break;
       case 142: /* par_expr ::= ID ASSIGN lexpr */
 #line 362 "cpl2.gram"
 {printf("NAMEDPARM %s\n",yymsp[-2].minor.yy0);dispose(&yymsp[-2].minor.yy0);}
-#line 3303 "cpl2.c"
+#line 3307 "cpl2.c"
         break;
       case 143: /* array_const ::= LSQ RSQ */
 #line 367 "cpl2.gram"
 {printf("ARRAY 0\n");}
-#line 3308 "cpl2.c"
+#line 3312 "cpl2.c"
         break;
       case 144: /* array_const ::= LSQ array_list RSQ */
 #line 368 "cpl2.gram"
 {printf("ARRAY %d\n",yymsp[-1].minor.yy236);}
-#line 3313 "cpl2.c"
+#line 3317 "cpl2.c"
         break;
       case 147: /* array_compr ::= LSQ expr FOR EACH ID IN expr WITH expr RSQ */
 #line 372 "cpl2.gram"
 {printf("da fare array comprehension %s\n",yymsp[-5].minor.yy0);dispose(&yymsp[-5].minor.yy0);}
-#line 3318 "cpl2.c"
+#line 3322 "cpl2.c"
         break;
       case 148: /* array_compr ::= LSQ expr FOR EACH ID IN expr RSQ */
 #line 373 "cpl2.gram"
 {printf("da fare array comprehension %s\n",yymsp[-3].minor.yy0);dispose(&yymsp[-3].minor.yy0);}
-#line 3323 "cpl2.c"
+#line 3327 "cpl2.c"
         break;
       case 149: /* dict_const ::= LBR RBR */
 #line 375 "cpl2.gram"
 {printf("DICT 0\n");}
-#line 3328 "cpl2.c"
+#line 3332 "cpl2.c"
         break;
       case 150: /* dict_const ::= LBR dict_list RBR */
 #line 376 "cpl2.gram"
 {printf("DICT %d\n",yymsp[-1].minor.yy236);}
-#line 3333 "cpl2.c"
+#line 3337 "cpl2.c"
         break;
       case 153: /* dict_list_elem ::= STR_CONST COLON expr */
 #line 379 "cpl2.gram"
 {printf("STR_CONST %s\n",yymsp[-2].minor.yy0);dispose(&yymsp[-2].minor.yy0);}
-#line 3338 "cpl2.c"
+#line 3342 "cpl2.c"
         break;
       case 154: /* dict_compr ::= LSQ expr COLON expr FOR EACH ID IN expr WITH expr RSQ */
 #line 381 "cpl2.gram"
 {printf("da fare dict comprehension %s\n",yymsp[-5].minor.yy0);dispose(&yymsp[-5].minor.yy0);}
-#line 3343 "cpl2.c"
+#line 3347 "cpl2.c"
         break;
       case 155: /* dict_compr ::= LSQ expr COLON expr FOR EACH ID IN expr RSQ */
 #line 382 "cpl2.gram"
 {printf("da fare dict comprehension %s\n",yymsp[-3].minor.yy0);dispose(&yymsp[-3].minor.yy0);}
-#line 3348 "cpl2.c"
+#line 3352 "cpl2.c"
         break;
       case 156: /* tuple_const ::= VBAR tuple_list VBAR */
 #line 384 "cpl2.gram"
 {printf("TUPLE %d\n",yymsp[-1].minor.yy236);}
-#line 3353 "cpl2.c"
+#line 3357 "cpl2.c"
         break;
       default:
       /* (159) cmd_list ::= cmd_list cmd */ yytestcase(yyruleno==159);
@@ -3485,7 +3489,7 @@ static void yy_syntax_error(
 /************ Begin %syntax_error code ****************************************/
 #line 15 "cpl2.gram"
 printf("syntax error at line %d!\n",sState->lineNo);sState->errors++;
-#line 3488 "cpl2.c"
+#line 3492 "cpl2.c"
 /************ End %syntax_error code ******************************************/
   ParseARG_STORE /* Suppress warning about unused %extra_argument variable */
   ParseCTX_STORE

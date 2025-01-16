@@ -335,6 +335,20 @@ typedef struct ifelseif {
 	int last;
 } ifelseif;
 		
+#include "pcodes.c"
+		
+void emit(int pcode){
+	printf("%s\n",pcodetxt[pcode]);
+}
+
+void emit_i(int pcode, int v){
+	printf("%s %d\n",pcodetxt[pcode],v);
+}
+
+void emit_s(int pcode, char* v){
+	printf("%s %s\n",pcodetxt[pcode],v);
+}
+		
 #include "cpl2.c"
 
 int stackLevel(yyParser* p){
@@ -349,6 +363,8 @@ int stackLevel(yyParser* p){
 
 int main(){
 	// parte mia
+	initpcodetxt();
+	emit_s(P_VERSION,"0.0.1");
     char line[200];
     fgets(line,200,stdin);
     scannerStatus s;
@@ -367,7 +383,8 @@ int main(){
 	  // setta il numero di riga per riportare la posizione degli errori
 	  s.lineNo++;
 	  sState.lineNo++;
-	  printf("LINE %d # %s",s.lineNo,line);
+	  emit_i(P_LINE,s.lineNo);
+	  printf("-- %s",line);
 	  // inizializza la linea
       initScannerLine(&s,line);		
       while (GetNextToken(&s, &hTokenId, &sToken)){
