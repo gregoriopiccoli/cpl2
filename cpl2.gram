@@ -1,3 +1,10 @@
+/*
+
+DA FARE: 
+short-cut evaluation su OR
+
+*/
+
 %token_type {char*}
 %token_prefix TOK_
 
@@ -232,16 +239,16 @@ foreach_stm ::= FOR EACH ID(value) COMMA ID(key) IN expr WITH expr EOL stm_list 
 %type while_expr {ifelseif}
 %type while_tok {int}
 
-while_stm ::= while_expr(N) stm_list END.         {printf("GOTO L%d\nLABEL L%d\n",N.start,N.last);} 
-while_expr(N) ::= while_tok(P) expr EOL.          {N.start=P;N.last=sState->labelCnt++;printf("IF-FALSE L%d\n",N.last);}
-while_tok(N) ::= WHILE.                           {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
+while_stm ::= while_expr(N) stm_list END.         {emit_i(P_GOTO,N.start); emit_i(P_LABEL,N.last);} 
+while_expr(N) ::= while_tok(P) expr EOL.          {N.start=P;N.last=sState->labelCnt++;emit_i(P_IF_FALSE,N.last);}
+while_tok(N) ::= WHILE.                           {N=sState->labelCnt++;emit_i(P_LABEL,N);}
 
 // --- repeat statement ---
 
 %type repeat_tok {int}
 
-repeat_stm ::= repeat_tok(N) stm_list UNTIL expr. {printf("IF-FALSE L%d\n",N);}              
-repeat_tok(N) ::= REPEAT.                         {N=sState->labelCnt++;printf("LABEL L%d\n",N);}
+repeat_stm ::= repeat_tok(N) stm_list UNTIL expr. {emit_i(P_IF_FALSE,N);}              
+repeat_tok(N) ::= REPEAT.                         {N=sState->labelCnt++;emit_i(P_LABEL,N);}
 
 // --- try/catch statement ---
 
@@ -250,13 +257,13 @@ catch_list ::= catch_catch.
 catch_list ::= catch_list catch_catch.
 catch_catch ::= CATCH LPAR type ID(value) RPAR EOL stm_list. {dispose(&value);}
 
-raise_stm ::= RAISE.                              {printf("RAISE 0\n");}
-raise_stm ::= RAISE LPAR expr RPAR.               {printf("RAISE 1\n");}
-raise_stm ::= RAISE LPAR expr COMMA RPAR.         {printf("RAISE 2\n");}
+raise_stm ::= RAISE.                              {emit_i(P_RAISE,0);}
+raise_stm ::= RAISE LPAR expr RPAR.               {emit_i(P_RAISE,1);}
+raise_stm ::= RAISE LPAR expr COMMA RPAR.         {emit_i(P_RAISE,2);}
 
 // --- print statement ---
 
-print_stm ::= QUESTIONMARK print_list(N).         {printf("PRINT %d\n",N);}
+print_stm ::= QUESTIONMARK print_list(N).         {emit_i(P_PRINT,N);}
 
 print_list(N) ::= expr.                           {N = 1;}
 print_list(N) ::= print_list(P) COMMA expr.       {N = P+1;}
@@ -271,26 +278,26 @@ invariant_stm ::= INVARIANT expr.                {printf("da fare invariant ....
 // --- espressioni con assegnazione ---
 
 expr ::= lexpr.                            
-expr ::= ID(value) ASSIGN expr.                   {printf("STORE %s\n",value);dispose(&value);}
-expr ::= RESULT ASSIGN expr.                      {printf("STORE-RESULT\n");}
-expr ::= ref DOT ID(value) ASSIGN expr.           {printf("STOREX %s\n",value);dispose(&value);}
-expr ::= ref LSQ expr RSQ ASSIGN expr.            {printf("STORESLICE\n");}
+expr ::= ID(value) ASSIGN expr.                   {emit_s(P_STORE,value);dispose(&value);}
+expr ::= RESULT ASSIGN expr.                      {emit(P_STORE_RESULT);}
+expr ::= ref DOT ID(value) ASSIGN expr.           {emit_s(P_STOREX,value);dispose(&value);}
+expr ::= ref LSQ expr RSQ ASSIGN expr.            {emit(P_STORESLICE);}
 
 // --- espressioni logiche ---
 // da fare: shortcut evaluation --- forse sono riuscito a farlo per la AND
 lexpr ::= lexpra.
-lexpr ::= lexpr OR lexpra.                        {printf("OR\n");}
+lexpr ::= lexpr OR lexpra.                        {emit(P_OR);}
 lexpra ::= rexpr.
-lexpra ::= and_short(P).                          {printf("LABEL L%d\n",P);}
+lexpra ::= and_short(P).                          {emit_i(P_LABEL,P);}
 
 %type and_short {int}
 %type and_short_and1 {int}
 %type and_short_and2 {int}
 
 and_short(N) ::= and_short_and1(P) rexpr.         {N = P;}
-and_short_and1(N) ::= rexpr AND.                  {N = sState->labelCnt++;printf("IF-AND L%d\n",N);} // riserva la label che verrà messa alla fine
+and_short_and1(N) ::= rexpr AND.                  {N = sState->labelCnt++;emit_i(P_IF_AND,N);} // riserva la label che verrà messa alla fine
 and_short(N) ::= and_short_and2(P) rexpr.         {N = P;}
-and_short_and2(N) ::=and_short(P) AND.            {N = P;printf("IF-AND L%d\n",N);} 
+and_short_and2(N) ::=and_short(P) AND.            {N = P;emit_i(P_IF_AND,N);} 
 //lexpra ::= lexpra AND rexpr.                      {printf("AND\n");}
 
 // --- espressioni relazionali
@@ -341,46 +348,46 @@ fact ::= LPAR expr IS type RPAR.                  {emit(P_IS);}
 
 // --- codice per la iif ---
 
-iif_fact ::= iif_then(N) expr RPAR.               {printf("LABEL L%d\n",N);}
-iif_test(N) ::= IIF LPAR expr COMMA.              {N=sState->labelCnt++;printf("IF-FALSE L%d\n",N);}
-iif_then(N) ::= iif_test(P) expr COMMA.           {N=sState->labelCnt++;printf("GOTO L%d\nLABEL L%d\n",N,P);}
+iif_fact ::= iif_then(N) expr RPAR.               {emit_i(P_LABEL,N);}
+iif_test(N) ::= IIF LPAR expr COMMA.              {N=sState->labelCnt++;emit_i(P_IF_FALSE,N);}
+iif_then(N) ::= iif_test(P) expr COMMA.           {N=sState->labelCnt++;emit_i(P_GOTO,N);emit_i(P_LABEL,P);}
 
 // --- riferimenti a variabili e chiamata di funzione ---
 
-ref ::= ID(value).                                {printf("LOAD %s\n",value);dispose(&value);}
-ref ::= RESULT.                                   {printf("LOAD-RESULT\n");} 
-ref ::= OLD.                                      {printf("OLD\n");} 
-ref ::= INHERITED.                                {printf("LOAD-INHERITED\n");} 
-ref ::= AT ID(value).                             {printf("LOADREF %s\n",value);dispose(&value);}
-ref ::= ref DOT ID(value).                        {printf("LOADX %s\n",value);dispose(&value);}
-ref ::= ref LSQ expr RSQ.                         {printf("SLICE\n");}
-ref ::= ref LPAR par_list(N) RPAR.                {printf("CALL %d\n",N);}
+ref ::= ID(value).                                {emit_s(P_LOAD,value);dispose(&value);}
+ref ::= RESULT.                                   {emit(P_LOAD_RESULT);} 
+ref ::= OLD.                                      {emit(P_OLD);} 
+ref ::= INHERITED.                                {emit(P_LOAD_INHERITED);} 
+ref ::= AT ID(value).                             {emit_s(P_LOADREF,value);dispose(&value);}
+ref ::= ref DOT ID(value).                        {emit_s(P_LOADX,value);dispose(&value);}
+ref ::= ref LSQ expr RSQ.                         {emit(P_SLICE);}
+ref ::= ref LPAR par_list(N) RPAR.                {emit_i(P_CALL,N);}
 
 par_list(N) ::= .                                 {N=0;}
 par_list(N) ::= par_expr.                         {N=1;}
 par_list(N) ::= par_list(P) COMMA par_expr.       {N=P+1;}
-par_expr ::= ID(value) ASSIGN lexpr.              {printf("NAMEDPARM %s\n",value);dispose(&value);}       
+par_expr ::= ID(value) ASSIGN lexpr.              {emit_s(P_NAMEDPARM,value);dispose(&value);}       
 par_expr ::= lexpr.
 
 // --- costanti ARRAY, DIZIONARI e TUPLE
 
-array_const ::= LSQ RSQ.                          {printf("ARRAY 0\n");}
-array_const ::= LSQ array_list(N) RSQ.            {printf("ARRAY %d\n",N);}  
+array_const ::= LSQ RSQ.                          {emit_i(P_ARRAY,0);}
+array_const ::= LSQ array_list(N) RSQ.            {emit_i(P_ARRAY,N);}  
 array_list(N) ::= array_list(P) COMMA expr.       {N=P+1;}
 array_list(N) ::= expr.                           {N=1;}
 
 array_compr ::= LSQ expr FOR EACH ID(value) IN expr WITH expr RSQ. {printf("da fare array comprehension %s\n",value);dispose(&value);}
 array_compr ::= LSQ expr FOR EACH ID(value) IN expr RSQ.           {printf("da fare array comprehension %s\n",value);dispose(&value);}
 
-dict_const ::= LBR RBR.                           {printf("DICT 0\n");}
-dict_const ::= LBR dict_list(N) RBR.              {printf("DICT %d\n",N);}
+dict_const ::= LBR RBR.                           {emit_i(P_DICT,0);}
+dict_const ::= LBR dict_list(N) RBR.              {emit_i(P_DICT,N);}
 dict_list(N) ::= dict_list_elem.                  {N=1;}    
 dict_list(N) ::= dict_list(P) COMMA dict_list_elem. {N=P+1;}
-dict_list_elem ::= STR_CONST(value) COLON expr.   {printf("STR_CONST %s\n",value);dispose(&value);} 
+dict_list_elem ::= STR_CONST(value) COLON expr.   {emit_s(P_STR_CONST,value);dispose(&value);} 
 
 dict_compr ::= LSQ expr COLON expr FOR EACH ID(value) IN expr WITH expr RSQ. {printf("da fare dict comprehension %s\n",value);dispose(&value);}
 dict_compr ::= LSQ expr COLON expr FOR EACH ID(value) IN expr RSQ.           {printf("da fare dict comprehension %s\n",value);dispose(&value);}
 
-tuple_const ::= VBAR tuple_list(N) VBAR.          {printf("TUPLE %d\n",N);}
+tuple_const ::= VBAR tuple_list(N) VBAR.          {emit_i(P_TUPLE,N);}
 tuple_list(N) ::= tuple_list(P) COMMA expr.       {N=P+1;}
 tuple_list(N) ::= expr.                           {N=1;}

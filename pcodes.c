@@ -2,29 +2,29 @@ char* pcodetxt[256];
 
 void initpcodetxt(){
 // --- operazioni ---
-pcodetxt[1]="PLUS"; //         1
-pcodetxt[2]="MINUS"; //        2
-pcodetxt[3]="MULT"; //         3
-pcodetxt[4]="DIV"; //          4
-pcodetxt[5]="MOD"; //          5
-pcodetxt[6]="UMINUS"; //       6
-pcodetxt[7]="IDIV"; //         7
+pcodetxt[P_PLUS]="PLUS";       // 1
+pcodetxt[P_MINUS]="MINUS";     // 2
+pcodetxt[P_MULT]="MULT";       // 3
+pcodetxt[P_DIV]="DIV";         // 4
+pcodetxt[P_MOD]="MOD";         // 5
+pcodetxt[P_UMINUS]="UMINUS";   // 6
+pcodetxt[P_IDIV]="IDIV";       // 7
 
-pcodetxt[8]="LT"; //           8
-pcodetxt[9]="LE"; //           9
-pcodetxt[10]="EQ"; //          10
-pcodetxt[11]="GE"; //          11
-pcodetxt[12]="GT"; //          12
-pcodetxt[13]="NE"; //          13
-pcodetxt[14]="LT_LT"; //       14
-pcodetxt[15]="LE_LT"; //       15
-pcodetxt[16]="LT_LE"; //       16
-pcodetxt[17]="LE_LE"; //       17
+pcodetxt[P_LT]="LT";           //  8
+pcodetxt[P_LE]="LE";           //  9
+pcodetxt[P_EQ]="EQ";           // 10
+pcodetxt[P_GE]="GE";           // 11
+pcodetxt[P_GT]="GT";           // 12
+pcodetxt[P_NE]="NE";           // 13
+pcodetxt[P_LT_LT]="LT_LT";     // 14
+pcodetxt[P_LE_LT]="LE_LT";     // 15
+pcodetxt[P_LT_LE]="LT_LE";     // 16
+pcodetxt[P_LE_LE]="LE_LE";     // 17
 
-pcodetxt[18]="NOT"; //         18
-pcodetxt[19]="AND"; //         19
-pcodetxt[20]="OR"; //          20
-pcodetxt[71]="IS"; //          71
+pcodetxt[P_NOT]="NOT";         // 18
+pcodetxt[P_AND]="AND";         // 19
+pcodetxt[P_OR]="OR";           // 20
+pcodetxt[P_IS]="IS";           // 71
 
 // --- costanti ---
 pcodetxt[21]="NIL"; //         21
@@ -77,6 +77,7 @@ pcodetxt[60]="VAR_STORE"; //   60
 pcodetxt[61]="LOAD"; //        61
 pcodetxt[62]="LOAD_RESULT"; // 62
 pcodetxt[63]="LOAD_INHERITED"; // 63
+pcodetxt[83]="LOADREF";       // 83
 pcodetxt[64]="LOADX"; //       64
 pcodetxt[65]="SLICE"; //       65
 
@@ -100,5 +101,7 @@ pcodetxt[79]="LOCAL"; //       79
 pcodetxt[80]="CONST"; //       80
 pcodetxt[81]="OBSERVER"; //    81
 
-// --- last 82
+pcodetxt[84]="PRINT"; //    84
+
+// --- last 84
 }

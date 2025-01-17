@@ -75,6 +75,7 @@
 #define P_LOAD_RESULT 62
 #define P_LOAD_INHERITED 63
 #define P_LOADX       64
+#define P_LOADREF     83
 #define P_SLICE       65
 
 #define P_STORE       66
@@ -97,4 +98,6 @@
 #define P_CONST       80
 #define P_OBSERVER    81
 
-// --- last 82
+#define P_PRINT       84
+
+// --- last 84

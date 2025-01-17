@@ -67,6 +67,7 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"func")==0) return TOK_FUNC;
 		  if (strcmp(token,"for")==0) return TOK_FOR;
 		  if (strcmp(token,"from")==0) return TOK_FROM;
+		  if (strcmp(token,"float")==0) return TOK_FLOAT;
 		 break;  
 		case 'i':
 		  if (strcmp(token,"int")==0) return TOK_INT;  
@@ -336,17 +337,35 @@ typedef struct ifelseif {
 } ifelseif;
 		
 #include "pcodes.c"
+
+int emit_asm=0;
 		
 void emit(int pcode){
-	printf("%s\n",pcodetxt[pcode]);
+	if (emit_asm)
+	  printf("%s\n",pcodetxt[pcode]);
+	else
+	  printf("%d\n",pcode);  
 }
 
 void emit_i(int pcode, int v){
-	printf("%s %d\n",pcodetxt[pcode],v);
+	if (emit_asm)
+	  printf("%s %d\n",pcodetxt[pcode],v);
+	else
+	  printf("%d.%d\n",pcode,v);  
 }
 
 void emit_s(int pcode, char* v){
-	printf("%s %s\n",pcodetxt[pcode],v);
+	if (emit_asm)
+	  printf("%s %s\n",pcodetxt[pcode],v);
+	else
+	  printf("%d.%s\n",pcode,v);  
+}
+
+void emit_line(int v, char* line){
+	if (emit_asm)
+	  printf("%s %d --- %s",pcodetxt[P_LINE],v,line);
+	else
+	  printf("%d.%d\n",P_LINE,v);  
 }
 		
 #include "cpl2.c"
@@ -361,12 +380,12 @@ int stackLevel(yyParser* p){
 	return n;
 }
 
-int main(){
+int parse(FILE* f){
 	// parte mia
 	initpcodetxt();
 	emit_s(P_VERSION,"0.0.1");
     char line[200];
-    fgets(line,200,stdin);
+    fgets(line,200,f);
     scannerStatus s;
     initScanner(&s);
     initScannerLine(&s,line);
@@ -383,8 +402,7 @@ int main(){
 	  // setta il numero di riga per riportare la posizione degli errori
 	  s.lineNo++;
 	  sState.lineNo++;
-	  emit_i(P_LINE,s.lineNo);
-	  printf("-- %s",line);
+	  emit_line(s.lineNo,line);
 	  // inizializza la linea
       initScannerLine(&s,line);		
       while (GetNextToken(&s, &hTokenId, &sToken)){
@@ -398,11 +416,16 @@ int main(){
       //terminata la linea, deve passare alla prossima
       if (s.nPar==0) // il fine linea è sospeso quando le parentesi sono sbilanciate
         Parse(pParser,TOK_EOL,"",&sState);
-      stkl=stackLevel(pParser);
-      if (stkl>3) printf("> ");
-      fgets(line,200,stdin);
+      //stkl=stackLevel(pParser);
+      //if (stkl>3) printf("> ");
+      fgets(line,200,f);
     }
     Parse(pParser, 0, sToken, &sState);
     stkl=stackLevel(pParser);
     ParseFree(pParser, free );
+    return sState.errors;
+}
+
+int main(){
+	return parse(stdin);
 }
