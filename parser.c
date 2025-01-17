@@ -141,7 +141,7 @@ typedef struct scannerStatus{
 	const char* line;
 	int i,l;
 	char nextch;
-	char token[200];
+	char token[2000];
 	int tokenCode;	
 	// questi due valori devono essere gestiti al di fuori dell'inizializzazione della singola linea
 	int longComment; 
@@ -168,7 +168,7 @@ void initScannerLine(scannerStatus* s, const char* line){
 void tokenize(scannerStatus* s){
 	int i,l,tokl;
 	int tokenCode;
-	char nextch,token[200];
+	char nextch,token[2000];
 	const char* line;
 	line=s->line;
 	i=s->i;
@@ -337,44 +337,7 @@ typedef struct ifelseif {
 } ifelseif;
 		
 #include "pcodes.c"
-
-int emit_asm=0;
-		
-void emit(int pcode){
-	if (emit_asm)
-	  printf("%s\n",pcodetxt[pcode]);
-	else
-	  printf("%c\n",(char)(pcode+31));  
-}
-
-void emit_i(int pcode, int v){
-	if (emit_asm)
-	  printf("%s %d\n",pcodetxt[pcode],v);
-	else
-	  printf("%c%d\n",(char)(pcode+31),v);  
-}
-
-void emit_s(int pcode, char* v){
-	if (emit_asm)
-	  printf("%s %s\n",pcodetxt[pcode],v);
-	else
-	  printf("%c%s\n",(char)(pcode+31),v);  
-}
-
-void emit_line(int v, char* line){
-	if (emit_asm)
-	  printf("%s %d --- %s",pcodetxt[P_LINE],v,line);
-	else
-	  printf("%c%d\n",(char)(P_LINE+31),v);  
-}
-
-void emit_ver(char* v) {
-	if (emit_asm)
-	  printf("CPL2 PCODE VER:%s\n",v);
-	else
-	  printf("#cpl2%s\n",v);  
-}
-		
+#include "emit.c"
 #include "cpl2.c"
 
 int stackLevel(yyParser* p){
@@ -391,8 +354,8 @@ int parse(FILE* f){
 	// parte mia
 	initpcodetxt();
 	emit_ver("0.0.1");
-    char line[200];
-    fgets(line,200,f);
+    char line[2000];
+    fgets(line,2000,f);
     scannerStatus s;
     initScanner(&s);
     initScannerLine(&s,line);
@@ -425,7 +388,7 @@ int parse(FILE* f){
         Parse(pParser,TOK_EOL,"",&sState);
       //stkl=stackLevel(pParser);
       //if (stkl>3) printf("> ");
-      fgets(line,200,f);
+      fgets(line,2000,f);
     }
     Parse(pParser, 0, sToken, &sState);
     stkl=stackLevel(pParser);

@@ -1,7 +1,9 @@
 /*
 
-DA FARE: 
-short-cut evaluation su OR
+DA FARE:
+
+FATTO:
+17/01/2025: short-cut evaluation su OR
 
 */
 
@@ -286,13 +288,22 @@ expr ::= ref LSQ expr RSQ ASSIGN expr.            {emit(P_STORESLICE);}
 // --- espressioni logiche ---
 // da fare: shortcut evaluation --- forse sono riuscito a farlo per la AND
 lexpr ::= lexpra.
-lexpr ::= lexpr OR lexpra.                        {emit(P_OR);}
+//lexpr ::= lexpr OR lexpra.                        {emit(P_OR);}
+lexpr ::= or_short(P).                            {emit_i(P_LABEL,P);}
 lexpra ::= rexpr.
 lexpra ::= and_short(P).                          {emit_i(P_LABEL,P);}
 
+%type or_short {int}
 %type and_short {int}
+%type or_short_or1 {int}
 %type and_short_and1 {int}
+%type or_short_or2 {int}
 %type and_short_and2 {int}
+
+or_short(N) ::= or_short_or1(P) lexpra.           {N=P;}
+or_short_or1(N) ::= lexpra OR.                    {N = sState->labelCnt++;emit_i(P_IF_OR,N);}
+or_short(N) ::= or_short_or2(P) lexpra.           {N=P;}
+or_short_or2(N) ::=or_short(P) OR.                {N = P;emit_i(P_IF_OR,N);} 
 
 and_short(N) ::= and_short_and1(P) rexpr.         {N = P;}
 and_short_and1(N) ::= rexpr AND.                  {N = sState->labelCnt++;emit_i(P_IF_AND,N);} // riserva la label che verrà messa alla fine
