@@ -30,78 +30,76 @@ pcodetxt[P_IS]="IS";           // 71
 pcodetxt[P_NIL]="NIL";         // 21
 pcodetxt[P_TRUE]="TRUE";       // 22
 pcodetxt[P_FALSE]="FALSE";     // 23
-pcodetxt[24]="INT_CONST"; //      24
-pcodetxt[25]="STR_CONST"; //      25
-pcodetxt[26]="FLOAT_CONST"; //    26
-pcodetxt[27]="DATE_CONST"; //     27
-pcodetxt[28]="DATETIME_CONST"; // 28
-pcodetxt[29]="TIME_CONST"; //     29
-pcodetxt[30]="ARRAY"; //          30
-pcodetxt[31]="DICT"; //           31
-pcodetxt[32]="TUPLE"; //          32
+pcodetxt[P_INT_CONST]="INT_CONST";     // 24
+pcodetxt[P_STR_CONST]="STR_CONST";     // 25
+pcodetxt[P_FLOAT_CONST]="FLOAT_CONST"; // 26
+pcodetxt[P_DATE_CONST]="DATE_CONST";   // 27
+pcodetxt[P_DATETIME_CONST]="DATETIME_CONST"; // 28
+pcodetxt[P_TIME_CONST]="TIME_CONST";   // 29
+pcodetxt[P_ARRAY]="ARRAY";     // 30
+pcodetxt[P_DICT]="DICT";       // 31
+pcodetxt[P_TUPLE]="TUPLE";     // 32
 
 // -- programma --
-pcodetxt[33]="LINE"; //        33
-pcodetxt[34]="LABEL"; //       34
-pcodetxt[35]="GOTO"; //        35
-pcodetxt[36]="IF_FALSE"; //    36
-pcodetxt[37]="IF_TRUE"; //     37
-pcodetxt[38]="IF_OR"; //       38
-pcodetxt[39]="IF_AND"; //      39
-pcodetxt[40]="CALL"; //        40
-pcodetxt[41]="FUNC"; //        41
-pcodetxt[42]="PROC"; //        42
-pcodetxt[43]="CLASS"; //       43
-pcodetxt[44]="POP"; //         44
+pcodetxt[P_LINE]="LINE";       // 33
+pcodetxt[P_LABEL]="LABEL";     // 34
+pcodetxt[P_GOTO]="GOTO";       // 35
+pcodetxt[P_IF_FALSE]="IF_FALSE"; // 36
+pcodetxt[P_IF_TRUE]="IF_TRUE"; // 37
+pcodetxt[P_IF_OR]="IF_OR";     // 38
+pcodetxt[P_IF_AND]="IF_AND";   // 39
+pcodetxt[P_CALL]="CALL";       // 40
+pcodetxt[P_FUNC]="FUNC";       // 41
+pcodetxt[P_PROC]="PROC";       // 42
+pcodetxt[P_CLASS]="CLASS";     // 43
+pcodetxt[P_POP]="POP";         // 44
 
 // --- tipi di base ---
-pcodetxt[45]="INT_TYPE"; //    45
-pcodetxt[46]="STR_TYPE"; //    46
-pcodetxt[47]="BOOL_TYPE"; //   47
-pcodetxt[48]="FLOAT_TYPE"; //  48
-pcodetxt[49]="DATE_TYPE"; //   49
-pcodetxt[50]="DATETIME_TYPE"; // 50
-pcodetxt[51]="TIME_TYPE"; //   51
-pcodetxt[52]="ANY_TYPE"; //    52
-pcodetxt[53]="ARRAY_TYPE"; //  53
-pcodetxt[54]="DICT_TYPE"; //   54
-pcodetxt[55]="TUPLE_TYPE"; //  55
-pcodetxt[56]="FUNC_TYPE"; //   56
-pcodetxt[57]="PROC_TYPE"; //   57
-pcodetxt[58]="OR_TYPE"; //     58
+pcodetxt[P_INT_TYPE]="INT_TYPE";     // 45
+pcodetxt[P_STR_TYPE]="STR_TYPE";     // 46
+pcodetxt[P_BOOL_TYPE]="BOOL_TYPE";   // 47
+pcodetxt[P_FLOAT_TYPE]="FLOAT_TYPE"; // 48
+pcodetxt[P_DATE_TYPE]="DATE_TYPE";   // 49
+pcodetxt[P_DATETIME_TYPE]="DATETIME_TYPE"; // 50
+pcodetxt[P_TIME_TYPE]="TIME_TYPE";   // 51
+pcodetxt[P_ANY_TYPE]="ANY_TYPE";     // 52
+pcodetxt[P_ARRAY_TYPE]="ARRAY_TYPE"; // 53
+pcodetxt[P_DICT_TYPE]="DICT_TYPE";   // 54
+pcodetxt[P_TUPLE_TYPE]="TUPLE_TYPE"; // 55
+pcodetxt[P_FUNC_TYPE]="FUNC_TYPE";   // 56
+pcodetxt[P_PROC_TYPE]="PROC_TYPE";   // 57
+pcodetxt[P_OR_TYPE]="OR_TYPE";       // 58
 
 // --- variabili ---
-pcodetxt[59]="VAR"; //         59
-pcodetxt[60]="VAR_STORE"; //   60
+pcodetxt[P_VAR]="VAR";               // 59
+pcodetxt[P_VAR_STORE]="VAR_STORE";   // 60
 
-pcodetxt[61]="LOAD"; //        61
-pcodetxt[62]="LOAD_RESULT"; // 62
-pcodetxt[63]="LOAD_INHERITED"; // 63
-pcodetxt[83]="LOADREF";       // 83
-pcodetxt[64]="LOADX"; //       64
-pcodetxt[65]="SLICE"; //       65
+pcodetxt[P_LOAD]="LOAD";                     // 61
+pcodetxt[P_LOAD_RESULT]="LOAD_RESULT";       // 62
+pcodetxt[P_LOAD_INHERITED]="LOAD_INHERITED"; // 63
+pcodetxt[P_LOADREF]="LOADREF";               // 83
+pcodetxt[P_LOADX]="LOADX";                   // 64
+pcodetxt[P_SLICE]="SLICE";                   // 65
 
-pcodetxt[66]="STORE"; //       66
-pcodetxt[67]="STORE_RESULT"; // 67
-pcodetxt[68]="STOREX"; //      68
-pcodetxt[69]="STORESLICE"; //  69
-pcodetxt[70]="NAMEDPARM"; //   70
-pcodetxt[82]="PARMNAME"; //    82
+pcodetxt[P_STORE]="STORE";               // 66
+pcodetxt[P_STORE_RESULT]="STORE_RESULT"; // 67
+pcodetxt[P_STOREX]="STOREX";             // 68
+pcodetxt[P_STORESLICE]="STORESLICE";     // 69
+pcodetxt[P_NAMEDPARM]="NAMEDPARM";       // 70
+pcodetxt[P_PARMNAME]="PARMNAME";         // 82
 
-pcodetxt[72]="TRY"; //         72
-pcodetxt[73]="CATCH"; //       73
-pcodetxt[74]="RAISE"; //       74
-pcodetxt[75]="OLD"; //         75
+pcodetxt[P_TRY]="TRY";         // 72
+pcodetxt[P_CATCH]="CATCH";     // 73
+pcodetxt[P_RAISE]="RAISE";     // 74
+pcodetxt[P_OLD]="OLD";         // 75
 
-pcodetxt[76]="OK"; //          76
-pcodetxt[77]="ERROR"; //       77
-pcodetxt[78]="VERSION"; //     78
+pcodetxt[P_PCODEEND]="PCODEEND"; // 76
 
-pcodetxt[79]="LOCAL"; //       79
-pcodetxt[80]="CONST"; //       80
-pcodetxt[81]="OBSERVER"; //    81
+pcodetxt[P_LOCAL]="LOCAL";     // 79
+pcodetxt[P_CONST]="CONST";     // 80
+pcodetxt[P_OBSERVER]="OBSERVER"; // 81
 
-pcodetxt[84]="PRINT"; //    84
+pcodetxt[84]="PRINT";          // 84
 
-// --- last 84
+// --- last 84, unused 77, 78 
 }

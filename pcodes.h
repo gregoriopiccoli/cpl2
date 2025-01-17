@@ -90,9 +90,7 @@
 #define P_RAISE       74
 #define P_OLD         75
 
-#define P_OK          76
-#define P_ERROR       77
-#define P_VERSION     78
+#define P_PCODEEND    76
 
 #define P_LOCAL       79
 #define P_CONST       80
@@ -100,4 +98,4 @@
 
 #define P_PRINT       84
 
-// --- last 84
+// --- last 84, unused 77, 78

@@ -21,7 +21,7 @@ short-cut evaluation su OR
 %extra_argument {parserState *sState}
 %syntax_error {printf("syntax error at line %d!\n",sState->lineNo);sState->errors++;}
 
-start ::= cmd_list.                               {int errs=sState->errors; if (errs>0) emit_i(P_ERROR,errs); else emit(P_OK);}
+start ::= cmd_list.                               {int errs=sState->errors; emit_i(P_PCODEEND,errs);}
 
 // --- comandi --- livello esterno che permette import, class, func, proc, ... enum, type 
 
