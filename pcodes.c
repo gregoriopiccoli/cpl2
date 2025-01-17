@@ -27,9 +27,9 @@ pcodetxt[P_OR]="OR";           // 20
 pcodetxt[P_IS]="IS";           // 71
 
 // --- costanti ---
-pcodetxt[21]="NIL"; //         21
-pcodetxt[22]="TRUE"; //        22
-pcodetxt[23]="FALSE"; //       23
+pcodetxt[P_NIL]="NIL";         // 21
+pcodetxt[P_TRUE]="TRUE";       // 22
+pcodetxt[P_FALSE]="FALSE";     // 23
 pcodetxt[24]="INT_CONST"; //      24
 pcodetxt[25]="STR_CONST"; //      25
 pcodetxt[26]="FLOAT_CONST"; //    26
