@@ -98,4 +98,6 @@
 
 #define P_PRINT       84
 
+#define MAX_PCODE 84
+
 // --- last 84, unused 77, 78
