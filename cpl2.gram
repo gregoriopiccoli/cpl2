@@ -49,18 +49,16 @@ dottedid_list(N) ::= dottedid.                    {N = 1;}
 
 // --- funzioni, procedure ed eventi ---
 
-funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl local ABSTRACT. {emit_s(P_COMMENT,"da fare abstract funcdecl ...");dispose(&value);}
+funcdecl ::= funcname procparlist impl local observer EOL stm_list END. {emit(P_ENDFUNC);}
+funcdecl ::= funcname procparlist impl local ABSTRACT.                  {emit(P_ABSTRACT);}
 
-funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl local observer EOL 
-               stm_list 
-             END.                                 {emit_s(P_COMMENT,"da fare funcdecl ...");dispose(&value);}
-
+procdecl ::= procname procparlist impl local observer EOL stm_list END. {emit(P_ENDPROC);}
 procdecl ::= procname procparlist impl local ABSTRACT.                  {emit(P_ABSTRACT);}
 procdecl ::= eventname procparlist.                                     {emit(P_EMITEVENT);}
-procdecl ::= procname procparlist impl local observer EOL stm_list END. {emit(P_ENDPROC);}
-             
+
+funcname ::= FUNC generic type ID(value).         {emit_s(P_FUNC,value);dispose(&value);}
 procname ::= PROC generic ID(value).              {emit_s(P_PROC,value);dispose(&value);}
-eventname ::= EVENT generic ID(value).            {emit_s(P_EVENT,value);dispose(&value);}
+eventname ::= EVENT ID(value).                    {emit_s(P_EVENT,value);dispose(&value);} // possono esserci evento con genericità?
 
 procparlist ::= LPAR pardecl_list RPAR.           {emit(P_ENDPARM);}
              

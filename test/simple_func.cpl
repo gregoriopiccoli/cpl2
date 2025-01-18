@@ -1,0 +1,64 @@
+-- Prima prova di procedura, ultrasemplice
+
+proc p()
+end
+
+/*
+PROC p
+ENDPARM
+ENDPROC
+*/
+
+-- Prima prova di funzione, ultrasemplice
+
+func int f()
+end
+
+/*
+INT_TYPE    <--- PROBLEMA! questo tipo dovrebbe essere descritto all'interno della FUNC
+FUNC f
+ENDPARM
+ENDFUNC
+*/
+
+-- Prima prova di evento, ultrasemplice
+
+event e()
+
+/*
+EVENT e
+ENDPARM
+EMITEVENT
+*/
+
+-- procedura con un po' di parametri
+
+proc p2(int i, int j, str@ s)
+end
+
+/*
+PROC p2
+INT_TYPE
+PARM i
+INT_TYPE
+PARM j
+STR_TYPE
+PARM_REF s
+ENDPARM
+ENDPROC
+*/
+
+-- procedura con un parametro con assgnazione di default
+
+proc p3(int i:=100)
+end
+
+/*
+PROC p3
+INT_TYPE
+INT_CONST 100
+PARM_STORE i     <-- questo trova 2 oggetti nello stack:il tipo e il valore 
+                     PROBLEMA: non devo calcolare il valore se il parametro è tra quelli passati nella chiamata
+ENDPARM
+ENDPROC
+*/
