@@ -21,6 +21,14 @@ IF_TRUE
 IF_FALSE
 eseguono un salto condizionato, consumano la cima dello stack
 
+ASSERT
+ha il numero di cose nello stack (1 o 2), prima il valore di check e in cima l'eventuale messaggio
+
+IMPORT
+FROM
+nello stack i moduli da importare, hanno il numero di cose lasciate sullo stack
+COSI' NON FUNZIONA ...
+
 */
 
 char* pcodetxt[256];
@@ -150,5 +158,10 @@ void initpcodetxt(){
 	pcodetxt[P_PRINT]="PRINT";     // 84
 	
 	pcodetxt[P_COMMENT]="#";       // 77     
+	
+	pcodetxt[P_IMPORT]="IMPORT";   // 101
+	pcodetxt[P_FROM]="FROM";       // 102
+	pcodetxt[P_IMPORTID]="IMPORTID";   // 103
+	pcodetxt[P_IMPORTIDX]="IMPORTIDX"; // 104
 
 }

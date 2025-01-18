@@ -116,8 +116,14 @@
 #define P_OBSERVER    81
 
 #define P_PRINT       84
+
 #define P_COMMENT     77
 
-#define MAX_PCODE    100  // ultimo codice usato da un pcode
+#define P_IMPORT     101
+#define P_FROM       102
+#define P_IMPORTID   103
+#define P_IMPORTIDX  104
+
+#define MAX_PCODE    104  // ultimo codice usato da un pcode
 
 // --- unused: 

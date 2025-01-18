@@ -42,8 +42,15 @@ cmd ::= stm.
 
 // --- import ---
 
-import ::= IMPORT dottedid_list(N).               {emit_s(P_COMMENT,"da fare import ...");int i=N;}
-import ::= FROM dottedid IMPORT dottedid_list(N). {emit_s(P_COMMENT,"da fare from ... import ...");int i=N;}
+import ::= IMPORT importid_list(N).               {emit_i(P_IMPORT,N);}
+import ::= FROM importid IMPORT importid_list(N). {emit_i(P_FROM,N);}
+
+%type importid_list {int}
+importid_list(N) ::= importid_list(P) COMMA importid. {N = P+1;}
+importid_list(N) ::= importid.                    {N = 1;}
+
+importid ::= ID(value).                           {emit_s(P_IMPORTID,value);dispose(&value);}
+importid ::= importid DOT ID(value).              {emit_s(P_IMPORTIDX,value);dispose(&value);}
 
 %type dottedid_list {int}
 dottedid_list(N) ::= dottedid_list(P) COMMA dottedid.   {N = P+1;}
