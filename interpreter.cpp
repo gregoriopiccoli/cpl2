@@ -70,10 +70,10 @@ public:
   virtual shared_ptr<obj> ge() {throw domain_error("ge not implemented");};
   virtual shared_ptr<obj> gt() {throw domain_error("gt not implemented");};
   virtual shared_ptr<obj> ne() {throw domain_error("ne not implemented");};
-  virtual shared_ptr<obj> ltgt() {throw domain_error("lt-gt not implemented");};
-  virtual shared_ptr<obj> legt() {throw domain_error("le-gt not implemented");};
-  virtual shared_ptr<obj> ltge() {throw domain_error("lt-ge not implemented");};
-  virtual shared_ptr<obj> lege() {throw domain_error("le-ge not implemented");};
+  //virtual shared_ptr<obj> ltgt() {throw domain_error("lt-gt not implemented");};
+  //virtual shared_ptr<obj> legt() {throw domain_error("le-gt not implemented");};
+  //virtual shared_ptr<obj> ltge() {throw domain_error("lt-ge not implemented");};
+  //virtual shared_ptr<obj> lege() {throw domain_error("le-ge not implemented");};
   //
   virtual shared_ptr<obj> _or() {throw domain_error("or not implemented");};
   virtual shared_ptr<obj> _and() {throw domain_error("and not implemented");};

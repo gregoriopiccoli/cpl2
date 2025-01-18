@@ -50,7 +50,7 @@ int cpl2asm(FILE* f){
 		    // trova il codice del pcode
 		    int pcd=FindPCode(line);
 		    //if (pcd==P_LINE) printf("LINE %s\n",p);
-		    printf("%c%s",(char)(pcd+31),p);
+		    printf("%c%s",(unsigned char)(pcd+31),p);
 		}
 	  }
 	  fgets(line,2000,f);
