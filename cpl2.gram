@@ -178,7 +178,7 @@ btype ::= DATETIME.                               {emit(P_DATETIME_TYPE);}
 btype ::= ANY.                                    {emit(P_ANY_TYPE);}
 btype ::= QUESTIONMARK.                           {emit(P_ANY_TYPE);}    
 
-btype ::= dottedid.                               // {emit_s(P_COMMENT,"da fare user type");}
+btype ::= dottedid.                               // {emit_s(P_COMMENT,"da fare user type");} non occorre fare niente, però qui c'è un nome utente che diventa tipo ...
 
 dottedid ::= ID(value).                           {emit_s(P_LOAD,value);dispose(&value);}         
 dottedid ::= dottedid DOT ID(value).              {emit_s(P_LOADX,value);dispose(&value);}

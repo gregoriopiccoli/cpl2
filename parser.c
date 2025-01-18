@@ -353,7 +353,7 @@ int stackLevel(yyParser* p){
 int parse(FILE* f){
 	// parte mia
 	initpcodetxt();
-	emit_asm=1;
+	emit_asm=0;
 	emit_ver("0.0.1");
     char line[2000];
     fgets(line,2000,f);

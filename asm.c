@@ -33,7 +33,7 @@ int cpl2asm(FILE* f){
 		printf("%s",line);  
 	  } else if (emit_asm==1){
 		  // stampa il testo del pcode e il resto della linea
-		  char c=line[0];
+		  unsigned char c=line[0];
 		  printf("%s %s",pcodetxt[c-31],line+1);
 	  } else {
 		  // trova il primo spazio
