@@ -97,7 +97,8 @@
 #define P_OBSERVER    81
 
 #define P_PRINT       84
+#define P_COMMENT     77
 
 #define MAX_PCODE 84
 
-// --- last 84, unused 77, 78
+// --- last 84, unused 78

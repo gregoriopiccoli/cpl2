@@ -103,7 +103,9 @@ void initpcodetxt(){
 	pcodetxt[P_CONST]="CONST";     // 80
 	pcodetxt[P_OBSERVER]="OBSERVER"; // 81
 
-	pcodetxt[84]="PRINT";          // 84
+	pcodetxt[P_PRINT]="PRINT";     // 84
+	
+	pcodetxt[P_COMMENT]="#";       // 77     
 
-    // --- last 84, unused 77, 78 
+    // --- last 84, unused 78 
 }
