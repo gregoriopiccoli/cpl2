@@ -1,0 +1,25 @@
+class c1
+end
+
+/*
+CLASS c1
+INHERIT 0
+ENDCLASS
+*/
+
+class c2(c1)
+  var int i
+  proc p(); end
+end
+  
+/*
+CLASS c2
+LOAD c1
+INHERIT 1
+INT_TYPE
+VAR i
+PROC p
+ENDPARM
+ENDPROC
+ENDCLASS
+*/  
