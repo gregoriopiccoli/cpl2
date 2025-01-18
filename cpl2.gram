@@ -55,11 +55,15 @@ funcdecl ::= FUNC generic type ID(value) LPAR pardecl_list RPAR impl local obser
                stm_list 
              END.                                 {emit_s(P_COMMENT,"da fare funcdecl ...");dispose(&value);}
 
-procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl local ABSTRACT. {emit_s(P_COMMENT,"da fare abstract procdecl ...");dispose(&value);}
-procdecl ::= EVENT ID(value) LPAR pardecl_list RPAR.                      {emit_s(P_COMMENT,"da fare eventdecl ...");dispose(&value);}
-procdecl ::= PROC generic ID(value) LPAR pardecl_list RPAR impl local observer EOL 
-               stm_list 
-             END.                                 {emit_s(P_COMMENT,"da fare procdecl ...");dispose(&value);}
+procdecl ::= procname procparlist impl local ABSTRACT.                  {emit(P_ABSTRACT);}
+procdecl ::= eventname procparlist.                                     {emit(P_EMITEVENT);}
+procdecl ::= procname procparlist impl local observer EOL stm_list END. {emit(P_ENDPROC);}
+             
+procname ::= PROC generic ID(value).              {emit_s(P_PROC,value);dispose(&value);}
+eventname ::= EVENT generic ID(value).            {emit_s(P_EVENT,value);dispose(&value);}
+
+procparlist ::= LPAR pardecl_list RPAR.           {emit(P_ENDPARM);}
+             
 local ::=.
 local ::= LOCAL.                                  {emit(P_LOCAL);}
 
@@ -73,12 +77,12 @@ pardecl_list ::= .
 pardecl_list ::= pardecl.
 pardecl_list ::= pardecl_list COMMA pardecl.
              
-pardecl ::= type ID(value).                       {dispose(&value);}     
-pardecl ::= type AT ID(value).                    {dispose(&value);}
-pardecl ::= type ID(value) ASSIGN expr.           {dispose(&value);}     
+pardecl ::= type ID(value).                       {emit_s(P_PARM,value);dispose(&value);}     
+pardecl ::= type AT ID(value).                    {emit_s(P_PARM_REF,value);dispose(&value);}
+pardecl ::= type ID(value) ASSIGN expr.           {emit_s(P_PARM_STORE,value);dispose(&value);}     
 //pardecl ::= type AT ID(value) ASSIGN expr.        {dispose(&value);} // si puo' fare un parametro per referenza inizializzato?
-pardecl ::= type ID(value) DOT DOT DOT.           {dispose(&value);}
-pardecl ::= type ID(value) MULT.                  {dispose(&value);}
+pardecl ::= type ID(value) DOT DOT DOT.           {emit_s(P_PARM_VA,value);dispose(&value);}
+pardecl ::= type ID(value) MULT.                  {emit_s(P_PARM_VD,value);dispose(&value);}
 
 impl ::= .
 impl ::= LT dottedid_list(N) GT.                  {printf("implements %d ...\n",N);}

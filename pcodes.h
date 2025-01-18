@@ -50,6 +50,11 @@
 #define P_PROC        42
 #define P_CLASS       43
 #define P_POP         44
+#define P_ABSTRACT    85
+#define P_EVENT       78
+#define P_ENDPROC     86
+#define P_ENDFUNC     87
+#define P_EMITEVENT   88
 
 // --- tipi di base ---
 #define P_INT_TYPE    45
@@ -84,6 +89,12 @@
 #define P_STORESLICE  69
 #define P_NAMEDPARM   70
 #define P_PARMNAME    82
+#define P_PARM        89
+#define P_PARM_REF    90
+#define P_PARM_VA     91
+#define P_PARM_VD     92
+#define P_PARM_STORE  93
+#define P_ENDPARM     94
 
 #define P_TRY         72
 #define P_CATCH       73
@@ -99,6 +110,6 @@
 #define P_PRINT       84
 #define P_COMMENT     77
 
-#define MAX_PCODE 84
+#define MAX_PCODE 94
 
-// --- last 84, unused 78
+// --- last 94

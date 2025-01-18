@@ -57,6 +57,11 @@ void initpcodetxt(){
 	pcodetxt[P_PROC]="PROC";       // 42
 	pcodetxt[P_CLASS]="CLASS";     // 43
 	pcodetxt[P_POP]="POP";         // 44
+	pcodetxt[P_ABSTRACT]="ABSTRACT"; // 78
+	pcodetxt[P_EVENT]="EVENT";       // 85 
+	pcodetxt[P_ENDPROC]="ENDPROC";   // 86 
+	pcodetxt[P_ENDFUNC]="ENDFUNC";   // 87
+	pcodetxt[P_EMITEVENT]="EMITEVENT"; // 88
 
 	// --- tipi di base ---
 	pcodetxt[P_INT_TYPE]="INT_TYPE";     // 45
@@ -91,7 +96,13 @@ void initpcodetxt(){
 	pcodetxt[P_STORESLICE]="STORESLICE";     // 69
 	pcodetxt[P_NAMEDPARM]="NAMEDPARM";       // 70
 	pcodetxt[P_PARMNAME]="PARMNAME";         // 82
-
+    pcodetxt[P_PARM]="PARM";                 // 89
+    pcodetxt[P_PARM_REF]="PARM_REF";         // 90
+    pcodetxt[P_PARM_VA]="PARM_VA";           // 91
+    pcodetxt[P_PARM_VD]="PARM_VD";           // 92
+    pcodetxt[P_PARM_STORE]="PARM_STORE";     // 93
+    pcodetxt[P_ENDPARM]="ENDPARM";           // 94
+    
 	pcodetxt[P_TRY]="TRY";         // 72
 	pcodetxt[P_CATCH]="CATCH";     // 73
 	pcodetxt[P_RAISE]="RAISE";     // 74
@@ -107,5 +118,4 @@ void initpcodetxt(){
 	
 	pcodetxt[P_COMMENT]="#";       // 77     
 
-    // --- last 84, unused 78 
 }
