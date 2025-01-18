@@ -93,7 +93,8 @@
 #define P_PARM_REF    90
 #define P_PARM_VA     91
 #define P_PARM_VD     92
-#define P_PARM_STORE  93
+#define P_PARM_DEFAULT  93
+#define P_ENDPARM_DEFAULT  95
 #define P_ENDPARM     94
 
 #define P_TRY         72
@@ -110,6 +111,6 @@
 #define P_PRINT       84
 #define P_COMMENT     77
 
-#define MAX_PCODE 94
+#define MAX_PCODE 95
 
-// --- last 94
+// --- unused: 

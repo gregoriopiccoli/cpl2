@@ -56,9 +56,9 @@ end
 /*
 PROC p3
 INT_TYPE
+PARM_DEFAULT i
 INT_CONST 100
-PARM_STORE i     <-- questo trova 2 oggetti nello stack:il tipo e il valore 
-                     PROBLEMA: non devo calcolare il valore se il parametro è tra quelli passati nella chiamata
+ENDPARM_DEFAULT
 ENDPARM
 ENDPROC
 */

@@ -1,9 +1,11 @@
 /*
 
 DA FARE:
+pcode per le funzioni, ora parte dopo il tipo ... PREAMBLE?
 
 FATTO:
-17/01/2025: short-cut evaluation su OR
+2025/01/18: parametri con valori di default, non deve essere calcolato se viene passato ...
+2025/01/17: short-cut evaluation su OR
 
 */
 
@@ -77,7 +79,8 @@ pardecl_list ::= pardecl_list COMMA pardecl.
              
 pardecl ::= type ID(value).                       {emit_s(P_PARM,value);dispose(&value);}     
 pardecl ::= type AT ID(value).                    {emit_s(P_PARM_REF,value);dispose(&value);}
-pardecl ::= type ID(value) ASSIGN expr.           {emit_s(P_PARM_STORE,value);dispose(&value);}     
+pardecl ::= pardecla ASSIGN expr.                 {emit(P_ENDPARM_DEFAULT);}     
+pardecla ::= type ID(value).                      {emit_s(P_PARM_DEFAULT,value);dispose(&value);}
 //pardecl ::= type AT ID(value) ASSIGN expr.        {dispose(&value);} // si puo' fare un parametro per referenza inizializzato?
 pardecl ::= type ID(value) DOT DOT DOT.           {emit_s(P_PARM_VA,value);dispose(&value);}
 pardecl ::= type ID(value) MULT.                  {emit_s(P_PARM_VD,value);dispose(&value);}
@@ -209,8 +212,8 @@ if_expr(N) ::= expr EOL.                          {N=sState->labelCnt++;emit_i(P
 
 for_stm ::= FOR ID(value) ASSIGN expr TO expr EOL stm_list END.                  {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
 for_stm ::= FOR ID(value) ASSIGN expr TO expr STEP expr EOL stm_list END.        {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
-for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr EOL stm_list END.                  {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
-for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr STEP expr EOL stm_list END.        {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
+for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr EOL stm_list END.              {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
+for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr STEP expr EOL stm_list END.    {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
 
 // --- switch statement ---
 

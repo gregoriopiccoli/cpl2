@@ -100,7 +100,8 @@ void initpcodetxt(){
     pcodetxt[P_PARM_REF]="PARM_REF";         // 90
     pcodetxt[P_PARM_VA]="PARM_VA";           // 91
     pcodetxt[P_PARM_VD]="PARM_VD";           // 92
-    pcodetxt[P_PARM_STORE]="PARM_STORE";     // 93
+    pcodetxt[P_PARM_DEFAULT]="PARM_DEFAULT";       // 93
+    pcodetxt[P_ENDPARM_DEFAULT]="ENDPARM_DEFAULT"; // 95
     pcodetxt[P_ENDPARM]="ENDPARM";           // 94
     
 	pcodetxt[P_TRY]="TRY";         // 72
