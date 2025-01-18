@@ -1,7 +1,7 @@
 /*
 
 DA FARE:
-pcode per le funzioni, ora parte dopo il tipo ... PREAMBLE?
+pcode per le funzioni, ora parte dopo il tipo ... PREAMBLE? forse non serve perché il preambolo viene usato solo durante la creazione della funzione
 
 FATTO:
 2025/01/18: parametri con valori di default, non deve essere calcolato se viene passato ...
@@ -90,13 +90,12 @@ impl ::= LT dottedid_list(N) GT.                  {printf("implements %d ...\n",
 
 // --- classi ---
 
-classdecl ::= CLASS generic ID(value) impl EOL
-                 classcmd_list
-              END.                                {emit_s(P_COMMENT,"da fare classdecl ...");dispose(&value);}
+classdecl ::= classname classinherit impl EOL classcmd_list END. {emit(P_ENDCLASS);}
 
-classdecl ::= CLASS generic ID(value) LPAR dottedid_list(N) RPAR impl EOL
-                 classcmd_list
-              END.                                {emit_s(P_COMMENT,"da fare classdecl ...");dispose(&value);int i=N;}
+classname ::= CLASS generic ID(value).            {emit_s(P_CLASS,value);dispose(&value);}
+
+classinherit ::= .                                {emit_i(P_INHERIT,0);}
+classinherit ::= LPAR dottedid_list(N) RPAR.      {emit_i(P_INHERIT,N);}
 
 classcmd_list ::=.
 classcmd_list ::= classcmd_list classcmd.
@@ -147,12 +146,12 @@ stm ::= EOL.
 
 // --- dichiarazione di variabili ---
 
-vardecl ::= VAR type var_list const local.
+vardecl ::= VAR type var_list const local.        
 
 var_list ::= ID(value).                           {emit_s(P_VAR,value);dispose(&value);}
 var_list ::= ID(value) ASSIGN lexpr.              {emit_s(P_VAR_STORE,value);dispose(&value);}
 var_list ::= var_list COMMA ID(value).            {emit_s(P_VAR,value);dispose(&value);}
-var_list ::= var_list COMMA ID(value) ASSIGN lexpr.     {emit_s(P_VAR_STORE,value);dispose(&value);}
+var_list ::= var_list COMMA ID(value) ASSIGN lexpr. {emit_s(P_VAR_STORE,value);dispose(&value);}
 
 // --- dichiarazione di tipo ---
 

@@ -1,3 +1,28 @@
+/* Elenco dei PCode con il loro testo, per stamparli o tradurli nell'assmbler 
+
+APPUNTI PER LO SVILUPPO DEI PCODE
+
+FUNC
+Il pcode viene dopo la dichiarazione di tipo, quindi deve prendere dalla cima dello stack il suo tipo
+
+CLASS
+Segue sempre un pcode INHERTIT con il conteggio delle classi da cui deriva.
+0 se non ci sono derivazioni.
+Se ci sono derivazioni ci sono i pcode che mettono il riferimento alle classi nello stack e quindi il pcode INHERIT con il numero di classi da considerare.
+
+VAR
+trova i tipo nello stack, siccome possono essere dichiarate tante variabili segue la POP che elimina il tipo dallo stack
+
+IF_AND
+IF_OR
+sono i pcode per la shortcut delle booleane, a differenza delle altre IF non devono fare la POP del valore
+
+IF_TRUE
+IF_FALSE
+eseguono un salto condizionato, consumano la cima dello stack
+
+*/
+
 char* pcodetxt[256];
 
 void initpcodetxt(){
@@ -44,7 +69,7 @@ void initpcodetxt(){
 	pcodetxt[P_DICT]="DICT";       // 31
 	pcodetxt[P_TUPLE]="TUPLE";     // 32
 
-	// -- programma --
+	// --- programma ---
 	pcodetxt[P_LINE]="LINE";       // 33
 	pcodetxt[P_LABEL]="LABEL";     // 34
 	pcodetxt[P_GOTO]="GOTO";       // 35
@@ -53,16 +78,20 @@ void initpcodetxt(){
 	pcodetxt[P_IF_OR]="IF_OR";     // 38
 	pcodetxt[P_IF_AND]="IF_AND";   // 39
 	pcodetxt[P_CALL]="CALL";       // 40
-	pcodetxt[P_FUNC]="FUNC";       // 41
-	pcodetxt[P_PROC]="PROC";       // 42
-	pcodetxt[P_CLASS]="CLASS";     // 43
 	pcodetxt[P_POP]="POP";         // 44
+	
+    // -- dichiarazioni ---	
+	pcodetxt[P_FUNC]="FUNC";         // 41
+	pcodetxt[P_PROC]="PROC";         // 42
+	pcodetxt[P_CLASS]="CLASS";       // 43
 	pcodetxt[P_ABSTRACT]="ABSTRACT"; // 78
 	pcodetxt[P_EVENT]="EVENT";       // 85 
 	pcodetxt[P_ENDPROC]="ENDPROC";   // 86 
 	pcodetxt[P_ENDFUNC]="ENDFUNC";   // 87
 	pcodetxt[P_EMITEVENT]="EMITEVENT"; // 88
-
+	pcodetxt[P_ENDCLASS]="ENDCLASS"; // 96
+    pcodetxt[P_INHERIT]="INHERIT";   // 97
+    
 	// --- tipi di base ---
 	pcodetxt[P_INT_TYPE]="INT_TYPE";     // 45
 	pcodetxt[P_STR_TYPE]="STR_TYPE";     // 46

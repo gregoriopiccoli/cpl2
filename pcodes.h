@@ -37,7 +37,7 @@
 #define P_DICT           31
 #define P_TUPLE          32
 
-// -- programma --
+// --- programma ---
 #define P_LINE        33
 #define P_LABEL       34
 #define P_GOTO        35
@@ -46,15 +46,19 @@
 #define P_IF_OR       38
 #define P_IF_AND      39
 #define P_CALL        40
+#define P_POP         44
+
+// -- dichiarazioni ---
 #define P_FUNC        41
 #define P_PROC        42
 #define P_CLASS       43
-#define P_POP         44
 #define P_ABSTRACT    85
 #define P_EVENT       78
 #define P_ENDPROC     86
 #define P_ENDFUNC     87
 #define P_EMITEVENT   88
+#define P_ENDCLASS    96
+#define P_INHERIT     97
 
 // --- tipi di base ---
 #define P_INT_TYPE    45
@@ -111,6 +115,6 @@
 #define P_PRINT       84
 #define P_COMMENT     77
 
-#define MAX_PCODE 95
+#define MAX_PCODE     97  // ultimo codice usato da un pcode
 
 // --- unused: 

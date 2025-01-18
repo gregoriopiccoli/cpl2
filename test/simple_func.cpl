@@ -15,7 +15,8 @@ func int f()
 end
 
 /*
-INT_TYPE    <--- PROBLEMA! questo tipo dovrebbe essere descritto all'interno della FUNC
+PREAMABLE   <--- POSSIBILE SOLUZIONE? Forse non serve!!!!! nella prima esecuzione quando arrivo alla funzione il tipo è nello stack e mi serve solo in quella occasione
+INT_TYPE    <--- PROBLEMA! questo tipo dovrebbe essere descritto all'interno della FUNC 
 FUNC f
 ENDPARM
 ENDFUNC
