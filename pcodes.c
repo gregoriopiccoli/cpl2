@@ -137,6 +137,9 @@ void initpcodetxt(){
 	pcodetxt[P_CATCH]="CATCH";     // 73
 	pcodetxt[P_RAISE]="RAISE";     // 74
 	pcodetxt[P_OLD]="OLD";         // 75
+	pcodetxt[P_ASSERT]="ASSERT";  // 98
+	pcodetxt[P_PRE]="PRE";        // 99
+	pcodetxt[P_POST]="POST";      // 100
 
 	pcodetxt[P_PCODEEND]="PCODEEND"; // 76
 

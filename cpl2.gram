@@ -258,10 +258,11 @@ repeat_tok(N) ::= REPEAT.                         {N=sState->labelCnt++;emit_i(P
 
 // --- try/catch statement ---
 
-try_catch_stm ::= TRY EOL stm_list catch_list END.  {emit_s(P_COMMENT,"da fare try/catch ...");}
+try_catch_stm ::=  trystart stm_list catch_list END.
+trystart ::= TRY EOL.                             {emit(P_TRY);}
 catch_list ::= catch_catch.
 catch_list ::= catch_list catch_catch.
-catch_catch ::= CATCH LPAR type ID(value) RPAR EOL stm_list. {dispose(&value);}
+catch_catch ::= CATCH LPAR type ID(value) RPAR EOL stm_list. {emit_s(P_COMMENT,"da fare catch ...");dispose(&value);}
 
 raise_stm ::= RAISE.                              {emit_i(P_RAISE,0);}
 raise_stm ::= RAISE LPAR expr RPAR.               {emit_i(P_RAISE,1);}
@@ -276,9 +277,12 @@ print_list(N) ::= print_list(P) COMMA expr.       {N = P+1;}
 
 // --- gli statement di controllo/test
 
-pre_stm ::= PRE expr.                            {emit_s(P_COMMENT,"da fare pre ...");} 
-post_stm ::= POST expr.                          {emit_s(P_COMMENT,"da fare post ...");}
-assert_stm ::= ASSERT expr.                      {emit_s(P_COMMENT,"da fare assert ...");}
+pre_stm ::= PRE expr.                            {emit_i(P_PRE,1);} 
+pre_stm ::= PRE expr COLON expr.                 {emit_i(P_PRE,2);} 
+post_stm ::= POST expr.                          {emit_i(P_POST,1);}
+post_stm ::= POST expr COLON expr.               {emit_i(P_POST,2);}
+assert_stm ::= ASSERT expr.                      {emit_i(P_ASSERT,1);}
+assert_stm ::= ASSERT expr COLON expr.           {emit_i(P_ASSERT,2);}
 invariant_stm ::= INVARIANT expr.                {emit_s(P_COMMENT,"da fare invariant ...");}
 
 // --- espressioni con assegnazione ---
@@ -290,12 +294,11 @@ expr ::= ref DOT ID(value) ASSIGN expr.           {emit_s(P_STOREX,value);dispos
 expr ::= ref LSQ expr RSQ ASSIGN expr.            {emit(P_STORESLICE);}
 
 // --- espressioni logiche ---
-// da fare: shortcut evaluation --- forse sono riuscito a farlo per la AND
 lexpr ::= lexpra.
-//lexpr ::= lexpr OR lexpra.                        {emit(P_OR);}
 lexpr ::= or_short(P).                            {emit_i(P_LABEL,P);}
 lexpra ::= rexpr.
 lexpra ::= and_short(P).                          {emit_i(P_LABEL,P);}
+// --- lexpr ::= lexpr OR lexpra.                        {emit(P_OR);} // sostituito da shortcut
 
 %type or_short {int}
 %type and_short {int}
@@ -313,7 +316,7 @@ and_short(N) ::= and_short_and1(P) rexpr.         {N = P;}
 and_short_and1(N) ::= rexpr AND.                  {N = sState->labelCnt++;emit_i(P_IF_AND,N);} // riserva la label che verrà messa alla fine
 and_short(N) ::= and_short_and2(P) rexpr.         {N = P;}
 and_short_and2(N) ::=and_short(P) AND.            {N = P;emit_i(P_IF_AND,N);} 
-//lexpra ::= lexpra AND rexpr.                      {printf("AND\n");}
+// --- lexpra ::= lexpra AND rexpr.                      {printf("AND\n");} // sostituito da shortcut
 
 // --- espressioni relazionali
 rexpr ::= term.

@@ -105,6 +105,9 @@
 #define P_CATCH       73
 #define P_RAISE       74
 #define P_OLD         75
+#define P_ASSERT      98
+#define P_PRE         99
+#define P_POST       100
 
 #define P_PCODEEND    76
 
@@ -115,6 +118,6 @@
 #define P_PRINT       84
 #define P_COMMENT     77
 
-#define MAX_PCODE     97  // ultimo codice usato da un pcode
+#define MAX_PCODE    100  // ultimo codice usato da un pcode
 
 // --- unused: 

@@ -37,7 +37,7 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"array")==0) return TOK_ARRAY;
 		  if (strcmp(token,"any")==0) return TOK_ANY;	
 		  if (strcmp(token,"abstract")==0) return TOK_ABSTRACT;	  
-		  if (strcmp(token,"assert")==0) return TOK_ABSTRACT;	  
+		  if (strcmp(token,"assert")==0) return TOK_ASSERT;	  
 		  break;
 		case 'b':
 		  if (strcmp(token,"bool")==0) return TOK_BOOL;
