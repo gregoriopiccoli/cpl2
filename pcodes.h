@@ -124,6 +124,8 @@
 #define P_IMPORTID   103
 #define P_IMPORTIDX  104
 
-#define MAX_PCODE    104  // ultimo codice usato da un pcode
+#define P_IMPLEMENTS 105
+
+#define MAX_PCODE    105  // ultimo codice usato da un pcode
 
 // --- unused: 

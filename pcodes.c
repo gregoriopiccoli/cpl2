@@ -163,5 +163,7 @@ void initpcodetxt(){
 	pcodetxt[P_FROM]="FROM";       // 102
 	pcodetxt[P_IMPORTID]="IMPORTID";   // 103
 	pcodetxt[P_IMPORTIDX]="IMPORTIDX"; // 104
+	
+	pcodetxt[P_IMPLEMENTS]="IMPLEMENTS"; // 105
 
 }

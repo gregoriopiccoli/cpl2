@@ -93,7 +93,7 @@ pardecl ::= type ID(value) DOT DOT DOT.           {emit_s(P_PARM_VA,value);dispo
 pardecl ::= type ID(value) MULT.                  {emit_s(P_PARM_VD,value);dispose(&value);}
 
 impl ::= .
-impl ::= LT dottedid_list(N) GT.                  {printf("implements %d ...\n",N);}
+impl ::= LT dottedid_list(N) GT.                  {emit_i(P_IMPLEMENTS,N);}
 
 // --- classi ---
 
@@ -177,8 +177,8 @@ btype ::= TIME.                                   {emit(P_TIME_TYPE);}
 btype ::= DATETIME.                               {emit(P_DATETIME_TYPE);}
 btype ::= ANY.                                    {emit(P_ANY_TYPE);}
 btype ::= QUESTIONMARK.                           {emit(P_ANY_TYPE);}    
-// da fare: tipo definito dall' utente id[.id...]
-btype ::= dottedid.                               {emit_s(P_COMMENT,"da fare user type");}
+
+btype ::= dottedid.                               // {emit_s(P_COMMENT,"da fare user type");}
 
 dottedid ::= ID(value).                           {emit_s(P_LOAD,value);dispose(&value);}         
 dottedid ::= dottedid DOT ID(value).              {emit_s(P_LOADX,value);dispose(&value);}
