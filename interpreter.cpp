@@ -48,16 +48,16 @@ public:
 		
 class ipcode: public pcode {
 protected:	
-  int v;
+  int value;
 public:
-  ipcode(int c, int i):pcode(c){v=i;}	
+  ipcode(int c, int i):pcode(c){value=i;}	
 };
 
 class spcode: public pcode {
 protected:	
-  string v;
+  string value;
 public:
-  spcode(int c, string s):pcode(c){v=s;}	
+  spcode(int c, string s):pcode(c){value=s;}	
 };
 
 class pcodePlus: public pcode {
@@ -123,7 +123,7 @@ public:
 class pcodeIntConst: public ipcode {
 public:
   pcodeIntConst(int c, int v):ipcode(c,v){}
-  virtual void exec(interp* interpreter){};
+  virtual void exec(interp* interpreter);
 };
 
 class pcodeGoto: public ipcode {
@@ -141,6 +141,12 @@ public:
 class pcodePrint: public ipcode {
 public:
   pcodePrint(int c, int v):ipcode(c,v){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodePCodeEnd: public ipcode {
+public:
+  pcodePCodeEnd(int c, int v):ipcode(c,v){}
   virtual void exec(interp* interpreter);
 };
 
@@ -163,6 +169,7 @@ pcode* makePCode(int c,const char* s){
 	case P_GOTO:return new pcodeGoto(P_GOTO,atoi(s));
 	case P_LABEL:return new pcodeLabel(P_LABEL,atoi(s));
 	case P_PRINT:return new pcodePrint(P_PRINT,atoi(s));
+	case P_PCODEEND:return new pcodePCodeEnd(P_PCODEEND,atoi(s));
   }
   return nullptr;
 }
@@ -209,11 +216,38 @@ public:
 };
 
 class intObj:public obj {
-  int n;
 public:
-  intObj(int v){n=v;}
-  virtual string print(){return to_string(n);}
+  int value;
+  intObj(int v){value=v;}
+  virtual string print(){return to_string(value);}
+  virtual shared_ptr<obj> plus(obj* o);
+  virtual shared_ptr<obj> minus(obj* o);
+  virtual shared_ptr<obj> mult(obj* o);
 };
+
+shared_ptr<obj> intObj::plus(obj* o) {
+  intObj* oo=dynamic_cast<intObj*>(o);
+  if (oo!=nullptr) {
+	return shared_ptr<obj>(new intObj(value+oo->value));  
+  } else 
+	throw domain_error("integer plus with a non integer");
+}
+
+shared_ptr<obj> intObj::minus(obj* o) {
+  intObj* oo=dynamic_cast<intObj*>(o);
+  if (oo!=nullptr) {
+	return shared_ptr<obj>(new intObj(value-oo->value));  
+  } else 
+	throw domain_error("integer plus with a non integer");
+}
+
+shared_ptr<obj> intObj::mult(obj* o) {
+  intObj* oo=dynamic_cast<intObj*>(o);
+  if (oo!=nullptr) {
+	return shared_ptr<obj>(new intObj(value*oo->value));  
+  } else 
+	throw domain_error("integer plus with a non integer");
+}
 
 class strObj:public obj {
   string s;
@@ -301,13 +335,14 @@ class pcodeProgram {
 	vector<pcode*> prg;
 public:
     void add(pcode* p){prg.push_back(p);}
+    pcode* get(int i){return prg[i];}
     virtual ~pcodeProgram(){for(auto p:prg) delete p;}	
 };
 	 	
 class sys {
 public:
   // i moduli caricati
-  unordered_map<string,pcodeProgram> modules;
+  unordered_map<string,pcodeProgram*> modules;
   // dei valori che esistono sempre
   shared_ptr<boolObj> True{new boolObj(true)};
   shared_ptr<boolObj> False{new boolObj(false)};
@@ -316,78 +351,105 @@ sys theSys;
 
 class interp {
 public:
+  pcodeProgram* prg;
   vector<shared_ptr<obj>> stack;
-  int sp{0},pc{0};
+  int sp{-1},pc{0};
+  void run(){
+	  while(pc!=-2){
+		  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << endl;
+		  prg->get(pc)->exec(this);
+		  pc++;
+	  }
+  }
 };
 
 // --- riprendo i pcode
 
 void pcodePlus::exec(interp* interpreter){
-	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
-	  interpreter->stack[interpreter->sp]=obj1->plus(obj2.get());
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->plus(obj2.get());
 };
 
 void pcodeMinus::exec(interp* interpreter){
-	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
-	  interpreter->stack[interpreter->sp]=obj1->minus(obj2.get());
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->minus(obj2.get());
 };
 
 void pcodeUMinus::exec(interp* interpreter){
-	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
-	  interpreter->stack[interpreter->sp]=obj1->uminus();
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack[interpreter->sp]=obj1->uminus();
 };
 
 void pcodeMult::exec(interp* interpreter){
-	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
-	  interpreter->stack[interpreter->sp]=obj1->mult(obj2.get());
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->mult(obj2.get());
 };
 
 void pcodeDiv::exec(interp* interpreter){
-	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
-	  interpreter->stack[interpreter->sp]=obj1->div(obj2.get());
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->div(obj2.get());
 };
 
 void pcodeMod::exec(interp* interpreter){
-	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
-	  interpreter->stack[interpreter->sp]=obj1->mod(obj2.get());
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->mod(obj2.get());
 };
 
 void pcodeIDiv::exec(interp* interpreter){
-	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
-	  interpreter->stack[interpreter->sp]=obj1->idiv(obj2.get());
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->idiv(obj2.get());
 };
 
 void pcodeNil::exec(interp* interpreter){
-	  interpreter->sp++;
-	  interpreter->stack[interpreter->sp]=nullptr;
+  interpreter->sp++;
+  interpreter->stack[interpreter->sp]=nullptr;
 };
 
 void pcodeTrue::exec(interp* interpreter){
-	  interpreter->sp++;
-	  interpreter->stack[interpreter->sp]=theSys.True;
+  interpreter->sp++;
+  interpreter->stack.push_back(theSys.True);
 };
 
 void pcodeFalse::exec(interp* interpreter){
-	  interpreter->sp++;
-	  interpreter->stack[interpreter->sp]=theSys.False;
+  interpreter->sp++;
+  interpreter->stack.push_back(theSys.False);
+};
+
+void pcodeIntConst::exec(interp* interpreter){
+  interpreter->sp++;
+  obj* o=new intObj(value);
+  interpreter->stack.push_back(shared_ptr<obj>(o)); 
 };
 
 void pcodePrint::exec(interp* interpreter){
-	for(int i=0;i<v;i++){
-	  shared_ptr<obj> o=interpreter->stack[interpreter->sp-v+i];
-	  if (o.get()==nullptr) 
-	    cout << "nil";
-	  else  
-	    cout << o->print();
-	}
-	cout << endl;
-	interpreter->sp-=v;
+  int i;	
+  for(i=1;i<=value;i++){
+    shared_ptr<obj> o=interpreter->stack[interpreter->sp-value+i];
+    if (o.get()==nullptr) 
+	  cout << "nil";
+    else  
+	  cout << o->print();
+  }
+  cout << endl;
+  interpreter->sp-=value;
+  for(i=1;i<=value;i++)
+    interpreter->stack.pop_back();
+}
+
+void pcodePCodeEnd::exec(interp* interpreter){
+  interpreter->pc=-3; // convenzione per fermarsi 
 }
 
 // ------------------------------------------------
@@ -438,10 +500,17 @@ int main(){
   
   // prova reale ...
   pcodeProgram prg;
-  prg.add(makePCode(P_INT_CONST,"100"));
-  prg.add(makePCode(P_INT_CONST,"200"));
+  prg.add(makePCode(P_INT_CONST,"1"));
+  prg.add(makePCode(P_INT_CONST,"2"));
   prg.add(makePCode(P_PLUS,""));
+  prg.add(makePCode(P_INT_CONST,"3"));
+  prg.add(makePCode(P_MULT,""));
   prg.add(makePCode(P_PRINT,"1"));
- 
+  prg.add(makePCode(P_PCODEEND,"0"));
+  
+  interp exe;
+  exe.prg=&prg;
+  exe.run(); 
+  
   return 0;
 }
