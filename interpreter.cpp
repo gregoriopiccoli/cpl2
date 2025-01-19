@@ -1,3 +1,7 @@
+/*
+  Nil è meglio con nullptr o con uno specifico oggetto nil? 
+*/ 
+
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -32,25 +36,136 @@ StringIntern theStringIntern;
 
 // --- il pcode
 
+class interp;
+
 class pcode {
   int code;
 public:
   pcode(int c){code=c;}  
   virtual ~pcode(){}
-  virtual void exec()=0;
+  virtual void exec(interp* interpreter)=0; //{throw domain_error("not an executable pcode");};
 };
 		
 class ipcode: public pcode {
-	int v;
+protected:	
+  int v;
 public:
-    ipcode(int c, int i):pcode(c){v=i;}	
+  ipcode(int c, int i):pcode(c){v=i;}	
 };
 
 class spcode: public pcode {
-	string v;
+protected:	
+  string v;
 public:
-    spcode(int c, string s):pcode(c){v=s;}	
+  spcode(int c, string s):pcode(c){v=s;}	
 };
+
+class pcodePlus: public pcode {
+public:
+  pcodePlus(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeMinus: public pcode {
+public:
+  pcodeMinus(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeUMinus: public pcode {
+public:
+  pcodeUMinus(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeMult: public pcode {
+public:
+  pcodeMult(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeDiv: public pcode {
+public:
+  pcodeDiv(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeMod: public pcode {
+public:
+  pcodeMod(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeIDiv: public pcode {
+public:
+  pcodeIDiv(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeNil: public pcode {
+public:
+  pcodeNil(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeTrue: public pcode {
+public:
+  pcodeTrue(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeFalse: public pcode {
+public:
+  pcodeFalse(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeIntConst: public ipcode {
+public:
+  pcodeIntConst(int c, int v):ipcode(c,v){}
+  virtual void exec(interp* interpreter){};
+};
+
+class pcodeGoto: public ipcode {
+public:
+  pcodeGoto(int c, int v):ipcode(c,v){}
+  virtual void exec(interp* interpreter){};
+};
+
+class pcodeLabel: public ipcode {
+public:
+  pcodeLabel(int c, int v):ipcode(c,v){}
+  virtual void exec(interp* interpreter){};
+};
+	
+class pcodePrint: public ipcode {
+public:
+  pcodePrint(int c, int v):ipcode(c,v){}
+  virtual void exec(interp* interpreter);
+};
+
+#include "pcodes.h"
+
+pcode* makePCode(int c,const char* s){
+  int v;
+  switch(c){
+	case P_PLUS:return new pcodePlus(P_PLUS);
+	case P_MINUS:return new pcodeMinus(P_MINUS);
+	case P_UMINUS:return new pcodeUMinus(P_UMINUS);
+	case P_MULT:return new pcodeMult(P_MULT);
+	case P_DIV:return new pcodeDiv(P_DIV);
+	case P_MOD:return new pcodeMod(P_MOD);
+	case P_IDIV:return new pcodeIDiv(P_IDIV);
+	case P_INT_CONST:return new pcodeIntConst(P_INT_CONST,atoi(s));
+	case P_NIL:return new pcodeNil(P_NIL);
+	case P_TRUE:return new pcodeTrue(P_TRUE);
+	case P_FALSE:return new pcodeFalse(P_FALSE);
+	case P_GOTO:return new pcodeGoto(P_GOTO,atoi(s));
+	case P_LABEL:return new pcodeLabel(P_LABEL,atoi(s));
+	case P_PRINT:return new pcodePrint(P_PRINT,atoi(s));
+  }
+  return nullptr;
+}
 
 // --- gli oggetti dell'esecuzione dell'interprete
 
@@ -67,28 +182,29 @@ public:
   virtual shared_ptr<obj> storeslice(int pos,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");};
   virtual shared_ptr<obj> call(int n) {throw domain_error("call not implemented");};
   //
-  virtual shared_ptr<obj> plus() {throw domain_error("plus not implemented");};
-  virtual shared_ptr<obj> minus() {throw domain_error("minus not implemented");};
+  virtual shared_ptr<obj> plus(obj*) {throw domain_error("plus not implemented");};
+  virtual shared_ptr<obj> minus(obj*) {throw domain_error("minus not implemented");};
   virtual shared_ptr<obj> uminus() {throw domain_error("uminus not implemented");};
-  virtual shared_ptr<obj> mult() {throw domain_error("mult not implemented");};
-  virtual shared_ptr<obj> div() {throw domain_error("div not implemented");};
-  virtual shared_ptr<obj> idiv() {throw domain_error("idiv not implemented");};
+  virtual shared_ptr<obj> mult(obj*) {throw domain_error("mult not implemented");};
+  virtual shared_ptr<obj> div(obj*) {throw domain_error("div not implemented");};
+  virtual shared_ptr<obj> mod(obj*) {throw domain_error("mod not implemented");};
+  virtual shared_ptr<obj> idiv(obj*) {throw domain_error("idiv not implemented");};
   //
-  virtual shared_ptr<obj> lt() {throw domain_error("lt not implemented");};
-  virtual shared_ptr<obj> le() {throw domain_error("le not implemented");};
-  virtual shared_ptr<obj> eq() {throw domain_error("eq not implemented");};
-  virtual shared_ptr<obj> ge() {throw domain_error("ge not implemented");};
-  virtual shared_ptr<obj> gt() {throw domain_error("gt not implemented");};
-  virtual shared_ptr<obj> ne() {throw domain_error("ne not implemented");};
+  virtual shared_ptr<obj> lt(obj*) {throw domain_error("lt not implemented");};
+  virtual shared_ptr<obj> le(obj*) {throw domain_error("le not implemented");};
+  virtual shared_ptr<obj> eq(obj*) {throw domain_error("eq not implemented");};
+  virtual shared_ptr<obj> ge(obj*) {throw domain_error("ge not implemented");};
+  virtual shared_ptr<obj> gt(obj*) {throw domain_error("gt not implemented");};
+  virtual shared_ptr<obj> ne(obj*) {throw domain_error("ne not implemented");};
   //virtual shared_ptr<obj> ltgt() {throw domain_error("lt-gt not implemented");};
   //virtual shared_ptr<obj> legt() {throw domain_error("le-gt not implemented");};
   //virtual shared_ptr<obj> ltge() {throw domain_error("lt-ge not implemented");};
   //virtual shared_ptr<obj> lege() {throw domain_error("le-ge not implemented");};
   //
-  virtual shared_ptr<obj> _or() {throw domain_error("or not implemented");};
-  virtual shared_ptr<obj> _and() {throw domain_error("and not implemented");};
+  //virtual shared_ptr<obj> _or() {throw domain_error("or not implemented");};
+  //virtual shared_ptr<obj> _and() {throw domain_error("and not implemented");};
   virtual shared_ptr<obj> _not() {throw domain_error("not not implemented");};
-  virtual shared_ptr<obj> is() {throw domain_error("is not implemented");};
+  virtual shared_ptr<obj> is(obj*) {throw domain_error("is not implemented");};
 
 };
 
@@ -135,13 +251,13 @@ public:
 };
 
 string arrayObj::print(){
-	string res="";
-	for(auto o:a){
-		res+=","+o->print();
-	}
-	res+="]";
-	res[0]='[';
-	return res;
+  string res="";
+  for(auto o:a){
+	res+=","+o->print();
+  }
+  res+="]";
+  res[0]='[';
+  return res;
 }
 
 class dictObj : public obj {
@@ -157,13 +273,13 @@ public:
 };
 
 string dictObj::print(){
-	string res="";
-	for(auto [key,o]:map){
-		res+=","+key+":"+o->print();
-	}
-	res+="}";
-	res[0]='{';
-	return res;
+  string res="";
+  for(auto [key,o]:map){
+	res+=","+key+":"+o->print();
+  }
+  res+="}";
+  res[0]='{';
+  return res;
 }
 
 // --- i contenitori con nomi (classi, variabili locali, moduli ...)
@@ -182,7 +298,10 @@ public:
 // --- il sistema ---
 
 class pcodeProgram {
-	vector<pcode> prg;
+	vector<pcode*> prg;
+public:
+    void add(pcode* p){prg.push_back(p);}
+    virtual ~pcodeProgram(){for(auto p:prg) delete p;}	
 };
 	 	
 class sys {
@@ -200,6 +319,76 @@ public:
   vector<shared_ptr<obj>> stack;
   int sp{0},pc{0};
 };
+
+// --- riprendo i pcode
+
+void pcodePlus::exec(interp* interpreter){
+	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+	  interpreter->stack[interpreter->sp]=obj1->plus(obj2.get());
+};
+
+void pcodeMinus::exec(interp* interpreter){
+	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+	  interpreter->stack[interpreter->sp]=obj1->minus(obj2.get());
+};
+
+void pcodeUMinus::exec(interp* interpreter){
+	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+	  interpreter->stack[interpreter->sp]=obj1->uminus();
+};
+
+void pcodeMult::exec(interp* interpreter){
+	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+	  interpreter->stack[interpreter->sp]=obj1->mult(obj2.get());
+};
+
+void pcodeDiv::exec(interp* interpreter){
+	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+	  interpreter->stack[interpreter->sp]=obj1->div(obj2.get());
+};
+
+void pcodeMod::exec(interp* interpreter){
+	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+	  interpreter->stack[interpreter->sp]=obj1->mod(obj2.get());
+};
+
+void pcodeIDiv::exec(interp* interpreter){
+	  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+	  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+	  interpreter->stack[interpreter->sp]=obj1->idiv(obj2.get());
+};
+
+void pcodeNil::exec(interp* interpreter){
+	  interpreter->sp++;
+	  interpreter->stack[interpreter->sp]=nullptr;
+};
+
+void pcodeTrue::exec(interp* interpreter){
+	  interpreter->sp++;
+	  interpreter->stack[interpreter->sp]=theSys.True;
+};
+
+void pcodeFalse::exec(interp* interpreter){
+	  interpreter->sp++;
+	  interpreter->stack[interpreter->sp]=theSys.False;
+};
+
+void pcodePrint::exec(interp* interpreter){
+	for(int i=0;i<v;i++){
+	  shared_ptr<obj> o=interpreter->stack[interpreter->sp-v+i];
+	  if (o.get()==nullptr) 
+	    cout << "nil";
+	  else  
+	    cout << o->print();
+	}
+	cout << endl;
+	interpreter->sp-=v;
+}
 
 // ------------------------------------------------
 	
@@ -246,5 +435,13 @@ int main(){
   if (iii.get()==0) printf("non riuscito come dovrebbe essere!\n");
   u8string utf8=u8"Hello € world! ↗";
   printf("%s\n",(char*)utf8.c_str());
+  
+  // prova reale ...
+  pcodeProgram prg;
+  prg.add(makePCode(P_INT_CONST,"100"));
+  prg.add(makePCode(P_INT_CONST,"200"));
+  prg.add(makePCode(P_PLUS,""));
+  prg.add(makePCode(P_PRINT,"1"));
+ 
   return 0;
 }
