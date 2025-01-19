@@ -238,7 +238,7 @@ shared_ptr<obj> intObj::minus(obj* o) {
   if (oo!=nullptr) {
 	return shared_ptr<obj>(new intObj(value-oo->value));  
   } else 
-	throw domain_error("integer plus with a non integer");
+	throw domain_error("integer minus with a non integer");
 }
 
 shared_ptr<obj> intObj::mult(obj* o) {
@@ -246,7 +246,7 @@ shared_ptr<obj> intObj::mult(obj* o) {
   if (oo!=nullptr) {
 	return shared_ptr<obj>(new intObj(value*oo->value));  
   } else 
-	throw domain_error("integer plus with a non integer");
+	throw domain_error("integer mult with a non integer");
 }
 
 class strObj:public obj {
