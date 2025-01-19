@@ -34,14 +34,24 @@ StringIntern theStringIntern;
 
 class pcode {
   int code;
-  int value;
 public:
-  pcode(int c,int v){
-    code=c;
-	value=v;
-  }  
+  pcode(int c){code=c;}  
+  virtual ~pcode(){}
+  virtual void exec()=0;
 };
 		
+class ipcode: public pcode {
+	int v;
+public:
+    ipcode(int c, int i):pcode(c){v=i;}	
+};
+
+class spcode: public pcode {
+	string v;
+public:
+    spcode(int c, string s):pcode(c){v=s;}	
+};
+
 // --- gli oggetti dell'esecuzione dell'interprete
 
 int theObjCounter=0;
