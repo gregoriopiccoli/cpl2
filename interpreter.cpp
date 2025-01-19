@@ -505,6 +505,8 @@ int main(){
   prg.add(makePCode(P_PLUS,""));
   prg.add(makePCode(P_INT_CONST,"3"));
   prg.add(makePCode(P_MULT,""));
+  prg.add(makePCode(P_INT_CONST,"3"));
+  prg.add(makePCode(P_MINUS,""));
   prg.add(makePCode(P_PRINT,"1"));
   prg.add(makePCode(P_PCODEEND,"0"));
   
