@@ -46,6 +46,7 @@ public:
   pcode(int c){code=c;}  
   virtual ~pcode(){}
   virtual void exec(interp* interpreter)=0; //{throw domain_error("not an executable pcode");};
+  int get(){return code;}
 };
 		
 class ipcode: public pcode {
@@ -471,6 +472,7 @@ public:
 };
 sys theSys;
 
+#include "pcodes.c"
 
 class interp {
 public:
@@ -482,7 +484,8 @@ public:
   interp(containerObj* c){sp=-1;pc=0;stack.reserve(10);shared_ptr<containerObj> cc(c);context=cc;}
   void run(){
 	  while(pc!=-2){
-		  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << endl;
+		  int instr=prg->get(pc)->get();
+		  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
 		  prg->get(pc)->exec(this);
 		  pc++;
 	  }
@@ -618,6 +621,9 @@ void pcodeStrType::exec(interp* interpreter){
 // ------------------------------------------------
 	
 int main(){
+  //
+  initpcodetxt();
+  //	
   int x=theStringIntern.add("x");
   int y=theStringIntern.add("y");
   // --- oggetti di base
