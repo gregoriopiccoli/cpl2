@@ -4,6 +4,7 @@
 */ 
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -186,7 +187,7 @@ public:
 class pcodeNotImpl: public spcode {
 public:
   pcodeNotImpl(int c, string v):spcode(c,v){}	
-  virtual void exec(interp* interpreter){cout << "pcode:" << code << " value:" << value << " not impl!" << endl; throw domain_error("pcde not implemented");}
+  virtual void exec(interp* interpreter);
 };
 
 class pcodeIntType: public pcode {
@@ -198,6 +199,12 @@ public:
 class pcodeStrType: public pcode {
 public:
   pcodeStrType(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeLine: public ipcode {
+public:
+  pcodeLine(int c, int v):ipcode(c,v){}
   virtual void exec(interp* interpreter);
 };
 
@@ -227,6 +234,7 @@ pcode* makePCode(int c,const char* s){
 	case P_PCODEEND:return new pcodePCodeEnd(P_PCODEEND,atoi(s));
 	case P_INT_TYPE: return new pcodeIntType(P_INT_TYPE);  
 	case P_STR_TYPE: return new pcodeIntType(P_STR_TYPE);  
+	case P_LINE:return new pcodeLine(P_LINE,atoi(s));
   }
   return new pcodeNotImpl(c,s);
 }
@@ -453,14 +461,38 @@ public:
 
 // --- il sistema ---
 
+#include "pcodes.c"
+
 class pcodeProgram {
 	vector<pcode*> prg;
 public:
     void add(pcode* p){prg.push_back(p);}
     pcode* get(int i){return prg[i];}
     virtual ~pcodeProgram(){for(auto p:prg) delete p;}	
+    int loadPcd(string fn);
 };
-	 	
+
+int pcodeProgram::loadPcd(string fn){
+	ifstream pcd(fn);
+    if (pcd.good()) {     
+		char line[2000];
+		prg.clear();
+		unsigned char code=0;
+		pcd.getline(line,2000); // l'intestazione DA FARE!!!
+		pcd.getline(line,2000);
+		while (!pcd.eof() && code!=P_PCODEEND) {
+          code=line[0];code-=31;
+          //cout << line << endl;
+          //cout << (int)code << "(" << pcodetxt[code] << ")" << " >>" << (char*)(line+1) << "<<" << endl;
+          pcode* p=makePCode(code,line+1);
+          prg.push_back(p);
+		  pcd.getline(line,2000);
+        }
+        return 1;       
+    }
+    return 0;
+}
+
 class sys {
 public:
   // i moduli caricati
@@ -472,8 +504,6 @@ public:
 };
 sys theSys;
 
-#include "pcodes.c"
-
 class interp {
 public:
   pcodeProgram* prg;
@@ -484,8 +514,8 @@ public:
   interp(containerObj* c){sp=-1;pc=0;stack.reserve(10);shared_ptr<containerObj> cc(c);context=cc;}
   void run(){
 	  while(pc!=-2){
-		  int instr=prg->get(pc)->get();
-		  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
+		  //int instr=prg->get(pc)->get();
+		  //cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
 		  prg->get(pc)->exec(this);
 		  pc++;
 	  }
@@ -618,6 +648,15 @@ void pcodeStrType::exec(interp* interpreter){
   interpreter->stack.push_back(theStrType);
 };
 
+void pcodeLine::exec(interp* interpreter){
+	cout << "line:" << value << endl;
+};
+
+void pcodeNotImpl::exec(interp* interpreter){
+	cout << "pcode:" << code << " " << pcodetxt[code] << " value:" << value << " not impl!" << endl; 
+	throw domain_error("pcode not implemented");
+}
+
 // ------------------------------------------------
 	
 int main(){
@@ -672,6 +711,9 @@ int main(){
   
   // prova reale ...
   pcodeProgram prg;
+  
+  prg.loadPcd("primo.pcd");
+  /*
   prg.add(makePCode(P_INT_CONST,"1"));
   prg.add(makePCode(P_INT_CONST,"2"));
   prg.add(makePCode(P_PLUS,""));
@@ -695,7 +737,7 @@ int main(){
   prg.add(makePCode(P_PRINT,"1"));
   //
   prg.add(makePCode(P_PCODEEND,"0"));
-  
+  */
   containerObj* ctx=new containerObj();
   interp exe(ctx);
   exe.prg=&prg;
