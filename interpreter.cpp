@@ -1,5 +1,6 @@
 /*
-  Nil è meglio con nullptr o con uno specifico oggetto nil? 
+  Nil è meglio con nullptr o con uno specifico oggetto nil? per ora provo con un oggetto specifico ...
+  Devo fare che le stringhe abbiano le loro operazioni ... prima prova di classe C++! 
 */ 
 
 #include <iostream>
@@ -14,8 +15,8 @@ using namespace std;
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
 
 class StringIntern {
-   unordered_map<string,int> map;
-   vector<string> imap;
+   unordered_map<string,int> map;  // mappa di interning delle stringhe
+   vector<string> imap;            // mappa inversa per riavere il valore rapidamente (si può migliorare, così salva due volte le stringhe)
    int n=0;
 public:
    int add(string s){
@@ -126,6 +127,12 @@ public:
   virtual void exec(interp* interpreter);
 };
 
+class pcodeStrConst: public spcode {
+public:
+  pcodeStrConst(int c, string v):spcode(c,v){}
+  virtual void exec(interp* interpreter);
+};
+
 class pcodeGoto: public ipcode {
 public:
   pcodeGoto(int c, int v):ipcode(c,v){}
@@ -163,6 +170,7 @@ pcode* makePCode(int c,const char* s){
 	case P_MOD:return new pcodeMod(P_MOD);
 	case P_IDIV:return new pcodeIDiv(P_IDIV);
 	case P_INT_CONST:return new pcodeIntConst(P_INT_CONST,atoi(s));
+	case P_STR_CONST:return new pcodeStrConst(P_STR_CONST,s);
 	case P_NIL:return new pcodeNil(P_NIL);
 	case P_TRUE:return new pcodeTrue(P_TRUE);
 	case P_FALSE:return new pcodeFalse(P_FALSE);
@@ -449,6 +457,12 @@ void pcodeIntConst::exec(interp* interpreter){
   interpreter->stack.push_back(shared_ptr<obj>(o)); 
 };
 
+void pcodeStrConst::exec(interp* interpreter){
+  interpreter->sp++;
+  obj* o=new strObj(value);
+  interpreter->stack.push_back(shared_ptr<obj>(o)); 
+};
+
 void pcodePrint::exec(interp* interpreter){
   int i;	
   for(i=1;i<=value;i++){
@@ -526,7 +540,8 @@ int main(){
   prg.add(makePCode(P_INT_CONST,"1"));
   prg.add(makePCode(P_MINUS,""));
   prg.add(makePCode(P_NIL,""));
-  prg.add(makePCode(P_PRINT,"2"));
+  prg.add(makePCode(P_STR_CONST," pippo!"));
+  prg.add(makePCode(P_PRINT,"3"));
   prg.add(makePCode(P_PCODEEND,"0"));
   
   interp exe;
