@@ -215,6 +215,12 @@ public:
 
 };
 
+class nilObj: public obj {
+public:	
+  virtual string print() {return "nil";};
+  virtual shared_ptr<obj> eq(obj*);
+};
+
 class intObj:public obj {
 public:
   int value;
@@ -262,6 +268,14 @@ public:
     boolObj(bool v){b=v;};
     virtual string print(){return (b?"true":"false");};
 };
+
+shared_ptr<obj> theTrue(new boolObj(true));
+shared_ptr<obj> theFalse(new boolObj(false));
+shared_ptr<obj> theNil(new nilObj());
+
+shared_ptr<obj> nilObj::eq(obj* o){
+	return shared_ptr<obj> (o==theNil.get()?theTrue:theFalse); 
+}
 
 class floatObj: public obj {
 	float v;
@@ -344,19 +358,21 @@ public:
   // i moduli caricati
   unordered_map<string,pcodeProgram*> modules;
   // dei valori che esistono sempre
-  shared_ptr<boolObj> True{new boolObj(true)};
-  shared_ptr<boolObj> False{new boolObj(false)};
+  //shared_ptr<boolObj> True{new boolObj(true)};
+  //shared_ptr<boolObj> False{new boolObj(false)};
 };
 sys theSys;
+
 
 class interp {
 public:
   pcodeProgram* prg;
   vector<shared_ptr<obj>> stack;
-  int sp{-1},pc{0};
+  int sp,pc;
+  interp(){sp=-1;pc=0;stack.reserve(10);}
   void run(){
 	  while(pc!=-2){
-		  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << endl;
+		  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << endl;
 		  prg->get(pc)->exec(this);
 		  pc++;
 	  }
@@ -414,17 +430,17 @@ void pcodeIDiv::exec(interp* interpreter){
 
 void pcodeNil::exec(interp* interpreter){
   interpreter->sp++;
-  interpreter->stack[interpreter->sp]=nullptr;
+  interpreter->stack.push_back(theNil);
 };
 
 void pcodeTrue::exec(interp* interpreter){
   interpreter->sp++;
-  interpreter->stack.push_back(theSys.True);
+  interpreter->stack.push_back(theTrue);
 };
 
 void pcodeFalse::exec(interp* interpreter){
   interpreter->sp++;
-  interpreter->stack.push_back(theSys.False);
+  interpreter->stack.push_back(theFalse);
 };
 
 void pcodeIntConst::exec(interp* interpreter){
@@ -470,8 +486,8 @@ int main(){
   shared_ptr<arrayObj> aa(new arrayObj());
   aa->append(n);
   aa->append(s);  
-  aa->append(theSys.True);
-  aa->append(theSys.False);
+  aa->append(theTrue);
+  aa->append(theFalse);
   cout << aa->slice(0)->print() << " " << aa->slice(1)->print() << " len:" << aa->len() << endl;  
   aa->storeslice(0,s);
   shared_ptr<obj> ff(new floatObj(12.34));
@@ -505,12 +521,16 @@ int main(){
   prg.add(makePCode(P_PLUS,""));
   prg.add(makePCode(P_INT_CONST,"3"));
   prg.add(makePCode(P_MULT,""));
-  prg.add(makePCode(P_INT_CONST,"3"));
-  prg.add(makePCode(P_MINUS,""));
   prg.add(makePCode(P_PRINT,"1"));
+  prg.add(makePCode(P_INT_CONST,"3"));
+  prg.add(makePCode(P_INT_CONST,"1"));
+  prg.add(makePCode(P_MINUS,""));
+  prg.add(makePCode(P_NIL,""));
+  prg.add(makePCode(P_PRINT,"2"));
   prg.add(makePCode(P_PCODEEND,"0"));
   
   interp exe;
+  //exe.stack.reserve(20);
   exe.prg=&prg;
   exe.run(); 
   
