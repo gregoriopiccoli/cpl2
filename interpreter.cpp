@@ -233,7 +233,7 @@ pcode* makePCode(int c,const char* s){
 	case P_PRINT:return new pcodePrint(P_PRINT,atoi(s));
 	case P_PCODEEND:return new pcodePCodeEnd(P_PCODEEND,atoi(s));
 	case P_INT_TYPE: return new pcodeIntType(P_INT_TYPE);  
-	case P_STR_TYPE: return new pcodeIntType(P_STR_TYPE);  
+	case P_STR_TYPE: return new pcodeStrType(P_STR_TYPE);  
 	case P_LINE:return new pcodeLine(P_LINE,atoi(s));
   }
   return new pcodeNotImpl(c,s);
@@ -268,10 +268,6 @@ public:
   virtual shared_ptr<obj> ge(obj*) {throw domain_error("ge not implemented");};
   virtual shared_ptr<obj> gt(obj*) {throw domain_error("gt not implemented");};
   virtual shared_ptr<obj> ne(obj*) {throw domain_error("ne not implemented");};
-  //virtual shared_ptr<obj> ltgt() {throw domain_error("lt-gt not implemented");};
-  //virtual shared_ptr<obj> legt() {throw domain_error("le-gt not implemented");};
-  //virtual shared_ptr<obj> ltge() {throw domain_error("lt-ge not implemented");};
-  //virtual shared_ptr<obj> lege() {throw domain_error("le-ge not implemented");};
   //
   //virtual shared_ptr<obj> _or() {throw domain_error("or not implemented");};
   //virtual shared_ptr<obj> _and() {throw domain_error("and not implemented");};
@@ -294,6 +290,9 @@ public:
   virtual shared_ptr<obj> plus(obj* o);
   virtual shared_ptr<obj> minus(obj* o);
   virtual shared_ptr<obj> mult(obj* o);
+  virtual shared_ptr<obj> div(obj* o);
+  virtual shared_ptr<obj> idiv(obj* o);
+  virtual shared_ptr<obj> mod(obj* o);
 };
 
 shared_ptr<obj> intObj::plus(obj* o) {
@@ -301,7 +300,7 @@ shared_ptr<obj> intObj::plus(obj* o) {
   if (oo!=nullptr) {
 	return shared_ptr<obj>(new intObj(value+oo->value));  
   } else 
-	throw domain_error("integer plus with a non integer");
+	throw domain_error("integer + with a non integer");
 }
 
 shared_ptr<obj> intObj::minus(obj* o) {
@@ -309,7 +308,7 @@ shared_ptr<obj> intObj::minus(obj* o) {
   if (oo!=nullptr) {
 	return shared_ptr<obj>(new intObj(value-oo->value));  
   } else 
-	throw domain_error("integer minus with a non integer");
+	throw domain_error("integer - with a non integer");
 }
 
 shared_ptr<obj> intObj::mult(obj* o) {
@@ -317,7 +316,31 @@ shared_ptr<obj> intObj::mult(obj* o) {
   if (oo!=nullptr) {
 	return shared_ptr<obj>(new intObj(value*oo->value));  
   } else 
-	throw domain_error("integer mult with a non integer");
+	throw domain_error("integer * with a non integer");
+}
+
+shared_ptr<obj> intObj::div(obj* o) {
+  intObj* oo=dynamic_cast<intObj*>(o);
+  if (oo!=nullptr) {
+	return shared_ptr<obj>(new intObj(value/oo->value));  
+  } else 
+	throw domain_error("integer / with a non integer");
+}
+
+shared_ptr<obj> intObj::idiv(obj* o) {
+  intObj* oo=dynamic_cast<intObj*>(o);
+  if (oo!=nullptr) {
+	return shared_ptr<obj>(new intObj(value/oo->value));  
+  } else 
+	throw domain_error("integer idiv with a non integer");
+}
+
+shared_ptr<obj> intObj::mod(obj* o) {
+  intObj* oo=dynamic_cast<intObj*>(o);
+  if (oo!=nullptr) {
+	return shared_ptr<obj>(new intObj(value % oo->value));  
+  } else 
+	throw domain_error("integer % with a non integer");
 }
 
 class strObj:public obj {
@@ -325,7 +348,16 @@ public:
   string value;
   strObj(string v){value=v;}
   virtual string print(){return value;}
+  virtual shared_ptr<obj> plus(obj* o);
 };
+
+shared_ptr<obj> strObj::plus(obj* o) {
+  strObj* oo=dynamic_cast<strObj*>(o);
+  if (oo!=nullptr) {
+	return shared_ptr<obj>(new strObj(value + oo->value));  
+  } else 
+	throw domain_error("str + with a non str");
+}
 
 class boolObj:public obj {
 	bool b;
@@ -443,12 +475,16 @@ class containerObj : public obj {
   unordered_map<int,shared_ptr<obj>> objs;
   unordered_map<int,shared_ptr<obj>> types;  
 public:
-  void add(int intern, shared_ptr<obj> type) {objs[intern]=theNil;types[intern]=type;} 
+  void add(int intern, shared_ptr<obj> type) {
+	  if (objs.contains(intern)) throw out_of_range("name already in context");
+	  objs[intern]=theNil;
+	  types[intern]=type;
+  } 
   virtual shared_ptr<obj> load(int intern) {
      if (objs.contains(intern)) return objs[intern];
 	 string err=theStringIntern.get(intern)+" name not found";
 	 throw out_of_range(err);
-  };
+  }
   virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {
 	 if (objs.contains(intern)){
 	   objs[intern]=value;
@@ -456,7 +492,7 @@ public:
 	 }
 	 string err=theStringIntern.get(intern)+" name not found";
 	 throw out_of_range(err);
-  };    
+  }    
 };
 
 // --- il sistema ---
@@ -483,7 +519,7 @@ int pcodeProgram::loadPcd(string fn){
 		while (!pcd.eof() && code!=P_PCODEEND) {
           code=line[0];code-=31;
           //cout << line << endl;
-          //cout << (int)code << "(" << pcodetxt[code] << ")" << " >>" << (char*)(line+1) << "<<" << endl;
+          //cout << pcodetxt[code] << "(" << (int)code << ") " << (char*)(line+1) << endl;
           pcode* p=makePCode(code,line+1);
           prg.push_back(p);
 		  pcd.getline(line,2000);
@@ -513,12 +549,12 @@ public:
   //
   interp(containerObj* c){sp=-1;pc=0;stack.reserve(10);shared_ptr<containerObj> cc(c);context=cc;}
   void run(){
-	  while(pc!=-2){
-		  //int instr=prg->get(pc)->get();
-		  //cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
-		  prg->get(pc)->exec(this);
-		  pc++;
-	  }
+	while(pc!=-2){
+	  //int instr=prg->get(pc)->get();
+	  //cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
+	  prg->get(pc)->exec(this);
+	  pc++;
+	}
   }
 };
 
@@ -604,14 +640,13 @@ void pcodeStrConst::exec(interp* interpreter){
 };
 
 void pcodeVar::exec(interp* interpreter){
-  cout << "adding var:" << theStringIntern.get(value) << " type:" << interpreter->stack[interpreter->sp]->print() << endl;
+  //cout << "-- var " << interpreter->stack[interpreter->sp]->print() << " " << theStringIntern.get(value) << endl;
   interpreter->context->add(value,interpreter->stack[interpreter->sp]);
 };
 
 void pcodeLoad::exec(interp* interpreter){
   interpreter->sp++;
-  obj* o=interpreter->context->load(value).get();
-  interpreter->stack.push_back(shared_ptr<obj>(o)); 
+  interpreter->stack.push_back(interpreter->context->load(value)); 
 };
 
 void pcodeStore::exec(interp* interpreter){
@@ -621,20 +656,20 @@ void pcodeStore::exec(interp* interpreter){
 
 void pcodePrint::exec(interp* interpreter){
   int i;	
+  //cout << "inizio print " << value << " sp:" << interpreter->sp << " sz:" << interpreter->stack.size() << endl;  
   for(i=1;i<=value;i++){
     shared_ptr<obj> o=interpreter->stack[interpreter->sp-value+i];
-    if (o.get()==nullptr) 
-	  cout << "nil";
-    else  
-	  cout << o->print();
+	cout << o->print();
   }
   cout << endl;
   interpreter->sp-=value;
   for(i=1;i<=value;i++)
     interpreter->stack.pop_back();
+  //cout << "fine print " << value << " sp:" << interpreter->sp << " sz:" << interpreter->stack.size() << endl;  
 };
 
 void pcodePCodeEnd::exec(interp* interpreter){
+  cout << "stop" << endl;
   interpreter->pc=-3; // convenzione per fermarsi 
 };
 
@@ -649,7 +684,7 @@ void pcodeStrType::exec(interp* interpreter){
 };
 
 void pcodeLine::exec(interp* interpreter){
-	cout << "line:" << value << endl;
+	//cout << "line:" << value << endl;
 };
 
 void pcodeNotImpl::exec(interp* interpreter){
@@ -662,6 +697,7 @@ void pcodeNotImpl::exec(interp* interpreter){
 int main(){
   //
   initpcodetxt();
+  /*
   //	
   int x=theStringIntern.add("x");
   int y=theStringIntern.add("y");
@@ -708,11 +744,10 @@ int main(){
   if (iii.get()==0) printf("non riuscito come dovrebbe essere!\n");
   u8string utf8=u8"Hello € world! ↗";
   printf("%s\n",(char*)utf8.c_str());
-  
+  */
   // prova reale ...
   pcodeProgram prg;
   
-  prg.loadPcd("primo.pcd");
   /*
   prg.add(makePCode(P_INT_CONST,"1"));
   prg.add(makePCode(P_INT_CONST,"2"));
@@ -738,10 +773,11 @@ int main(){
   //
   prg.add(makePCode(P_PCODEEND,"0"));
   */
+
+  prg.loadPcd("primo.pcd");
   containerObj* ctx=new containerObj();
   interp exe(ctx);
   exe.prg=&prg;
   exe.run(); 
-  
   return 0;
 }
