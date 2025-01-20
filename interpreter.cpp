@@ -629,14 +629,14 @@ void pcodeFalse::exec(interp* interpreter){
 
 void pcodeIntConst::exec(interp* interpreter){
   interpreter->sp++;
-  obj* o=new intObj(value);
-  interpreter->stack.push_back(shared_ptr<obj>(o)); 
+  shared_ptr<obj> o(new intObj(value));
+  interpreter->stack.push_back(o); 
 };
 
 void pcodeStrConst::exec(interp* interpreter){
   interpreter->sp++;
-  obj* o=new strObj(value);
-  interpreter->stack.push_back(shared_ptr<obj>(o)); 
+  shared_ptr<obj> o(new strObj(value));
+  interpreter->stack.push_back(o); 
 };
 
 void pcodeVar::exec(interp* interpreter){
