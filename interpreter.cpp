@@ -40,6 +40,7 @@ StringIntern theStringIntern;
 class interp;
 
 class pcode {
+protected:	
   int code;
 public:
   pcode(int c){code=c;}  
@@ -103,6 +104,12 @@ public:
   virtual void exec(interp* interpreter);
 };
 
+class pcodePop: public pcode {
+public:
+  pcodePop(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
 class pcodeNil: public pcode {
 public:
   pcodeNil(int c):pcode(c){}
@@ -133,6 +140,24 @@ public:
   virtual void exec(interp* interpreter);
 };
 
+class pcodeVar: public ipcode {
+public:
+  pcodeVar(int c, int v):ipcode(c,v){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeLoad: public ipcode {
+public:
+  pcodeLoad(int c, int v):ipcode(c,v){}
+  virtual void exec(interp* interpreter);
+};
+	
+class pcodeStore: public ipcode {
+public:
+  pcodeStore(int c, int v):ipcode(c,v){}
+  virtual void exec(interp* interpreter);
+};
+
 class pcodeGoto: public ipcode {
 public:
   pcodeGoto(int c, int v):ipcode(c,v){}
@@ -157,10 +182,27 @@ public:
   virtual void exec(interp* interpreter);
 };
 
+class pcodeNotImpl: public spcode {
+public:
+  pcodeNotImpl(int c, string v):spcode(c,v){}	
+  virtual void exec(interp* interpreter){cout << "pcode:" << code << " value:" << value << " not impl!" << endl; throw domain_error("pcde not implemented");}
+};
+
+class pcodeIntType: public pcode {
+public:
+  pcodeIntType(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeStrType: public pcode {
+public:
+  pcodeStrType(int c):pcode(c){}
+  virtual void exec(interp* interpreter);
+};
+
 #include "pcodes.h"
 
 pcode* makePCode(int c,const char* s){
-  int v;
   switch(c){
 	case P_PLUS:return new pcodePlus(P_PLUS);
 	case P_MINUS:return new pcodeMinus(P_MINUS);
@@ -169,17 +211,23 @@ pcode* makePCode(int c,const char* s){
 	case P_DIV:return new pcodeDiv(P_DIV);
 	case P_MOD:return new pcodeMod(P_MOD);
 	case P_IDIV:return new pcodeIDiv(P_IDIV);
+	case P_POP:return new pcodePop(P_POP);
 	case P_INT_CONST:return new pcodeIntConst(P_INT_CONST,atoi(s));
 	case P_STR_CONST:return new pcodeStrConst(P_STR_CONST,s);
 	case P_NIL:return new pcodeNil(P_NIL);
 	case P_TRUE:return new pcodeTrue(P_TRUE);
 	case P_FALSE:return new pcodeFalse(P_FALSE);
+	case P_VAR:return new pcodeVar(P_VAR,theStringIntern.add(s));
+	case P_LOAD:return new pcodeLoad(P_LOAD,theStringIntern.add(s)); 
+	case P_STORE:return new pcodeStore(P_STORE,theStringIntern.add(s));
 	case P_GOTO:return new pcodeGoto(P_GOTO,atoi(s));
 	case P_LABEL:return new pcodeLabel(P_LABEL,atoi(s));
 	case P_PRINT:return new pcodePrint(P_PRINT,atoi(s));
 	case P_PCODEEND:return new pcodePCodeEnd(P_PCODEEND,atoi(s));
+	case P_INT_TYPE: return new pcodeIntType(P_INT_TYPE);  
+	case P_STR_TYPE: return new pcodeIntType(P_STR_TYPE);  
   }
-  return nullptr;
+  return new pcodeNotImpl(c,s);
 }
 
 // --- gli oggetti dell'esecuzione dell'interprete
@@ -192,9 +240,9 @@ public:
   virtual ~obj(){theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";};
   virtual string print() {throw domain_error("print not implemented");};
   virtual shared_ptr<obj> load(int intern) {throw domain_error("load not implemented");};
-  virtual shared_ptr<obj> slice(int pos) {throw domain_error("slice not implemented");};
+  virtual shared_ptr<obj> slice(shared_ptr<obj> idx) {throw domain_error("slice not implemented");};
   virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {throw domain_error("store not implemented");};
-  virtual shared_ptr<obj> storeslice(int pos,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");};
+  virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");};
   virtual shared_ptr<obj> call(int n) {throw domain_error("call not implemented");};
   //
   virtual shared_ptr<obj> plus(obj*) {throw domain_error("plus not implemented");};
@@ -264,10 +312,10 @@ shared_ptr<obj> intObj::mult(obj* o) {
 }
 
 class strObj:public obj {
-  string s;
 public:  
-  strObj(string v){s=v;}
-  virtual string print(){return s;}
+  string value;
+  strObj(string v){value=v;}
+  virtual string print(){return value;}
 };
 
 class boolObj:public obj {
@@ -277,6 +325,7 @@ public:
     virtual string print(){return (b?"true":"false");};
 };
 
+// i singleton degli oggetti che non richiedono tante copie ...
 shared_ptr<obj> theTrue(new boolObj(true));
 shared_ptr<obj> theFalse(new boolObj(false));
 shared_ptr<obj> theNil(new nilObj());
@@ -292,18 +341,45 @@ public:
     virtual string print(){return to_string(v);};
 };
 
+// --- i tipi di base 
+
+class intType: public obj {
+public:
+    virtual string print(){return "int";}    
+};
+
+class strType: public obj {
+public:
+    virtual string print(){return "str";}    
+};
+
+shared_ptr<obj> theIntType(new intType);
+shared_ptr<obj> theStrType(new strType);
+
 // --- gli array e i dizionari
 
 class arrayObj: public obj {
 	vector<shared_ptr<obj>> a;
 public:
-  virtual shared_ptr<obj> slice(int pos) {return a[pos];};
-  virtual shared_ptr<obj> storeslice(int pos,shared_ptr<obj> value) {a[pos]=value;return value;};
+  
+  virtual shared_ptr<obj> slice(shared_ptr<obj> idx) {
+	    intObj* pos=dynamic_cast<intObj*>(idx.get());
+	    if (pos!=nullptr) return a[pos->value];
+	    throw domain_error("slicing an array with a non integer index");
+	  };
+  virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) {
+	    intObj* pos=dynamic_cast<intObj*>(idx.get());
+	    if (pos!=nullptr) {a[pos->value]=value;return value;}
+	    throw domain_error("storing in an array with a non integer index");
+	  };
   virtual shared_ptr<obj> append(shared_ptr<obj> v){a.push_back(v);return v;};
   virtual shared_ptr<obj> remove(int pos){shared_ptr<obj> v=a[pos];a.erase(a.begin()+pos);return v;};
   virtual shared_ptr<obj> insert(int pos,shared_ptr<obj> v){a.insert(a.begin()+pos,v);return v;};
   virtual int len(){return a.size();};  
-  virtual string print();
+  virtual string print(); 
+  //
+  shared_ptr<obj> sliceidx(int idx){return a[idx];}
+  void storesliceidx(int idx, shared_ptr<obj> v){a[idx]=v;}
 };
 
 string arrayObj::print(){
@@ -319,13 +395,27 @@ string arrayObj::print(){
 class dictObj : public obj {
   unordered_map<string,shared_ptr<obj>> map;
 public:
-  virtual shared_ptr<obj> load(string key) {
-     if (map.contains(key)) return map[key];
-	 string err=key+" name not found";
-	 throw out_of_range(err);
+  virtual shared_ptr<obj> slice(shared_ptr<obj> idx) {
+	 strObj* key=dynamic_cast<strObj*>(idx.get());
+	 if (key!=nullptr){
+       if (map.contains(key->value)) return map[key->value];
+	   string err=key->value+" name not found";
+	   throw out_of_range(err);
+	 }
+	 throw domain_error("slicing a dictionary with a non string index");
   };
-  virtual shared_ptr<obj> store(string key, shared_ptr<obj> value) {map[key]=value;return value;};    
+  virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx, shared_ptr<obj> value) {
+	 strObj* key=dynamic_cast<strObj*>(idx.get());
+	 if (key!=nullptr){
+	   map[key->value]=value;
+	   return value;
+     }
+     throw domain_error("storing in a dictionary with a non string key");
+  };    
   virtual string print();
+  //
+  shared_ptr<obj> loadkey(string key){return map[key];}
+  shared_ptr<obj> storekey(string key, shared_ptr<obj> value){map[key]=value;return value;}
 };
 
 string dictObj::print(){
@@ -341,14 +431,23 @@ string dictObj::print(){
 // --- i contenitori con nomi (classi, variabili locali, moduli ...)
 
 class containerObj : public obj {
-  unordered_map<int,shared_ptr<obj>> map;
+  unordered_map<int,shared_ptr<obj>> objs;
+  unordered_map<int,shared_ptr<obj>> types;  
 public:
+  void add(int intern, shared_ptr<obj> type) {objs[intern]=theNil;types[intern]=type;} 
   virtual shared_ptr<obj> load(int intern) {
-     if (map.contains(intern)) return map[intern];
+     if (objs.contains(intern)) return objs[intern];
 	 string err=theStringIntern.get(intern)+" name not found";
 	 throw out_of_range(err);
   };
-  virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {map[intern]=value;return value;};    
+  virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {
+	 if (objs.contains(intern)){
+	   objs[intern]=value;
+	   return value;
+	 }
+	 string err=theStringIntern.get(intern)+" name not found";
+	 throw out_of_range(err);
+  };    
 };
 
 // --- il sistema ---
@@ -368,6 +467,7 @@ public:
   // dei valori che esistono sempre
   //shared_ptr<boolObj> True{new boolObj(true)};
   //shared_ptr<boolObj> False{new boolObj(false)};
+  //shared_ptr<obj> Nil{new nilObj()};
 };
 sys theSys;
 
@@ -377,7 +477,9 @@ public:
   pcodeProgram* prg;
   vector<shared_ptr<obj>> stack;
   int sp,pc;
-  interp(){sp=-1;pc=0;stack.reserve(10);}
+  shared_ptr<containerObj> context;   
+  //
+  interp(containerObj* c){sp=-1;pc=0;stack.reserve(10);shared_ptr<containerObj> cc(c);context=cc;}
   void run(){
 	  while(pc!=-2){
 		  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << endl;
@@ -436,6 +538,11 @@ void pcodeIDiv::exec(interp* interpreter){
   interpreter->stack[interpreter->sp]=obj1->idiv(obj2.get());
 };
 
+void pcodePop::exec(interp* interpreter){
+  interpreter->sp--;
+  interpreter->stack.pop_back();
+};
+
 void pcodeNil::exec(interp* interpreter){
   interpreter->sp++;
   interpreter->stack.push_back(theNil);
@@ -463,6 +570,22 @@ void pcodeStrConst::exec(interp* interpreter){
   interpreter->stack.push_back(shared_ptr<obj>(o)); 
 };
 
+void pcodeVar::exec(interp* interpreter){
+  cout << "adding var:" << theStringIntern.get(value) << " type:" << interpreter->stack[interpreter->sp]->print() << endl;
+  interpreter->context->add(value,interpreter->stack[interpreter->sp]);
+};
+
+void pcodeLoad::exec(interp* interpreter){
+  interpreter->sp++;
+  obj* o=interpreter->context->load(value).get();
+  interpreter->stack.push_back(shared_ptr<obj>(o)); 
+};
+
+void pcodeStore::exec(interp* interpreter){
+  shared_ptr<obj> o=interpreter->stack[interpreter->sp];
+  interpreter->context->store(value,o);
+};
+
 void pcodePrint::exec(interp* interpreter){
   int i;	
   for(i=1;i<=value;i++){
@@ -476,11 +599,21 @@ void pcodePrint::exec(interp* interpreter){
   interpreter->sp-=value;
   for(i=1;i<=value;i++)
     interpreter->stack.pop_back();
-}
+};
 
 void pcodePCodeEnd::exec(interp* interpreter){
   interpreter->pc=-3; // convenzione per fermarsi 
-}
+};
+
+void pcodeIntType::exec(interp* interpreter){
+  interpreter->sp++;
+  interpreter->stack.push_back(theIntType);
+};
+
+void pcodeStrType::exec(interp* interpreter){
+  interpreter->sp++;
+  interpreter->stack.push_back(theStrType);
+};
 
 // ------------------------------------------------
 	
@@ -492,7 +625,9 @@ int main(){
   shared_ptr<obj> s(new strObj("pippo"));  
   cout << n->print() << " " << s->print() << endl;
   // --- contenitore
-  shared_ptr<obj> cc(new containerObj());
+  shared_ptr<containerObj> cc(new containerObj());
+  cc->add(x,theNil);
+  cc->add(y,theNil);
   cc->store(x,n);
   cc->store(y,s);
   cout << cc->load(y)->print() << " " << cc->load(x)->print() << endl;  
@@ -502,19 +637,20 @@ int main(){
   aa->append(s);  
   aa->append(theTrue);
   aa->append(theFalse);
-  cout << aa->slice(0)->print() << " " << aa->slice(1)->print() << " len:" << aa->len() << endl;  
-  aa->storeslice(0,s);
+  cout << aa->sliceidx(0)->print() << " " << aa->sliceidx(1)->print() << " len:" << aa->len() << endl;  
+  aa->storesliceidx(0,s);
+  cout << 1 << endl;
   shared_ptr<obj> ff(new floatObj(12.34));
   aa->insert(0,ff);
   aa->remove(1);
-  cout << aa->slice(0)->print() << " " << aa->slice(1)->print() << " len:" << aa->len() << endl;  
+  cout << aa->sliceidx(0)->print() << " " << aa->sliceidx(1)->print() << " len:" << aa->len() << endl;  
   // --- dizionari
   shared_ptr<dictObj> dd(new dictObj());
-  dd->store("n",n);
-  dd->store(n->print(),s);
-  dd->store("xxx",n);
-  dd->store("aa",aa);
-  cout << "dd['n']=" << dd->load("n")->print() << " dd['"<< n->print() <<"']=" << dd->load(n->print())->print() << " dd['xxx']=" << dd->load("xxx")->print() << endl;
+  dd->storekey("n",n);
+  dd->storekey(n->print(),s);
+  dd->storekey("xxx",n);
+  dd->storekey("aa",aa);
+  cout << "dd['n']=" << dd->loadkey("n")->print() << " dd['"<< n->print() <<"']=" << dd->loadkey(n->print())->print() << " dd['xxx']=" << dd->loadkey("xxx")->print() << endl;
   // --- stampa di array
   cout << aa->print() << endl; 
   // --- stampa del dizionario
@@ -542,10 +678,20 @@ int main(){
   prg.add(makePCode(P_NIL,""));
   prg.add(makePCode(P_STR_CONST," pippo!"));
   prg.add(makePCode(P_PRINT,"3"));
+  //
+  prg.add(makePCode(P_INT_TYPE,""));
+  prg.add(makePCode(P_VAR,"i"));
+  prg.add(makePCode(P_POP,""));
+  prg.add(makePCode(P_INT_CONST,"1000"));
+  prg.add(makePCode(P_STORE,"i"));
+  prg.add(makePCode(P_POP,""));
+  prg.add(makePCode(P_LOAD,"i"));
+  prg.add(makePCode(P_PRINT,"1"));
+  //
   prg.add(makePCode(P_PCODEEND,"0"));
   
-  interp exe;
-  //exe.stack.reserve(20);
+  containerObj* ctx=new containerObj();
+  interp exe(ctx);
   exe.prg=&prg;
   exe.run(); 
   
