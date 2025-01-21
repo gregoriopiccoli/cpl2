@@ -1,8 +1,12 @@
 ? not True
 ? !false
+var int i
+i:=100
 
 proc p()
-  ? 'Hello world!'
+  var int j
+  j:=200
+  ? 'Hello world! ',i,' ',j
 end
 
 ? p

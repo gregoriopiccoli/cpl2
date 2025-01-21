@@ -674,6 +674,24 @@ public:
   }    
 };
 
+// --- contenitore che cerca in locale e nel modulo
+class procContextObj : public containerObj {
+public:
+  containerObj* superlevel;	
+  procContextObj(containerObj* sl){superlevel=sl;};
+  virtual shared_ptr<obj> load(int intern) {
+     if (objs.contains(intern)) return objs[intern];
+     return superlevel->load(intern);
+  }
+  virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {
+	 if (objs.contains(intern)){
+	   objs[intern]=value;
+	   return value;
+	 }
+	 return superlevel->store(intern,value);
+  }    
+};
+
 // --- il sistema ---
 
 #include "pcodes.c"
@@ -773,8 +791,11 @@ void procObj:: call(int n, interp* i) {
   // esegue la procedura
   i->pc=pc+1;
   i->prg=prg;
-  shared_ptr<containerObj> sctx(ctx); // blocca l'oggetto
-  i->context=sctx;
+  shared_ptr<containerObj> pctx(new procContextObj(ctx.lock().get()));
+  i->context=pctx;
+  
+  //i->context=ctx.lock(); 
+  
   i->run();
   // toglie dallo stack il puntatore alla procedura
   // mette un nil che è sempre il risultato di una procedura
