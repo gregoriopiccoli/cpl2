@@ -217,6 +217,18 @@ public:
   virtual void exec(interp* interpreter);
 };
 
+class pcodeIfAnd: public ipcode {
+public:
+  pcodeIfAnd(int v):ipcode(v){code=P_IF_AND;}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeIfOr: public ipcode {
+public:
+  pcodeIfOr(int v):ipcode(v){code=P_IF_OR;}
+  virtual void exec(interp* interpreter);
+};
+
 class pcodePrint: public ipcode {
 public:
   pcodePrint(int v):ipcode(v){code=P_PRINT;}
@@ -280,6 +292,8 @@ pcode* makePCode(int c,const char* s){
 	case P_GOTO:return new pcodeGoto(atoi(s));
 	case P_LABEL:return new pcodeLabel(atoi(s));
 	case P_IF_FALSE: return new pcodeIfFalse(atoi(s));
+	case P_IF_AND: return new pcodeIfAnd(atoi(s));
+	case P_IF_OR: return new pcodeIfOr(atoi(s));
 	case P_PRINT:return new pcodePrint(atoi(s));
 	case P_PCODEEND:return new pcodePCodeEnd(atoi(s));
 	case P_INT_TYPE: return new pcodeIntType();  
@@ -672,7 +686,7 @@ public:
 };
 sys theSys;
 
-#undef PRINT_PCODE_EXECUTION
+//#define PRINT_PCODE_EXECUTION
 
 class interp {
 public:
@@ -848,6 +862,28 @@ void pcodeIfFalse::exec(interp* interpreter){
 	if (v==theFalse.get()) interpreter->pc=interpreter->prg->getLabelPos(value);
 };
 	
+void pcodeIfAnd::exec(interp* interpreter){
+	obj* v=interpreter->stack[interpreter->sp].get();
+	if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("and with a non boolean expression");
+	if (v==theFalse.get()) 
+	  interpreter->pc=interpreter->prg->getLabelPos(value);
+	else {
+  	  interpreter->sp--;
+	  interpreter->stack.pop_back();
+	}  
+};
+
+void pcodeIfOr::exec(interp* interpreter){
+	obj* v=interpreter->stack[interpreter->sp].get();
+	if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("or with a non boolean expression");
+	if (v==theTrue.get()) 
+	  interpreter->pc=interpreter->prg->getLabelPos(value);
+	else {
+  	  interpreter->sp--;
+	  interpreter->stack.pop_back();
+	}  
+};
+
 void pcodePrint::exec(interp* interpreter){
   int i;	
   //cout << "inizio print " << value << " sp:" << interpreter->sp << " sz:" << interpreter->stack.size() << endl;  

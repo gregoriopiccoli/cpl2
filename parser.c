@@ -66,6 +66,7 @@ int getTokenCodeFromString(char* token){
 		case 'f':
 		  if (strcmp(token,"func")==0) return TOK_FUNC;
 		  if (strcmp(token,"for")==0) return TOK_FOR;
+		  if (strcmp(token,"false")==0) return TOK_FALSE;
 		  if (strcmp(token,"from")==0) return TOK_FROM;
 		  if (strcmp(token,"float")==0) return TOK_FLOAT;
 		 break;  
@@ -112,6 +113,7 @@ int getTokenCodeFromString(char* token){
 		  if (strcmp(token,"time")==0) return TOK_TIME;
 		  if (strcmp(token,"tuple")==0) return TOK_TUPLE;
 		  if (strcmp(token,"to")==0) return TOK_TO;
+		  if (strcmp(token,"true")==0) return TOK_TRUE;
 		  if (strcmp(token,"type")==0) return TOK_TYPE;
 		  if (strcmp(token,"try")==0) return TOK_TRY;
 		  break;

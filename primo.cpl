@@ -31,3 +31,7 @@ end
 ? "1>2 ",1>2
 ? "1<>2 ",1<>2
 
+? 'true=',true and false or true
+? 'true=',true or false or true
+? 'false=',true and false or false
+
