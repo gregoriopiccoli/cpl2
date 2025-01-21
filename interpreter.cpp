@@ -317,54 +317,42 @@ public:
   virtual shared_ptr<obj> mod(obj* o);
   virtual shared_ptr<obj> eq(obj* o);
   virtual shared_ptr<obj> lt(obj* o);
+  virtual shared_ptr<obj> le(obj* o);
+  virtual shared_ptr<obj> ge(obj* o);
+  virtual shared_ptr<obj> gt(obj* o);
+  virtual shared_ptr<obj> ne(obj* o);
+  //
+  intObj* check_int(obj* o,string msg){intObj* oo=dynamic_cast<intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 shared_ptr<obj> intObj::plus(obj* o) {
-  intObj* oo=dynamic_cast<intObj*>(o);
-  if (oo!=nullptr) {
-	return shared_ptr<obj>(new intObj(value+oo->value));  
-  } else 
-	throw domain_error("integer + with a non integer");
+  intObj* oo=check_int(o,"integer + with a non integer");
+  return shared_ptr<obj>(new intObj(value+oo->value));  
 }
 
 shared_ptr<obj> intObj::minus(obj* o) {
-  intObj* oo=dynamic_cast<intObj*>(o);
-  if (oo!=nullptr) {
-	return shared_ptr<obj>(new intObj(value-oo->value));  
-  } else 
-	throw domain_error("integer - with a non integer");
+  intObj* oo=check_int(o,"integer - with a non integer");
+  return shared_ptr<obj>(new intObj(value-oo->value));  
 }
 
 shared_ptr<obj> intObj::mult(obj* o) {
-  intObj* oo=dynamic_cast<intObj*>(o);
-  if (oo!=nullptr) {
-	return shared_ptr<obj>(new intObj(value*oo->value));  
-  } else 
-	throw domain_error("integer * with a non integer");
+  intObj* oo=check_int(o,"integer * with a non integer");
+  return shared_ptr<obj>(new intObj(value*oo->value));  
 }
 
 shared_ptr<obj> intObj::div(obj* o) {
-  intObj* oo=dynamic_cast<intObj*>(o);
-  if (oo!=nullptr) {
-	return shared_ptr<obj>(new intObj(value/oo->value));  
-  } else 
-	throw domain_error("integer / with a non integer");
+  intObj* oo=check_int(o,"integer / with a non integer");
+  return shared_ptr<obj>(new intObj(value/oo->value));  
 }
 
 shared_ptr<obj> intObj::idiv(obj* o) {
-  intObj* oo=dynamic_cast<intObj*>(o);
-  if (oo!=nullptr) {
-	return shared_ptr<obj>(new intObj(value/oo->value));  
-  } else 
-	throw domain_error("integer idiv with a non integer");
+  intObj* oo=check_int(o,"integer idiv with a non integer");
+  return shared_ptr<obj>(new intObj(value/oo->value));  
 }
 
 shared_ptr<obj> intObj::mod(obj* o) {
-  intObj* oo=dynamic_cast<intObj*>(o);
-  if (oo!=nullptr) {
-	return shared_ptr<obj>(new intObj(value % oo->value));  
-  } else 
-	throw domain_error("integer % with a non integer");
+  intObj* oo=check_int(o,"integer % with a non integer");
+  return shared_ptr<obj>(new intObj(value % oo->value));  
 }
 
 class strObj:public obj {
@@ -373,7 +361,9 @@ public:
   strObj(string v){value=v;}
   virtual string print(){return value;}
   virtual shared_ptr<obj> plus(obj* o);
-  virtual shared_ptr<obj> eq(obj* o);  
+  virtual shared_ptr<obj> eq(obj* o);
+  //  
+  strObj* check_str(obj* o,string msg){strObj* oo=dynamic_cast<strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 shared_ptr<obj> strObj::plus(obj* o) {
@@ -384,11 +374,15 @@ shared_ptr<obj> strObj::plus(obj* o) {
 	throw domain_error("str + with a non str");
 }
 
-class boolObj:public obj {
-	bool b;
+class boolObj:public obj { 
 public:
-    boolObj(bool v){b=v;};
-    virtual string print(){return (b?"true":"false");};
+  bool value;
+  boolObj(bool v){value=v;};
+  virtual string print(){return (value?"true":"false");};
+  virtual shared_ptr<obj> eq(obj* o);
+  virtual shared_ptr<obj> ne(obj* o);
+  //  
+  boolObj* check_bool(obj* o,string msg){boolObj* oo=dynamic_cast<boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}    
 };
 
 // i singleton degli oggetti che non richiedono tante copie ...
@@ -401,34 +395,55 @@ shared_ptr<obj> nilObj::eq(obj* o){
 }
 
 shared_ptr<obj> intObj::eq(obj* o) {
-  intObj* oo=dynamic_cast<intObj*>(o);
-  if (oo!=nullptr) {
-	return (value == oo->value?theTrue:theFalse);  
-  } else 
-	throw domain_error("int op = with a non int");
+  intObj* oo=check_int(o,"int op = with a non int");
+  return (value == oo->value?theTrue:theFalse);  
 }
 
 shared_ptr<obj> intObj::lt(obj* o) {
-  intObj* oo=dynamic_cast<intObj*>(o);
-  if (oo!=nullptr) {
-	return (value < oo->value?theTrue:theFalse);  
-  } else 
-	throw domain_error("int op < with a non int");
+  intObj* oo=check_int(o,"int op < with a non int");
+  return (value < oo->value?theTrue:theFalse);  
+}
+
+shared_ptr<obj> intObj::le(obj* o) {
+  intObj* oo=check_int(o,"int op < with a non int");
+  return (value <= oo->value?theTrue:theFalse);  
+}
+
+shared_ptr<obj> intObj::ge(obj* o) {
+  intObj* oo=check_int(o,"int op < with a non int");
+  return (value >= oo->value?theTrue:theFalse);  
+}
+
+shared_ptr<obj> intObj::gt(obj* o) {
+  intObj* oo=check_int(o,"int op < with a non int");
+  return (value > oo->value?theTrue:theFalse);  
+}
+
+shared_ptr<obj> intObj::ne(obj* o) {
+  intObj* oo=check_int(o,"int op < with a non int");
+  return (value != oo->value?theTrue:theFalse);  
 }
 
 shared_ptr<obj> strObj::eq(obj* o) {
-  strObj* oo=dynamic_cast<strObj*>(o);
-  if (oo!=nullptr) {
-	return (value.compare(oo->value)==0 ? theTrue:theFalse);  
-  } else 
-	throw domain_error("str = with a non str");
+  strObj* oo=check_str(o,"str = with a non str");
+  return (value.compare(oo->value)==0 ? theTrue:theFalse);  
+}
+
+shared_ptr<obj> boolObj::eq(obj* o) {
+  boolObj* oo=check_bool(o,"bool = with a non bool");
+  return (value == oo->value ? theTrue : theFalse);  
+}
+
+shared_ptr<obj> boolObj::ne(obj* o) {
+  boolObj* oo=check_bool(o,"bool <> with a non bool");
+  return (value != oo->value ? theTrue : theFalse);  
 }
 
 class floatObj: public obj {
-	float v;
 public:
-    floatObj(float f){v=f;};	
-    virtual string print(){return to_string(v);};
+    float value;
+    floatObj(float f){value=f;};	
+    virtual string print(){return to_string(value);};
 };
 
 // --- i tipi di base 
