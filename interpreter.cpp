@@ -1,6 +1,7 @@
 /*
   Nil è meglio con nullptr o con uno specifico oggetto nil? per ora provo con un oggetto specifico ...
   Devo fare che le stringhe abbiano le loro operazioni ... prima prova di classe C++! 
+  fare trucco della compare per tipo e mettere le operazioni di confronto sulla compare 
 */ 
 
 #include <iostream>
@@ -44,7 +45,7 @@ class pcode {
 protected:	
   int code;
 public:
-  pcode(int c){code=c;}  
+  pcode(){code=0;}  
   virtual ~pcode(){}
   virtual void exec(interp* interpreter)=0; //{throw domain_error("not an executable pcode");};
   int get(){return code;}
@@ -54,189 +55,210 @@ class ipcode: public pcode {
 protected:	
   int value;
 public:
-  ipcode(int c, int i):pcode(c){value=i;}	
+  ipcode(int i){code=0;value=i;}	
 };
 
 class spcode: public pcode {
 protected:	
   string value;
 public:
-  spcode(int c, string s):pcode(c){value=s;}	
+  spcode(string s){code=0;value=s;}	
 };
+
+#include "pcodes.h"
 
 class pcodePlus: public pcode {
 public:
-  pcodePlus(int c):pcode(c){}
+  pcodePlus(){code=P_PLUS;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeMinus: public pcode {
 public:
-  pcodeMinus(int c):pcode(c){}
+  pcodeMinus(){code=P_MINUS;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeUMinus: public pcode {
 public:
-  pcodeUMinus(int c):pcode(c){}
+  pcodeUMinus(){code=P_UMINUS;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeMult: public pcode {
 public:
-  pcodeMult(int c):pcode(c){}
+  pcodeMult(){code=P_MULT;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeDiv: public pcode {
 public:
-  pcodeDiv(int c):pcode(c){}
+  pcodeDiv(){code=P_DIV;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeMod: public pcode {
 public:
-  pcodeMod(int c):pcode(c){}
+  pcodeMod(){code=P_MOD;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeIDiv: public pcode {
 public:
-  pcodeIDiv(int c):pcode(c){}
+  pcodeIDiv(){code=P_IDIV;}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeEq: public pcode {
+public:
+  pcodeEq(){code=P_EQ;}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeLt: public pcode {
+public:
+  pcodeLt(){code=P_LT;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodePop: public pcode {
 public:
-  pcodePop(int c):pcode(c){}
+  pcodePop(){code=P_POP;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeNil: public pcode {
 public:
-  pcodeNil(int c):pcode(c){}
+  pcodeNil(){code=P_NIL;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeTrue: public pcode {
 public:
-  pcodeTrue(int c):pcode(c){}
+  pcodeTrue(){code=P_TRUE;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeFalse: public pcode {
 public:
-  pcodeFalse(int c):pcode(c){}
+  pcodeFalse(){code=P_FALSE;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeIntConst: public ipcode {
 public:
-  pcodeIntConst(int c, int v):ipcode(c,v){}
+  pcodeIntConst(int v):ipcode(v){code=P_INT_CONST;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeStrConst: public spcode {
 public:
-  pcodeStrConst(int c, string v):spcode(c,v){}
+  pcodeStrConst(string v):spcode(v){code=P_STR_CONST;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeVar: public ipcode {
 public:
-  pcodeVar(int c, int v):ipcode(c,v){}
+  pcodeVar(int v):ipcode(v){code=P_VAR;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeLoad: public ipcode {
 public:
-  pcodeLoad(int c, int v):ipcode(c,v){}
+  pcodeLoad(int v):ipcode(v){code=P_LOAD;}
   virtual void exec(interp* interpreter);
 };
 	
 class pcodeStore: public ipcode {
 public:
-  pcodeStore(int c, int v):ipcode(c,v){}
+  pcodeStore(int v):ipcode(v){code=P_STORE;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeGoto: public ipcode {
 public:
-  pcodeGoto(int c, int v):ipcode(c,v){}
-  virtual void exec(interp* interpreter){};
+  pcodeGoto(int v):ipcode(v){code=P_GOTO;}
+  virtual void exec(interp* interpreter);
 };
 
 class pcodeLabel: public ipcode {
 public:
-  pcodeLabel(int c, int v):ipcode(c,v){}
-  virtual void exec(interp* interpreter){};
+  pcodeLabel(int v):ipcode(v){code=P_LABEL;}
+  virtual void exec(interp* interpreter){}; // il pcode Label in esecuiozne è una NOP
 };
 	
+class pcodeIfFalse: public ipcode {
+public:
+  pcodeIfFalse(int v):ipcode(v){code=P_IF_FALSE;}
+  virtual void exec(interp* interpreter);
+};
+
 class pcodePrint: public ipcode {
 public:
-  pcodePrint(int c, int v):ipcode(c,v){}
+  pcodePrint(int v):ipcode(v){code=P_PRINT;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodePCodeEnd: public ipcode {
 public:
-  pcodePCodeEnd(int c, int v):ipcode(c,v){}
+  pcodePCodeEnd(int v):ipcode(v){code=P_PCODEEND;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeNotImpl: public spcode {
 public:
-  pcodeNotImpl(int c, string v):spcode(c,v){}	
+  pcodeNotImpl(string v):spcode(v){}	
   virtual void exec(interp* interpreter);
 };
 
 class pcodeIntType: public pcode {
 public:
-  pcodeIntType(int c):pcode(c){}
+  pcodeIntType(){code=P_INT_TYPE;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeStrType: public pcode {
 public:
-  pcodeStrType(int c):pcode(c){}
+  pcodeStrType(){code=P_STR_TYPE;}
   virtual void exec(interp* interpreter);
 };
 
 class pcodeLine: public ipcode {
 public:
-  pcodeLine(int c, int v):ipcode(c,v){}
+  pcodeLine(int v):ipcode(v){code=P_LINE;}
   virtual void exec(interp* interpreter);
 };
 
-#include "pcodes.h"
-
 pcode* makePCode(int c,const char* s){
   switch(c){
-	case P_PLUS:return new pcodePlus(P_PLUS);
-	case P_MINUS:return new pcodeMinus(P_MINUS);
-	case P_UMINUS:return new pcodeUMinus(P_UMINUS);
-	case P_MULT:return new pcodeMult(P_MULT);
-	case P_DIV:return new pcodeDiv(P_DIV);
-	case P_MOD:return new pcodeMod(P_MOD);
-	case P_IDIV:return new pcodeIDiv(P_IDIV);
-	case P_POP:return new pcodePop(P_POP);
-	case P_INT_CONST:return new pcodeIntConst(P_INT_CONST,atoi(s));
-	case P_STR_CONST:return new pcodeStrConst(P_STR_CONST,s);
-	case P_NIL:return new pcodeNil(P_NIL);
-	case P_TRUE:return new pcodeTrue(P_TRUE);
-	case P_FALSE:return new pcodeFalse(P_FALSE);
-	case P_VAR:return new pcodeVar(P_VAR,theStringIntern.add(s));
-	case P_LOAD:return new pcodeLoad(P_LOAD,theStringIntern.add(s)); 
-	case P_STORE:return new pcodeStore(P_STORE,theStringIntern.add(s));
-	case P_GOTO:return new pcodeGoto(P_GOTO,atoi(s));
-	case P_LABEL:return new pcodeLabel(P_LABEL,atoi(s));
-	case P_PRINT:return new pcodePrint(P_PRINT,atoi(s));
-	case P_PCODEEND:return new pcodePCodeEnd(P_PCODEEND,atoi(s));
-	case P_INT_TYPE: return new pcodeIntType(P_INT_TYPE);  
-	case P_STR_TYPE: return new pcodeStrType(P_STR_TYPE);  
-	case P_LINE:return new pcodeLine(P_LINE,atoi(s));
+	case P_PLUS:return new pcodePlus();
+	case P_MINUS:return new pcodeMinus();
+	case P_UMINUS:return new pcodeUMinus();
+	case P_MULT:return new pcodeMult();
+	case P_DIV:return new pcodeDiv();
+	case P_MOD:return new pcodeMod();
+	case P_IDIV:return new pcodeIDiv();
+	case P_EQ:return new pcodeEq();
+	case P_LT:return new pcodeLt();
+	case P_POP:return new pcodePop();
+	case P_INT_CONST:return new pcodeIntConst(atoi(s));
+	case P_STR_CONST:return new pcodeStrConst(s);
+	case P_NIL:return new pcodeNil();
+	case P_TRUE:return new pcodeTrue();
+	case P_FALSE:return new pcodeFalse();
+	case P_VAR:return new pcodeVar(theStringIntern.add(s));
+	case P_LOAD:return new pcodeLoad(theStringIntern.add(s)); 
+	case P_STORE:return new pcodeStore(theStringIntern.add(s));
+	case P_GOTO:return new pcodeGoto(atoi(s));
+	case P_LABEL:return new pcodeLabel(atoi(s));
+	case P_IF_FALSE: return new pcodeIfFalse(atoi(s));
+	case P_PRINT:return new pcodePrint(atoi(s));
+	case P_PCODEEND:return new pcodePCodeEnd(atoi(s));
+	case P_INT_TYPE: return new pcodeIntType();  
+	case P_STR_TYPE: return new pcodeStrType();  
+	case P_LINE:return new pcodeLine(atoi(s));
   }
-  return new pcodeNotImpl(c,s);
+  return new pcodeNotImpl(s);
 }
 
 // --- gli oggetti dell'esecuzione dell'interprete
@@ -293,6 +315,8 @@ public:
   virtual shared_ptr<obj> div(obj* o);
   virtual shared_ptr<obj> idiv(obj* o);
   virtual shared_ptr<obj> mod(obj* o);
+  virtual shared_ptr<obj> eq(obj* o);
+  virtual shared_ptr<obj> lt(obj* o);
 };
 
 shared_ptr<obj> intObj::plus(obj* o) {
@@ -349,6 +373,7 @@ public:
   strObj(string v){value=v;}
   virtual string print(){return value;}
   virtual shared_ptr<obj> plus(obj* o);
+  virtual shared_ptr<obj> eq(obj* o);  
 };
 
 shared_ptr<obj> strObj::plus(obj* o) {
@@ -373,6 +398,30 @@ shared_ptr<obj> theNil(new nilObj());
 
 shared_ptr<obj> nilObj::eq(obj* o){
 	return shared_ptr<obj> (o==theNil.get()?theTrue:theFalse); 
+}
+
+shared_ptr<obj> intObj::eq(obj* o) {
+  intObj* oo=dynamic_cast<intObj*>(o);
+  if (oo!=nullptr) {
+	return (value == oo->value?theTrue:theFalse);  
+  } else 
+	throw domain_error("int op = with a non int");
+}
+
+shared_ptr<obj> intObj::lt(obj* o) {
+  intObj* oo=dynamic_cast<intObj*>(o);
+  if (oo!=nullptr) {
+	return (value < oo->value?theTrue:theFalse);  
+  } else 
+	throw domain_error("int op < with a non int");
+}
+
+shared_ptr<obj> strObj::eq(obj* o) {
+  strObj* oo=dynamic_cast<strObj*>(o);
+  if (oo!=nullptr) {
+	return (value.compare(oo->value)==0 ? theTrue:theFalse);  
+  } else 
+	throw domain_error("str = with a non str");
 }
 
 class floatObj: public obj {
@@ -500,10 +549,12 @@ public:
 #include "pcodes.c"
 
 class pcodeProgram {
-	vector<pcode*> prg;
+	vector<pcode*> prg;    // i pcode che costituiscono il programma
+	vector<int> labelPos;  // la posizione delle label nel pcode, per effettuare i salti
 public:
     void add(pcode* p){prg.push_back(p);}
     pcode* get(int i){return prg[i];}
+    int getLabelPos(int l){return labelPos[l];}
     virtual ~pcodeProgram(){for(auto p:prg) delete p;}	
     int loadPcd(string fn);
 };
@@ -517,11 +568,18 @@ int pcodeProgram::loadPcd(string fn){
 		pcd.getline(line,2000); // l'intestazione DA FARE!!!
 		pcd.getline(line,2000);
 		while (!pcd.eof() && code!=P_PCODEEND) {
-          code=line[0];code-=31;
+          code=((unsigned char)line[0])-31;
           //cout << line << endl;
-          //cout << pcodetxt[code] << "(" << (int)code << ") " << (char*)(line+1) << endl;
+          //cout << prg.size() << " " << pcodetxt[code] << "(" << (int)code << ") " << (char*)(line+1) << endl;
           pcode* p=makePCode(code,line+1);
           prg.push_back(p);
+          // gestione delle label
+          if (code==P_LABEL){
+			  int id=atoi(line+1);
+			  if (labelPos.size()<=id) labelPos.resize(id+1);
+ 			  labelPos[id]=prg.size()-1;
+			  //cout << "-- label:" << id << " pos:" << prg.size()-1 << endl; 
+		  }
 		  pcd.getline(line,2000);
         }
         return 1;       
@@ -540,6 +598,8 @@ public:
 };
 sys theSys;
 
+#undef PRINT_PCODE_EXECUTION
+
 class interp {
 public:
   pcodeProgram* prg;
@@ -550,8 +610,10 @@ public:
   interp(containerObj* c){sp=-1;pc=0;stack.reserve(10);shared_ptr<containerObj> cc(c);context=cc;}
   void run(){
 	while(pc!=-2){
-	  //int instr=prg->get(pc)->get();
-	  //cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
+#ifdef PRINT_PCODE_EXECUTION		
+	  int instr=prg->get(pc)->get();
+	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
+#endif	  
 	  prg->get(pc)->exec(this);
 	  pc++;
 	}
@@ -607,6 +669,20 @@ void pcodeIDiv::exec(interp* interpreter){
   interpreter->stack[interpreter->sp]=obj1->idiv(obj2.get());
 };
 
+void pcodeEq::exec(interp* interpreter){
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->eq(obj2.get());
+};
+
+void pcodeLt::exec(interp* interpreter){
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->lt(obj2.get());
+};
+
 void pcodePop::exec(interp* interpreter){
   interpreter->sp--;
   interpreter->stack.pop_back();
@@ -654,6 +730,20 @@ void pcodeStore::exec(interp* interpreter){
   interpreter->context->store(value,o);
 };
 
+void pcodeGoto::exec(interp* interpreter){
+	//cout << "GoTo " << value << " at " << interpreter->prg->getLabelPos(value) << endl;
+	int p=interpreter->prg->getLabelPos(value);
+	interpreter->pc=p; 
+};
+
+void pcodeIfFalse::exec(interp* interpreter){
+	obj* v=interpreter->stack[interpreter->sp].get();
+	if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("if with a non boolean expression");
+	interpreter->sp--;
+	interpreter->stack.pop_back();
+	if (v==theFalse.get()) interpreter->pc=interpreter->prg->getLabelPos(value);
+};
+	
 void pcodePrint::exec(interp* interpreter){
   int i;	
   //cout << "inizio print " << value << " sp:" << interpreter->sp << " sz:" << interpreter->stack.size() << endl;  
