@@ -211,6 +211,12 @@ public:
   virtual void exec(interp* interpreter){}; // il pcode Label in esecuiozne è una NOP
 };
 	
+class pcodeCall: public ipcode {
+public:
+  pcodeCall(int v):ipcode(v){code=P_CALL;}
+  virtual void exec(interp* interpreter);
+};
+
 class pcodeIfFalse: public ipcode {
 public:
   pcodeIfFalse(int v):ipcode(v){code=P_IF_FALSE;}
@@ -226,6 +232,12 @@ public:
 class pcodeIfOr: public ipcode {
 public:
   pcodeIfOr(int v):ipcode(v){code=P_IF_OR;}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeNot: public pcode {
+public:
+  pcodeNot(){code=P_NOT;}
   virtual void exec(interp* interpreter);
 };
 
@@ -271,6 +283,18 @@ public:
   virtual void exec(interp* interpreter);
 };
 
+class pcodeEndParm: public pcode {
+public:
+  pcodeEndParm(){code=P_ENDPARM;}
+  virtual void exec(interp* interpreter){};
+};
+
+class pcodeEndProc: public pcode {
+public:
+  pcodeEndProc(){code=P_ENDPROC;}
+  virtual void exec(interp* interpreter);
+};
+
 pcode* makePCode(int c,const char* s){
   switch(c){
 	case P_PLUS:return new pcodePlus();
@@ -297,9 +321,13 @@ pcode* makePCode(int c,const char* s){
 	case P_STORE:return new pcodeStore(theStringIntern.add(s));
 	case P_GOTO:return new pcodeGoto(atoi(s));
 	case P_LABEL:return new pcodeLabel(atoi(s));
+	case P_CALL: return new pcodeCall(atoi(s));
+	case P_ENDPARM: return new pcodeEndParm();
+	case P_ENDPROC: return new pcodeEndProc();
 	case P_IF_FALSE: return new pcodeIfFalse(atoi(s));
 	case P_IF_AND: return new pcodeIfAnd(atoi(s));
 	case P_IF_OR: return new pcodeIfOr(atoi(s));
+	case P_NOT: return new pcodeNot();
 	case P_PRINT:return new pcodePrint(atoi(s));
 	case P_PCODEEND:return new pcodePCodeEnd(atoi(s));
 	case P_INT_TYPE: return new pcodeIntType();  
@@ -324,6 +352,7 @@ public:
   virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {throw domain_error("store not implemented");};
   virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");};
   virtual shared_ptr<obj> call(int n) {throw domain_error("call not implemented");};
+  virtual void call(int n,interp* i){throw domain_error("call (with interpreter) not implemented");};
   //
   virtual shared_ptr<obj> plus(obj*) {throw domain_error("plus not implemented");};
   virtual shared_ptr<obj> minus(obj*) {throw domain_error("minus not implemented");};
@@ -616,12 +645,18 @@ string dictObj::print(){
 // --- i contenitori con nomi (classi, variabili locali, moduli ...)
 
 class containerObj : public obj {
+protected:	
   unordered_map<int,shared_ptr<obj>> objs;
   unordered_map<int,shared_ptr<obj>> types;  
 public:
   void add(int intern, shared_ptr<obj> type) {
 	  if (objs.contains(intern)) throw out_of_range("name already in context");
 	  objs[intern]=theNil;
+	  types[intern]=type;
+  } 
+  void add(int intern, shared_ptr<obj> type, shared_ptr<obj> value) {
+	  if (objs.contains(intern)) throw out_of_range("name already in context");
+	  objs[intern]=value;
 	  types[intern]=type;
   } 
   virtual shared_ptr<obj> load(int intern) {
@@ -671,7 +706,7 @@ int pcodeProgram::loadPcd(string fn){
           // gestione delle label
           if (code==P_LABEL){
 			  int id=atoi(line+1);
-			  if (labelPos.size()<=id) labelPos.resize(id+1);
+			  if ((int)labelPos.size()<=id) labelPos.resize(id+1);
  			  labelPos[id]=prg.size()-1;
 			  //cout << "-- label:" << id << " pos:" << prg.size()-1 << endl; 
 		  }
@@ -680,7 +715,7 @@ int pcodeProgram::loadPcd(string fn){
         return 1;       
     }
     return 0;
-}
+};
 
 class sys {
 public:
@@ -706,7 +741,7 @@ public:
   void run(){
 	while(pc!=-2){
 #ifdef PRINT_PCODE_EXECUTION		
-	  int instr=prg->get(pc)->get();
+	  int instr=prg->get(pc)->getCode();
 	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
 #endif	  
 	  prg->get(pc)->exec(this);
@@ -714,6 +749,42 @@ public:
 	}
   }
 };
+
+// --- l'oggetto che implementa la procedura
+
+class procObj : public obj {
+protected:	
+  int name,pc;
+  pcodeProgram* prg;
+  weak_ptr<containerObj> ctx;  
+public:	
+  procObj(int n, interp* i){name=n;pc=i->pc;prg=i->prg;ctx=i->context;};
+  virtual string print() {return "<"+theStringIntern.get(name)+":pcode procedure>";};
+  virtual void call(int n,interp* i);
+};
+
+void procObj:: call(int n, interp* i) {
+  // salva lo stato dell'interprete
+  int retpc=i->pc;
+  pcodeProgram* retprg=i->prg;
+  shared_ptr<containerObj> retctx=i->context;
+  // raccoglie i parametri
+  // DA FARE
+  // esegue la procedura
+  i->pc=pc+1;
+  i->prg=prg;
+  shared_ptr<containerObj> sctx(ctx); // blocca l'oggetto
+  i->context=sctx;
+  i->run();
+  // toglie dallo stack il puntatore alla procedura
+  // mette un nil che è sempre il risultato di una procedura
+  i->stack.pop_back();
+  i->stack.push_back(theNil);
+  // rimette a posto lo stato dell'interprete a prima della chiamata
+  i->pc=retpc;
+  i->prg=retprg;
+  i->context=retctx;
+}
 
 // --- riprendo i pcode
 
@@ -856,39 +927,53 @@ void pcodeStore::exec(interp* interpreter){
 };
 
 void pcodeGoto::exec(interp* interpreter){
-	//cout << "GoTo " << value << " at " << interpreter->prg->getLabelPos(value) << endl;
-	int p=interpreter->prg->getLabelPos(value);
-	interpreter->pc=p; 
+  //cout << "GoTo " << value << " at " << interpreter->prg->getLabelPos(value) << endl;
+  int p=interpreter->prg->getLabelPos(value);
+  interpreter->pc=p; 
+};
+
+void pcodeCall::exec(interp* interpreter){
+  interpreter->stack[interpreter->sp].get()->call(value,interpreter);
+};
+
+void pcodeEndProc::exec(interp* interpreter){
+  interpreter->pc=-3;
 };
 
 void pcodeIfFalse::exec(interp* interpreter){
-	obj* v=interpreter->stack[interpreter->sp].get();
-	if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("if with a non boolean expression");
-	interpreter->sp--;
-	interpreter->stack.pop_back();
-	if (v==theFalse.get()) interpreter->pc=interpreter->prg->getLabelPos(value);
+  obj* v=interpreter->stack[interpreter->sp].get();
+  if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("if with a non boolean expression");
+  interpreter->sp--;
+  interpreter->stack.pop_back();
+  if (v==theFalse.get()) interpreter->pc=interpreter->prg->getLabelPos(value);
 };
 	
 void pcodeIfAnd::exec(interp* interpreter){
-	obj* v=interpreter->stack[interpreter->sp].get();
-	if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("and with a non boolean expression");
-	if (v==theFalse.get()) 
-	  interpreter->pc=interpreter->prg->getLabelPos(value);
-	else {
-  	  interpreter->sp--;
-	  interpreter->stack.pop_back();
-	}  
+  obj* v=interpreter->stack[interpreter->sp].get();
+  if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("and with a non boolean expression");
+  if (v==theFalse.get()) 
+    interpreter->pc=interpreter->prg->getLabelPos(value);
+  else {
+    interpreter->sp--;
+	interpreter->stack.pop_back();
+  }  
 };
 
 void pcodeIfOr::exec(interp* interpreter){
+  obj* v=interpreter->stack[interpreter->sp].get();
+  if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("or with a non boolean expression");
+  if (v==theTrue.get()) 
+    interpreter->pc=interpreter->prg->getLabelPos(value);
+  else {
+  	interpreter->sp--;
+	interpreter->stack.pop_back();
+  }  
+};
+
+void pcodeNot::exec(interp* interpreter){
 	obj* v=interpreter->stack[interpreter->sp].get();
-	if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("or with a non boolean expression");
-	if (v==theTrue.get()) 
-	  interpreter->pc=interpreter->prg->getLabelPos(value);
-	else {
-  	  interpreter->sp--;
-	  interpreter->stack.pop_back();
-	}  
+	if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("not with a non boolean expression");
+	interpreter->stack[interpreter->sp]=(v==theTrue.get()?theFalse:theTrue);
 };
 
 void pcodePrint::exec(interp* interpreter){
@@ -928,12 +1013,16 @@ void pcodeNotImpl::exec(interp* interpreter){
 }
 
 void pcodeProc::exec(interp* interpreter){
-	int pc=interpreter->pc;
-	int c=interpreter->prg->get(pc++)->getCode();
-	while (c!=P_ENDPROC) 
-	  c=interpreter->prg->get(pc++)->getCode();
-	cout << "ENDPROC:" << pc << endl;
-	interpreter->pc=pc-1; 
+  int pc=interpreter->pc;
+  //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter->pc <<endl;
+  // --- aggiunge la procedura al contesto attuale
+  shared_ptr<obj> p(new procObj(value,interpreter));
+  interpreter->context->add(value,theNil,p);
+  // salta il codice della procedura
+  int c=interpreter->prg->get(pc++)->getCode();
+  while (c!=P_ENDPROC) 
+	c=interpreter->prg->get(pc++)->getCode();
+  interpreter->pc=pc-1; 
 }
 
 // ------------------------------------------------
@@ -941,6 +1030,17 @@ void pcodeProc::exec(interp* interpreter){
 int main(){
   //
   initpcodetxt();
+  
+  // prova reale ...
+  pcodeProgram prg;  
+  prg.loadPcd("secondo.pcd");
+  containerObj* ctx=new containerObj();
+  interp exe(ctx);
+  exe.prg=&prg;
+  exe.run(); 
+  return 0;
+}
+
   /*
   //	
   int x=theStringIntern.add("x");
@@ -989,39 +1089,3 @@ int main(){
   u8string utf8=u8"Hello € world! ↗";
   printf("%s\n",(char*)utf8.c_str());
   */
-  // prova reale ...
-  pcodeProgram prg;
-  
-  /*
-  prg.add(makePCode(P_INT_CONST,"1"));
-  prg.add(makePCode(P_INT_CONST,"2"));
-  prg.add(makePCode(P_PLUS,""));
-  prg.add(makePCode(P_INT_CONST,"3"));
-  prg.add(makePCode(P_MULT,""));
-  prg.add(makePCode(P_PRINT,"1"));
-  prg.add(makePCode(P_INT_CONST,"3"));
-  prg.add(makePCode(P_INT_CONST,"1"));
-  prg.add(makePCode(P_MINUS,""));
-  prg.add(makePCode(P_NIL,""));
-  prg.add(makePCode(P_STR_CONST," pippo!"));
-  prg.add(makePCode(P_PRINT,"3"));
-  //
-  prg.add(makePCode(P_INT_TYPE,""));
-  prg.add(makePCode(P_VAR,"i"));
-  prg.add(makePCode(P_POP,""));
-  prg.add(makePCode(P_INT_CONST,"1000"));
-  prg.add(makePCode(P_STORE,"i"));
-  prg.add(makePCode(P_POP,""));
-  prg.add(makePCode(P_LOAD,"i"));
-  prg.add(makePCode(P_PRINT,"1"));
-  //
-  prg.add(makePCode(P_PCODEEND,"0"));
-  */
-
-  prg.loadPcd("secondo.pcd");
-  containerObj* ctx=new containerObj();
-  interp exe(ctx);
-  exe.prg=&prg;
-  exe.run(); 
-  return 0;
-}

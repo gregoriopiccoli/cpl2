@@ -1,6 +1,11 @@
+? not True
+? !false
 
 proc p()
   ? 'Hello world!'
 end
+
+? p
+p()
 
 ? 'alla fine ...'
