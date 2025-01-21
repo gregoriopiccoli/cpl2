@@ -327,7 +327,8 @@ public:
 
 shared_ptr<obj> intObj::plus(obj* o) {
   intObj* oo=check_int(o,"integer + with a non integer");
-  return shared_ptr<obj>(new intObj(value+oo->value));  
+  //return shared_ptr<obj>(new intObj(value+oo->value));  
+  return make_shared<intObj>(value+oo->value);  
 }
 
 shared_ptr<obj> intObj::minus(obj* o) {
@@ -460,6 +461,8 @@ public:
 
 shared_ptr<obj> theIntType(new intType);
 shared_ptr<obj> theStrType(new strType);
+
+shared_ptr<obj> theIntType2=make_shared<intType>();
 
 // --- gli array e i dizionari
 
@@ -720,13 +723,15 @@ void pcodeFalse::exec(interp* interpreter){
 
 void pcodeIntConst::exec(interp* interpreter){
   interpreter->sp++;
-  shared_ptr<obj> o(new intObj(value));
+  //shared_ptr<obj> o(new intObj(value));
+  shared_ptr<obj> o=make_shared<intObj>(value);
   interpreter->stack.push_back(o); 
 };
 
 void pcodeStrConst::exec(interp* interpreter){
   interpreter->sp++;
-  shared_ptr<obj> o(new strObj(value));
+  //shared_ptr<obj> o(new strObj(value));
+  shared_ptr<obj> o=make_shared<strObj>(value);
   interpreter->stack.push_back(o); 
 };
 
