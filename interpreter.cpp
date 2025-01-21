@@ -368,11 +368,8 @@ public:
 };
 
 shared_ptr<obj> strObj::plus(obj* o) {
-  strObj* oo=dynamic_cast<strObj*>(o);
-  if (oo!=nullptr) {
-	return shared_ptr<obj>(new strObj(value + oo->value));  
-  } else 
-	throw domain_error("str + with a non str");
+  strObj* oo=check_str(o,"str + with a non str");
+  return shared_ptr<obj>(new strObj(value + oo->value));  
 }
 
 class boolObj:public obj { 
@@ -459,10 +456,11 @@ public:
     virtual string print(){return "str";}    
 };
 
-shared_ptr<obj> theIntType(new intType);
-shared_ptr<obj> theStrType(new strType);
+//shared_ptr<obj> theIntType(new intType);
+//shared_ptr<obj> theStrType(new strType);
 
-shared_ptr<obj> theIntType2=make_shared<intType>();
+shared_ptr<obj> theIntType=make_shared<intType>();
+shared_ptr<obj> theStrType=make_shared<strType>();
 
 // --- gli array e i dizionari
 
