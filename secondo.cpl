@@ -1,0 +1,6 @@
+
+proc p()
+  ? 'Hello world!'
+end
+
+? 'alla fine ...'

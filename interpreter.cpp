@@ -48,7 +48,7 @@ public:
   pcode(){code=0;}  
   virtual ~pcode(){}
   virtual void exec(interp* interpreter)=0; //{throw domain_error("not an executable pcode");};
-  int get(){return code;}
+  int getCode(){return code;}
 };
 		
 class ipcode: public pcode {
@@ -265,6 +265,12 @@ public:
   virtual void exec(interp* interpreter);
 };
 
+class pcodeProc: public ipcode {
+public:
+  pcodeProc(int v):ipcode(v){code=P_PROC;}	
+  virtual void exec(interp* interpreter);
+};
+
 pcode* makePCode(int c,const char* s){
   switch(c){
 	case P_PLUS:return new pcodePlus();
@@ -299,6 +305,7 @@ pcode* makePCode(int c,const char* s){
 	case P_INT_TYPE: return new pcodeIntType();  
 	case P_STR_TYPE: return new pcodeStrType();  
 	case P_LINE:return new pcodeLine(atoi(s));
+	case P_PROC:return new pcodeProc(theStringIntern.add(s));
   }
   return new pcodeNotImpl(c,s);
 }
@@ -886,7 +893,6 @@ void pcodeIfOr::exec(interp* interpreter){
 
 void pcodePrint::exec(interp* interpreter){
   int i;	
-  //cout << "inizio print " << value << " sp:" << interpreter->sp << " sz:" << interpreter->stack.size() << endl;  
   for(i=1;i<=value;i++){
     shared_ptr<obj> o=interpreter->stack[interpreter->sp-value+i];
 	cout << o->print();
@@ -895,11 +901,10 @@ void pcodePrint::exec(interp* interpreter){
   interpreter->sp-=value;
   for(i=1;i<=value;i++)
     interpreter->stack.pop_back();
-  //cout << "fine print " << value << " sp:" << interpreter->sp << " sz:" << interpreter->stack.size() << endl;  
 };
 
 void pcodePCodeEnd::exec(interp* interpreter){
-  cout << "stop" << endl;
+  //cout << "stop" << endl;
   interpreter->pc=-3; // convenzione per fermarsi 
 };
 
@@ -918,8 +923,17 @@ void pcodeLine::exec(interp* interpreter){
 };
 
 void pcodeNotImpl::exec(interp* interpreter){
-	cout << "pcode:" << code << " " << pcodetxt[code] << " value:" << value << " not impl!" << endl; 
-	throw domain_error("pcode not implemented");
+  cout << "pcode:" << code << " " << pcodetxt[code] << " value:" << value << " not impl!" << endl; 
+  throw domain_error("pcode not implemented");
+}
+
+void pcodeProc::exec(interp* interpreter){
+	int pc=interpreter->pc;
+	int c=interpreter->prg->get(pc++)->getCode();
+	while (c!=P_ENDPROC) 
+	  c=interpreter->prg->get(pc++)->getCode();
+	cout << "ENDPROC:" << pc << endl;
+	interpreter->pc=pc-1; 
 }
 
 // ------------------------------------------------
@@ -1004,7 +1018,7 @@ int main(){
   prg.add(makePCode(P_PCODEEND,"0"));
   */
 
-  prg.loadPcd("primo.pcd");
+  prg.loadPcd("secondo.pcd");
   containerObj* ctx=new containerObj();
   interp exe(ctx);
   exe.prg=&prg;
