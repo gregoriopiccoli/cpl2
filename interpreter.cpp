@@ -121,6 +121,30 @@ public:
   virtual void exec(interp* interpreter);
 };
 
+class pcodeLe: public pcode {
+public:
+  pcodeLe(){code=P_LE;}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeGe: public pcode {
+public:
+  pcodeGe(){code=P_GE;}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeGt: public pcode {
+public:
+  pcodeGt(){code=P_GT;}
+  virtual void exec(interp* interpreter);
+};
+
+class pcodeNe: public pcode {
+public:
+  pcodeNe(){code=P_NE;}
+  virtual void exec(interp* interpreter);
+};
+
 class pcodePop: public pcode {
 public:
   pcodePop(){code=P_POP;}
@@ -207,7 +231,7 @@ public:
 
 class pcodeNotImpl: public spcode {
 public:
-  pcodeNotImpl(string v):spcode(v){}	
+  pcodeNotImpl(int c,string v):spcode(v){code=c;}	
   virtual void exec(interp* interpreter);
 };
 
@@ -240,6 +264,10 @@ pcode* makePCode(int c,const char* s){
 	case P_IDIV:return new pcodeIDiv();
 	case P_EQ:return new pcodeEq();
 	case P_LT:return new pcodeLt();
+	case P_LE:return new pcodeLe();
+	case P_GE:return new pcodeGe();
+	case P_GT:return new pcodeGt();
+	case P_NE:return new pcodeNe();
 	case P_POP:return new pcodePop();
 	case P_INT_CONST:return new pcodeIntConst(atoi(s));
 	case P_STR_CONST:return new pcodeStrConst(s);
@@ -258,7 +286,7 @@ pcode* makePCode(int c,const char* s){
 	case P_STR_TYPE: return new pcodeStrType();  
 	case P_LINE:return new pcodeLine(atoi(s));
   }
-  return new pcodeNotImpl(s);
+  return new pcodeNotImpl(c,s);
 }
 
 // --- gli oggetti dell'esecuzione dell'interprete
@@ -363,6 +391,11 @@ public:
   virtual string print(){return value;}
   virtual shared_ptr<obj> plus(obj* o);
   virtual shared_ptr<obj> eq(obj* o);
+  virtual shared_ptr<obj> lt(obj* o);
+  virtual shared_ptr<obj> le(obj* o);
+  virtual shared_ptr<obj> ge(obj* o);
+  virtual shared_ptr<obj> gt(obj* o);
+  virtual shared_ptr<obj> ne(obj* o);
   //  
   strObj* check_str(obj* o,string msg){strObj* oo=dynamic_cast<strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
@@ -425,6 +458,31 @@ shared_ptr<obj> intObj::ne(obj* o) {
 shared_ptr<obj> strObj::eq(obj* o) {
   strObj* oo=check_str(o,"str = with a non str");
   return (value.compare(oo->value)==0 ? theTrue:theFalse);  
+}
+
+shared_ptr<obj> strObj::lt(obj* o) {
+  strObj* oo=check_str(o,"str < with a non str");
+  return (value.compare(oo->value)==-1 ? theTrue:theFalse);  
+}
+
+shared_ptr<obj> strObj::le(obj* o) {
+  strObj* oo=check_str(o,"str <= with a non str");
+  return (value.compare(oo->value)<=0 ? theTrue:theFalse);  
+}
+
+shared_ptr<obj> strObj::ge(obj* o) {
+  strObj* oo=check_str(o,"str >= with a non str");
+  return (value.compare(oo->value)>=0 ? theTrue:theFalse);  
+}
+
+shared_ptr<obj> strObj::gt(obj* o) {
+  strObj* oo=check_str(o,"str > with a non str");
+  return (value.compare(oo->value)==1 ? theTrue:theFalse);  
+}
+
+shared_ptr<obj> strObj::ne(obj* o) {
+  strObj* oo=check_str(o,"str <> with a non str");
+  return (value.compare(oo->value)!=0 ? theTrue:theFalse);  
 }
 
 shared_ptr<obj> boolObj::eq(obj* o) {
@@ -697,6 +755,34 @@ void pcodeLt::exec(interp* interpreter){
   shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
   interpreter->stack.pop_back();
   interpreter->stack[interpreter->sp]=obj1->lt(obj2.get());
+};
+
+void pcodeLe::exec(interp* interpreter){
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->le(obj2.get());
+};
+
+void pcodeGe::exec(interp* interpreter){
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->ge(obj2.get());
+};
+
+void pcodeGt::exec(interp* interpreter){
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->gt(obj2.get());
+};
+
+void pcodeNe::exec(interp* interpreter){
+  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
+  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  interpreter->stack.pop_back();
+  interpreter->stack[interpreter->sp]=obj1->ne(obj2.get());
 };
 
 void pcodePop::exec(interp* interpreter){
