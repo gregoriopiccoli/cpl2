@@ -774,9 +774,13 @@ class procObj : public obj {
 protected:	
   int name,pc;
   pcodeProgram* prg;
-  weak_ptr<containerObj> ctx;  
+  weak_ptr<containerObj> ctx; // 1
+  //shared_ptr<containerObj>& ctx; // 2
 public:	
-  procObj(int n, interp* i){name=n;pc=i->pc;prg=i->prg;ctx=i->context;};
+  procObj(int n, interp* i){
+	  name=n;pc=i->pc;prg=i->prg;
+	  ctx=i->context;
+  };
   virtual string print() {return "<"+theStringIntern.get(name)+":pcode procedure>";};
   virtual void call(int n,interp* i);
 };
@@ -791,10 +795,11 @@ void procObj:: call(int n, interp* i) {
   // esegue la procedura
   i->pc=pc+1;
   i->prg=prg;
-  shared_ptr<containerObj> pctx(new procContextObj(ctx.lock().get()));
-  i->context=pctx;
   
-  //i->context=ctx.lock(); 
+  //shared_ptr<containerObj> pctx(new procContextObj(ctx.lock().get()));
+  //i->context=pctx;
+  
+  i->context=ctx.lock(); // 1
   
   i->run();
   // toglie dallo stack il puntatore alla procedura
