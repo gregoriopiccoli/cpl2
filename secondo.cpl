@@ -4,8 +4,8 @@ var int i
 i:=100
 
 proc p()
-  var int j
-  j:=200
+  var int j:=200
+  i:=111
   ? 'Hello world! ',i,' ',j
 end
 

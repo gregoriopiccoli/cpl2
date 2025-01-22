@@ -187,6 +187,12 @@ public:
   virtual void exec(interp* interpreter);
 };
 
+class pcodeVarStore: public ipcode {
+public:
+  pcodeVarStore(int v):ipcode(v){code=P_VAR;}
+  virtual void exec(interp* interpreter);
+};
+
 class pcodeLoad: public ipcode {
 public:
   pcodeLoad(int v):ipcode(v){code=P_LOAD;}
@@ -317,6 +323,7 @@ pcode* makePCode(int c,const char* s){
 	case P_TRUE:return new pcodeTrue();
 	case P_FALSE:return new pcodeFalse();
 	case P_VAR:return new pcodeVar(theStringIntern.add(s));
+	case P_VAR_STORE:return new pcodeVarStore(theStringIntern.add(s));
 	case P_LOAD:return new pcodeLoad(theStringIntern.add(s)); 
 	case P_STORE:return new pcodeStore(theStringIntern.add(s));
 	case P_GOTO:return new pcodeGoto(atoi(s));
@@ -925,21 +932,22 @@ void pcodeFalse::exec(interp* interpreter){
 
 void pcodeIntConst::exec(interp* interpreter){
   interpreter->sp++;
-  //shared_ptr<obj> o(new intObj(value));
-  shared_ptr<obj> o=make_shared<intObj>(value);
-  interpreter->stack.push_back(o); 
+  interpreter->stack.push_back(make_shared<intObj>(value)); 
 };
 
 void pcodeStrConst::exec(interp* interpreter){
   interpreter->sp++;
-  //shared_ptr<obj> o(new strObj(value));
-  shared_ptr<obj> o=make_shared<strObj>(value);
-  interpreter->stack.push_back(o); 
+  interpreter->stack.push_back(make_shared<strObj>(value)); 
 };
 
 void pcodeVar::exec(interp* interpreter){
-  //cout << "-- var " << interpreter->stack[interpreter->sp]->print() << " " << theStringIntern.get(value) << endl;
   interpreter->context->add(value,interpreter->stack[interpreter->sp]);
+};
+
+void pcodeVarStore::exec(interp* interpreter){
+  interpreter->context->add(value,interpreter->stack[interpreter->sp-1],interpreter->stack[interpreter->sp]);
+  interpreter->sp--;
+  interpreter->stack.pop_back();
 };
 
 void pcodeLoad::exec(interp* interpreter){
@@ -948,8 +956,7 @@ void pcodeLoad::exec(interp* interpreter){
 };
 
 void pcodeStore::exec(interp* interpreter){
-  shared_ptr<obj> o=interpreter->stack[interpreter->sp];
-  interpreter->context->store(value,o);
+  interpreter->context->store(value,interpreter->stack[interpreter->sp]);
 };
 
 void pcodeGoto::exec(interp* interpreter){
@@ -1059,7 +1066,7 @@ int main(){
   
   // prova reale ...
   pcodeProgram prg;  
-  prg.loadPcd("secondo.pcd");
+  prg.loadPcd("primo.pcd");
   containerObj* ctx=new containerObj();
   interp exe(ctx);
   exe.prg=&prg;
