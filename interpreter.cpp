@@ -781,12 +781,12 @@ class procObj : public obj {
 protected:	
   int name,pc;
   pcodeProgram* prg;
-  weak_ptr<containerObj> ctx; // 1
-  //shared_ptr<containerObj>& ctx; // 2
+  //weak_ptr<containerObj> ctx; // 1
+  shared_ptr<containerObj>& ctx; // 2
 public:	
-  procObj(int n, interp* i){
+  procObj(int n, interp* i):ctx{i->context}{
 	  name=n;pc=i->pc;prg=i->prg;
-	  ctx=i->context;
+	  //ctx=i->context;
   };
   virtual string print() {return "<"+theStringIntern.get(name)+":pcode procedure>";};
   virtual void call(int n,interp* i);
@@ -802,11 +802,9 @@ void procObj:: call(int n, interp* i) {
   // esegue la procedura
   i->pc=pc+1;
   i->prg=prg;
-  
-  //shared_ptr<containerObj> pctx(new procContextObj(ctx.lock().get()));
-  //i->context=pctx;
-  
-  i->context=ctx.lock(); // 1
+    
+  //i->context=ctx.lock(); // 1
+  i->context=ctx;
   
   i->run();
   // toglie dallo stack il puntatore alla procedura
@@ -822,92 +820,91 @@ void procObj:: call(int n, interp* i) {
 // --- riprendo i pcode
 
 void pcodePlus::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->plus(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->plus(obj2.get());
 };
 
 void pcodeMinus::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->minus(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->minus(obj2.get());
 };
 
 void pcodeUMinus::exec(interp* interpreter){
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
-  interpreter->stack[interpreter->sp]=obj1->uminus();
+  interpreter->stack[interpreter->sp]=interpreter->stack[interpreter->sp]->uminus();
 };
 
 void pcodeMult::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->mult(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->mult(obj2.get());
 };
 
 void pcodeDiv::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->div(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->div(obj2.get());
 };
 
 void pcodeMod::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->mod(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->mod(obj2.get());
 };
 
 void pcodeIDiv::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->idiv(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->idiv(obj2.get());
 };
 
 void pcodeEq::exec(interp* interpreter){
   shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
   shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
-  interpreter->stack.pop_back();
   interpreter->stack[interpreter->sp]=obj1->eq(obj2.get());
+  interpreter->stack.pop_back();
 };
 
 void pcodeLt::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->lt(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->lt(obj2.get());
 };
 
 void pcodeLe::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->le(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->le(obj2.get());
 };
 
 void pcodeGe::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->ge(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->ge(obj2.get());
 };
 
 void pcodeGt::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->gt(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->gt(obj2.get());
 };
 
 void pcodeNe::exec(interp* interpreter){
-  shared_ptr<obj> obj2=interpreter->stack[interpreter->sp--];
-  shared_ptr<obj> obj1=interpreter->stack[interpreter->sp];
+  obj* obj2=interpreter->stack[interpreter->sp--].get();
+  obj* obj1=interpreter->stack[interpreter->sp].get();
+  interpreter->stack[interpreter->sp]=obj1->ne(obj2);
   interpreter->stack.pop_back();
-  interpreter->stack[interpreter->sp]=obj1->ne(obj2.get());
 };
 
 void pcodePop::exec(interp* interpreter){
@@ -1066,7 +1063,7 @@ int main(){
   
   // prova reale ...
   pcodeProgram prg;  
-  prg.loadPcd("primo.pcd");
+  prg.loadPcd("secondo.pcd");
   containerObj* ctx=new containerObj();
   interp exe(ctx);
   exe.prg=&prg;
