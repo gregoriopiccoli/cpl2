@@ -8,7 +8,7 @@ const char* separators="+-*/%()[]{}!|<>= \t\r\n.:;,@?";
 const char* blankchars=" \t\r\n";
 const char* numberchars="0123456789";
 
-int getTokenCodeFromString(char* token){
+int getTokenCodeFromString(const char* token){
 	switch(token[0]){
 		case '>': return(TOK_GT);
 		case '<': return(TOK_LT);
@@ -181,7 +181,7 @@ void tokenize(scannerStatus* s){
     tokenCode=0;
     if (s->longComment==1) { 
 		// lo scanner è nello stato "commento lungo"
-		char* p=strstr(line,"*/");
+		const char* p=strstr(line,"*/");
 		if (p!=NULL){
 			// il commento lungo è terminato
 			s->longComment=0;
@@ -205,7 +205,7 @@ void tokenize(scannerStatus* s){
 	} 
 	// potrebbe esserci un commento lungo 
 	if (nextch=='/' && line[i+1]=='*') {
-		char* p=strstr(line+i,"*/");
+		const char* p=strstr(line+i,"*/");
 		if (p!=NULL) {
 			// il commento lungo finisce nella stessa linea, si riparte come se fosse una nuova stringa
 			initScannerLine(s,p+2);
@@ -223,20 +223,20 @@ void tokenize(scannerStatus* s){
 	if (strchr(separators,nextch)!=NULL) { // è un separatore
 		token[0]=nextch;
 		token[1]='\0';
-		tokl=1;
+		//tokl=1; // segnalato da cppcheck
 		if ((nextch=='>' || nextch=='<' || nextch==':') && line[i+1]=='=') {
 			// caso dei token >=,<=,:=
 			token[1]='=';
 			token[2]='\0';
 			tokenCode=(nextch==':'?TOK_ASSIGN:(nextch=='>'?TOK_GE:TOK_LE));
 			i++;
-			tokl=2;
+			//tokl=2;
 		} else if (nextch=='<' && line[i+1]=='>') {
 			// caso del token <>
 			token[1]='>';
 			token[2]='\0';
 			i++;
-			tokl=2;
+			//tokl=2; // segnalato da cppcheck
 			tokenCode=TOK_NE;
 		} else if (nextch=='-' && line[i+1]=='-') {
 			// commento in linea --
@@ -344,7 +344,7 @@ typedef struct ifelseif {
 
 int stackLevel(yyParser* p){
     yyStackEntry* t=p->yytos;            
-    yyStackEntry* s=p->yystack; 
+    const yyStackEntry* s=p->yystack; 
     //printf("yytos: %d %d\n",t->stateno,t->major);      
     //printf("yyend: %d %d\n",s->stateno,s->major);      
     int n=0;while(t>s) {t--;n++;}     
@@ -362,9 +362,9 @@ int parse(FILE* f){
     scannerStatus s;
     initScanner(&s);
     initScannerLine(&s,line);
-    int stkl;
+    //int stkl;
     // parte lemon
-    char* sToken;
+    char* sToken=0;
     int hTokenId;
     yyParser *pParser;
     parserState sState;
@@ -394,7 +394,7 @@ int parse(FILE* f){
       fgets(line,2000,f);
     }
     Parse(pParser, 0, sToken, &sState);
-    stkl=stackLevel(pParser);
+    //stkl=stackLevel(pParser);
     ParseFree(pParser, free );
     return sState.errors;
 }

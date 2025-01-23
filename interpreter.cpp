@@ -45,7 +45,7 @@ class pcode {
 protected:
   int code;
 public:
-  pcode(){code=0;}
+  pcode():code{0}{}
   virtual ~pcode(){}
   virtual void exec(interp* interpreter)=0; //{throw domain_error("not an executable pcode");};
   int getCode(){return code;}
@@ -55,14 +55,14 @@ class ipcode: public pcode {
 protected:
   int value;
 public:
-  ipcode(int i){code=0;value=i;}
+  explicit ipcode(int i):value{i}{}
 };
 
 class spcode: public pcode {
 protected:
   string value;
 public:
-  spcode(string s){code=0;value=s;}
+  explicit spcode(const string& s):value{s}{}
 };
 
 #include "pcodes.h"
@@ -171,73 +171,73 @@ public:
 
 class pcodeIntConst: public ipcode {
 public:
-  pcodeIntConst(int v):ipcode(v){code=P_INT_CONST;}
+  explicit pcodeIntConst(int v):ipcode(v){code=P_INT_CONST;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeStrConst: public spcode {
 public:
-  pcodeStrConst(string v):spcode(v){code=P_STR_CONST;}
+  explicit pcodeStrConst(const string& v):spcode(v){code=P_STR_CONST;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeVar: public ipcode {
 public:
-  pcodeVar(int v):ipcode(v){code=P_VAR;}
+  explicit pcodeVar(int v):ipcode(v){code=P_VAR;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeVarStore: public ipcode {
 public:
-  pcodeVarStore(int v):ipcode(v){code=P_VAR;}
+  explicit pcodeVarStore(int v):ipcode(v){code=P_VAR;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeLoad: public ipcode {
 public:
-  pcodeLoad(int v):ipcode(v){code=P_LOAD;}
+  explicit pcodeLoad(int v):ipcode(v){code=P_LOAD;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeStore: public ipcode {
 public:
-  pcodeStore(int v):ipcode(v){code=P_STORE;}
+  explicit pcodeStore(int v):ipcode(v){code=P_STORE;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeGoto: public ipcode {
 public:
-  pcodeGoto(int v):ipcode(v){code=P_GOTO;}
+  explicit pcodeGoto(int v):ipcode(v){code=P_GOTO;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeLabel: public ipcode {
 public:
-  pcodeLabel(int v):ipcode(v){code=P_LABEL;}
+  explicit pcodeLabel(int v):ipcode(v){code=P_LABEL;}
   virtual void exec(interp* interpreter) override {}; // il pcode Label in esecuzione è una NOP
 };
 
 class pcodeCall: public ipcode {
 public:
-  pcodeCall(int v):ipcode(v){code=P_CALL;}
+  explicit pcodeCall(int v):ipcode(v){code=P_CALL;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeIfFalse: public ipcode {
 public:
-  pcodeIfFalse(int v):ipcode(v){code=P_IF_FALSE;}
+  explicit pcodeIfFalse(int v):ipcode(v){code=P_IF_FALSE;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeIfAnd: public ipcode {
 public:
-  pcodeIfAnd(int v):ipcode(v){code=P_IF_AND;}
+  explicit pcodeIfAnd(int v):ipcode(v){code=P_IF_AND;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeIfOr: public ipcode {
 public:
-  pcodeIfOr(int v):ipcode(v){code=P_IF_OR;}
+  explicit pcodeIfOr(int v):ipcode(v){code=P_IF_OR;}
   virtual void exec(interp* interpreter) override;
 };
 
@@ -249,43 +249,43 @@ public:
 
 class pcodePrint: public ipcode {
 public:
-  pcodePrint(int v):ipcode(v){code=P_PRINT;}
+  explicit pcodePrint(int v):ipcode(v){code=P_PRINT;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodePCodeEnd: public ipcode {
 public:
-  pcodePCodeEnd(int v):ipcode(v){code=P_PCODEEND;}
+  explicit pcodePCodeEnd(int v):ipcode(v){code=P_PCODEEND;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeNotImpl: public spcode {
 public:
-  pcodeNotImpl(int c,string v):spcode(v){code=c;}
+  explicit pcodeNotImpl(int c,const string& v):spcode(v){code=c;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeIntType: public pcode {
 public:
-  pcodeIntType(){code=P_INT_TYPE;}
+  explicit pcodeIntType(){code=P_INT_TYPE;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeStrType: public pcode {
 public:
-  pcodeStrType(){code=P_STR_TYPE;}
+  explicit pcodeStrType(){code=P_STR_TYPE;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeLine: public ipcode {
 public:
-  pcodeLine(int v):ipcode(v){code=P_LINE;}
+  explicit pcodeLine(int v):ipcode(v){code=P_LINE;}
   virtual void exec(interp* interpreter) override;
 };
 
 class pcodeProc: public ipcode {
 public:
-  pcodeProc(int v):ipcode(v){code=P_PROC;}
+  explicit pcodeProc(int v):ipcode(v){code=P_PROC;}
   virtual void exec(interp* interpreter) override;
 };
 
@@ -392,7 +392,7 @@ public:
 class intObj:public obj {
 public:
   int value;
-  intObj(int v){value=v;}
+  explicit intObj(int v){value=v;}
   virtual string print() override {return to_string(value);}
   virtual shared_ptr<obj> plus(const obj* o) const override;
   virtual shared_ptr<obj> minus(const obj* o) const override;
@@ -444,7 +444,7 @@ shared_ptr<obj> intObj::mod(const obj* o) const {
 class strObj:public obj {
 public:
   string value;
-  strObj(string v){value=v;}
+  explicit strObj(const string& v):value{v}{}
   virtual string print() override {return value;}
   virtual shared_ptr<obj> plus(const obj* o) const override;
   virtual shared_ptr<obj> eq(const obj* o) const override;
@@ -465,7 +465,7 @@ shared_ptr<obj> strObj::plus(const obj* o) const {
 class boolObj:public obj {
 public:
   bool value;
-  boolObj(bool v){value=v;};
+  explicit boolObj(bool v){value=v;};
   virtual string print() override {return (value?"true":"false");};
   virtual shared_ptr<obj> eq(const obj* o) const override;
   virtual shared_ptr<obj> ne(const obj* o) const override;
@@ -555,7 +555,7 @@ shared_ptr<obj> boolObj::ne(const obj* o) const {
 class floatObj: public obj {
 public:
     float value;
-    floatObj(float f){value=f;};
+    explicit floatObj(float f){value=f;};
     virtual string print() override {return to_string(value);}
 };
 
@@ -584,12 +584,12 @@ class arrayObj: public obj {
 public:
 
   virtual shared_ptr<obj> slice(shared_ptr<obj> idx) override {
-	    intObj* pos=dynamic_cast<intObj*>(idx.get());
+	    const intObj* pos=dynamic_cast<intObj*>(idx.get());
 	    if (pos!=nullptr) return a[pos->value];
 	    throw domain_error("slicing an array with a non integer index");
 	  };
   virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) override {
-	    intObj* pos=dynamic_cast<intObj*>(idx.get());
+	    const intObj* pos=dynamic_cast<intObj*>(idx.get());
 	    if (pos!=nullptr) {a[pos->value]=value;return value;}
 	    throw domain_error("storing in an array with a non integer index");
 	  };
@@ -617,7 +617,7 @@ class dictObj : public obj {
   unordered_map<string,shared_ptr<obj>> map;
 public:
   virtual shared_ptr<obj> slice(shared_ptr<obj> idx) override {
-	 strObj* key=dynamic_cast<strObj*>(idx.get());
+	 const strObj* key=dynamic_cast<strObj*>(idx.get());
 	 if (key!=nullptr){
        if (map.contains(key->value)) return map[key->value];
 	   string err=key->value+" name not found";
@@ -626,7 +626,7 @@ public:
 	 throw domain_error("slicing a dictionary with a non string index");
   };
   virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx, shared_ptr<obj> value) override {
-	 strObj* key=dynamic_cast<strObj*>(idx.get());
+	 const strObj* key=dynamic_cast<strObj*>(idx.get());
 	 if (key!=nullptr){
 	   map[key->value]=value;
 	   return value;
@@ -635,8 +635,8 @@ public:
   };
   virtual string print() override;
   //
-  shared_ptr<obj> loadkey(string key){return map[key];}
-  shared_ptr<obj> storekey(string key, shared_ptr<obj> value){map[key]=value;return value;}
+  shared_ptr<obj> loadkey(const string& key){return map[key];}
+  shared_ptr<obj> storekey(const string& key, shared_ptr<obj> value){map[key]=value;return value;}
 };
 
 string dictObj::print(){
@@ -685,7 +685,7 @@ public:
 class procContextObj : public containerObj {
 public:
   containerObj* superlevel;
-  procContextObj(containerObj* sl){superlevel=sl;};
+  explicit procContextObj(containerObj* sl){superlevel=sl;};
   virtual shared_ptr<obj> load(int intern) override {
      if (objs.contains(intern)) return objs[intern];
      return superlevel->load(intern);
@@ -762,7 +762,7 @@ public:
   int sp,pc,currentSourceLine;
   shared_ptr<containerObj>& context;
   //
-  interp(shared_ptr<containerObj>& c):context{c}{
+  explicit interp(shared_ptr<containerObj>& c):context{c}{
 	  sp=-1;pc=0;currentSourceLine=0;
 	  prg=nullptr;
 	  stack.reserve(10);
@@ -898,15 +898,15 @@ void pcodeGe::exec(interp* interpreter){
 }
 
 void pcodeGt::exec(interp* interpreter){
-  obj* obj2=interpreter->stack[interpreter->sp--].get();
-  obj* obj1=interpreter->stack[interpreter->sp].get();
+  const obj* obj2=interpreter->stack[interpreter->sp--].get();
+  const obj* obj1=interpreter->stack[interpreter->sp].get();
   interpreter->stack[interpreter->sp]=obj1->gt(obj2);
   interpreter->stack.pop_back();
 }
 
 void pcodeNe::exec(interp* interpreter){
-  obj* obj2=interpreter->stack[interpreter->sp--].get();
-  obj* obj1=interpreter->stack[interpreter->sp].get();
+  const obj* obj2=interpreter->stack[interpreter->sp--].get();
+  const obj* obj1=interpreter->stack[interpreter->sp].get();
   interpreter->stack[interpreter->sp]=obj1->ne(obj2);
   interpreter->stack.pop_back();
 }
@@ -975,7 +975,7 @@ void pcodeEndProc::exec(interp* interpreter){
 }
 
 void pcodeIfFalse::exec(interp* interpreter){
-  obj* v=interpreter->stack[interpreter->sp].get();
+  const obj* v=interpreter->stack[interpreter->sp].get();
   if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("if with a non boolean expression");
   interpreter->sp--;
   interpreter->stack.pop_back();
@@ -983,7 +983,7 @@ void pcodeIfFalse::exec(interp* interpreter){
 }
 
 void pcodeIfAnd::exec(interp* interpreter){
-  obj* v=interpreter->stack[interpreter->sp].get();
+  const obj* v=interpreter->stack[interpreter->sp].get();
   if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("and with a non boolean expression");
   if (v==theFalse.get())
     interpreter->pc=interpreter->prg->getLabelPos(value);
@@ -994,7 +994,7 @@ void pcodeIfAnd::exec(interp* interpreter){
 }
 
 void pcodeIfOr::exec(interp* interpreter){
-  obj* v=interpreter->stack[interpreter->sp].get();
+  const obj* v=interpreter->stack[interpreter->sp].get();
   if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("or with a non boolean expression");
   if (v==theTrue.get())
     interpreter->pc=interpreter->prg->getLabelPos(value);
@@ -1005,9 +1005,9 @@ void pcodeIfOr::exec(interp* interpreter){
 }
 
 void pcodeNot::exec(interp* interpreter){
-	obj* v=interpreter->stack[interpreter->sp].get();
-	if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("not with a non boolean expression");
-	interpreter->stack[interpreter->sp]=(v==theTrue.get()?theFalse:theTrue);
+  const obj* v=interpreter->stack[interpreter->sp].get();
+  if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("not with a non boolean expression");
+  interpreter->stack[interpreter->sp]=(v==theTrue.get()?theFalse:theTrue);
 }
 
 void pcodePrint::exec(interp* interpreter){
@@ -1038,8 +1038,8 @@ void pcodeStrType::exec(interp* interpreter){
 }
 
 void pcodeLine::exec(interp* interpreter){
-	//cout << "line:" << value << endl;
-	interpreter->currentSourceLine=value;
+  //cout << "line:" << value << endl;
+  interpreter->currentSourceLine=value;
 }
 
 void pcodeNotImpl::exec(interp* interpreter){

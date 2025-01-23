@@ -5,7 +5,7 @@
 #include "pcodes.c"
 #include "emit.c"
 
-int FindPCode(char* l){
+int FindPCode(const char* l){
 	int pcd=0,i;
 	for(i=1;i<=MAX_PCODE;i++){
 	  if (pcd==0 && strcmp(l,pcodetxt[i])==0)
@@ -37,21 +37,17 @@ int cpl2asm(FILE* f){
 		  printf("%s %s",pcodetxt[c-31],line+1);
 	  } else {
 		  // trova il primo spazio
-		  if (strncmp(line,"da fare ",8)==0) {
-			printf("%s",line);  
-		  } else {
-		    char* p=strchr(line,' '); // posizione del primo spazio		  
-		    if (p!=NULL) {
-		  	  p[0]='\0'; // separa la linea nei due componenti
-			  p++;  
-		    } else {
-		 	  p="\n"; // pcode senza parte secondaria  
-		    }
-		    // trova il codice del pcode
-		    int pcd=FindPCode(line);
-		    //if (pcd==P_LINE) printf("LINE %s\n",p);
-		    printf("%c%s",(unsigned char)(pcd+31),p);
+		char* p=strchr(line,' '); // posizione del primo spazio		  
+		if (p!=NULL) {
+		  p[0]='\0'; // separa la linea nei due componenti
+		  p++;  
+		} else {
+		  p="\n"; // pcode senza parte secondaria  
 		}
+		// trova il codice del pcode
+		int pcd=FindPCode(line);
+		//if (pcd==P_LINE) printf("LINE %s\n",p);
+		printf("%c%s",(unsigned char)(pcd+31),p);
 	  }
 	  fgets(line,2000,f);
   }

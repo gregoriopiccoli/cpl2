@@ -186,6 +186,7 @@ dottedid ::= dottedid DOT ID(value).              {emit_s(P_LOADX,value);dispose
 btype ::= ARRAY LSQ type RSQ.                     {emit(P_ARRAY_TYPE);}
 btype ::= DICT LSQ type RSQ.                      {emit(P_DICT_TYPE);}
 btype ::= TUPLE LSQ type_list(N) RSQ.             {emit_i(P_TUPLE_TYPE,N);}
+//btype ::= tuple_and_list(N).                      {emit_i(P_TUPLE_TYPE,N);} 
 btype ::= LPAR type COLON type_list(N) RPAR.      {emit_i(P_FUNC_TYPE,N);}
 btype ::= LPAR type COLON RPAR.                   {emit_i(P_FUNC_TYPE,0);}
 btype ::= LPAR type_list(N) RPAR.                 {emit_i(P_PROC_TYPE,N);}
@@ -195,6 +196,10 @@ type_list(N) ::= type.                            {N = 1;}
 type_list(N) ::= type ID(value).                  {N = 1;emit_s(P_PARMNAME,value);dispose(&value);} 
 type_list(N) ::= type_list(P) COMMA type.         {N = P+1;}
 type_list(N) ::= type_list(P) COMMA type ID(value). {N = P+1;emit_s(P_PARMNAME,value);dispose(&value);}
+
+//%type tuple_and_list {int}
+//tuple_and_list(N) ::= type EEE type.              {N=2;}
+//tuple_and_list(N) ::= tuple_and_list(P) AND type. {N=P+1;}
 
 // --- if statement ---
 
@@ -419,3 +424,4 @@ dict_compr ::= LSQ expr COLON expr FOR EACH ID(value) IN expr RSQ.           {em
 tuple_const ::= VBAR tuple_list(N) VBAR.          {emit_i(P_TUPLE,N);}
 tuple_list(N) ::= tuple_list(P) COMMA expr.       {N=P+1;}
 tuple_list(N) ::= expr.                           {N=1;}
+
