@@ -181,6 +181,12 @@ public:
   virtual void exec(interp* interpreter) override;
 };
 
+class pcodeArray: public ipcode {
+public:
+  explicit pcodeArray(int v):ipcode(v){code=P_ARRAY;}
+  virtual void exec(interp* interpreter) override;
+};
+	
 class pcodeVar: public ipcode {
 public:
   explicit pcodeVar(int v):ipcode(v){code=P_VAR;}
@@ -322,23 +328,24 @@ pcode* makePCode(int c,const char* s){
 	case P_NIL:return new pcodeNil();
 	case P_TRUE:return new pcodeTrue();
 	case P_FALSE:return new pcodeFalse();
+	case P_ARRAY:return new pcodeArray(atoi(s));
 	case P_VAR:return new pcodeVar(theStringIntern.add(s));
 	case P_VAR_STORE:return new pcodeVarStore(theStringIntern.add(s));
 	case P_LOAD:return new pcodeLoad(theStringIntern.add(s));
 	case P_STORE:return new pcodeStore(theStringIntern.add(s));
 	case P_GOTO:return new pcodeGoto(atoi(s));
 	case P_LABEL:return new pcodeLabel(atoi(s));
-	case P_CALL: return new pcodeCall(atoi(s));
-	case P_ENDPARM: return new pcodeEndParm();
-	case P_ENDPROC: return new pcodeEndProc();
-	case P_IF_FALSE: return new pcodeIfFalse(atoi(s));
-	case P_IF_AND: return new pcodeIfAnd(atoi(s));
-	case P_IF_OR: return new pcodeIfOr(atoi(s));
-	case P_NOT: return new pcodeNot();
+	case P_CALL:return new pcodeCall(atoi(s));
+	case P_ENDPARM:return new pcodeEndParm();
+	case P_ENDPROC:return new pcodeEndProc();
+	case P_IF_FALSE:return new pcodeIfFalse(atoi(s));
+	case P_IF_AND:return new pcodeIfAnd(atoi(s));
+	case P_IF_OR:return new pcodeIfOr(atoi(s));
+	case P_NOT:return new pcodeNot();
 	case P_PRINT:return new pcodePrint(atoi(s));
 	case P_PCODEEND:return new pcodePCodeEnd(atoi(s));
-	case P_INT_TYPE: return new pcodeIntType();
-	case P_STR_TYPE: return new pcodeStrType();
+	case P_INT_TYPE:return new pcodeIntType();
+	case P_STR_TYPE:return new pcodeStrType();
 	case P_LINE:return new pcodeLine(atoi(s));
 	case P_PROC:return new pcodeProc(theStringIntern.add(s));
   }
@@ -582,7 +589,8 @@ shared_ptr<obj> theStrType=make_shared<strType>();
 class arrayObj: public obj {
 	vector<shared_ptr<obj>> a;
 public:
-
+  arrayObj(){}
+  explicit arrayObj(const int& sz){resize(sz);}
   virtual shared_ptr<obj> slice(shared_ptr<obj> idx) override {
 	    const intObj* pos=dynamic_cast<intObj*>(idx.get());
 	    if (pos!=nullptr) return a[pos->value];
@@ -600,16 +608,21 @@ public:
   virtual string print() override;
   //
   shared_ptr<obj> sliceidx(int idx){return a[idx];}
-  void storesliceidx(int idx, shared_ptr<obj> v){a[idx]=v;}
+  void storesliceidx(int idx, const shared_ptr<obj>& v){a[idx]=v;}
+  void append(const shared_ptr<obj>& v){a.push_back(v);}
+  void resize(int sz){int oldsz=a.size();a.resize(sz);for(int i=oldsz;i<sz;i++) a[i]=theNil;}
 };
 
 string arrayObj::print(){
   string res="";
-  for(auto o:a){
-	res+=","+o->print();
-  }
-  res+="]";
-  res[0]='[';
+  if (a.size()>0) {
+    for(shared_ptr<obj> o:a){
+	  res+=","+o->print();
+    }
+    res+="]";
+    res[0]='[';
+  } else 
+    res="[]";  
   return res;
 }
 
@@ -939,6 +952,19 @@ void pcodeIntConst::exec(interp* interpreter){
 void pcodeStrConst::exec(interp* interpreter){
   interpreter->sp++;
   interpreter->stack.push_back(make_shared<strObj>(value));
+}
+
+void pcodeArray::exec(interp* interpreter){
+  shared_ptr<arrayObj> a=make_shared<arrayObj>(value);
+  int sp=interpreter->sp-value+1;
+  for(int i=0;i<value;i++){
+	a->storesliceidx(i,interpreter->stack[sp+i]);
+  }
+  //cout << a->print() << endl;
+  for(int i=sp+1;i<=interpreter->sp;i++)
+    interpreter->stack.pop_back();
+  interpreter->stack[sp]=a;  
+  interpreter->sp=sp;
 }
 
 void pcodeVar::exec(interp* interpreter){
