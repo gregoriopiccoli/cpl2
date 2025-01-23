@@ -388,11 +388,14 @@ ref ::= ref DOT ID(value).                        {emit_s(P_LOADX,value);dispose
 ref ::= ref LSQ expr RSQ.                         {emit(P_SLICE);}
 ref ::= ref LPAR par_list(N) RPAR.                {emit_i(P_CALL,N);}
 
+%type par_expr {int}
+
 par_list(N) ::= .                                 {N=0;}
-par_list(N) ::= par_expr.                         {N=1;}
-par_list(N) ::= par_list(P) COMMA par_expr.       {N=P+1;}
-par_expr ::= ID(value) ASSIGN lexpr.              {emit_s(P_NAMEDPARM,value);dispose(&value);}       
-par_expr ::= lexpr.
+par_list(N) ::= par_expr(P).                      {N=P;}
+par_list(N) ::= par_list(P) COMMA par_expr(Q).    {N=P+Q;}
+par_expr(N) ::= par_expr_named lexpr.             {N=1002;}                      
+par_expr_named ::= ID(value) ASSIGN.              {emit_s(P_NAMEDPARM,value);dispose(&value);}       
+par_expr(N) ::= lexpr.                            {N=1;}
 
 // --- costanti ARRAY, DIZIONARI e TUPLE
 

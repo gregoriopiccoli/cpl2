@@ -759,10 +759,13 @@ class interp {
 public:
   pcodeProgram* prg;
   vector<shared_ptr<obj>> stack;
-  int sp,pc;
-  shared_ptr<containerObj> context;   
+  int sp,pc,currentSourceLine;
+  shared_ptr<containerObj>& context;   
   //
-  interp(containerObj* c){sp=-1;pc=0;stack.reserve(10);shared_ptr<containerObj> cc(c);context=cc;}
+  interp(shared_ptr<containerObj>& c):context{c}{
+	  sp=-1;pc=0;
+	  stack.reserve(10);
+  }
   void run(){
 	while(pc!=-2){
 #ifdef PRINT_PCODE_EXECUTION		
@@ -781,8 +784,8 @@ class procObj : public obj {
 protected:	
   int name,pc;
   pcodeProgram* prg;
-  //weak_ptr<containerObj> ctx; // 1
-  shared_ptr<containerObj>& ctx; // 2
+  //weak_ptr<containerObj> ctx; // metodo 1
+  shared_ptr<containerObj>& ctx; // metodo 2
 public:	
   procObj(int n, interp* i):ctx{i->context}{
 	  name=n;pc=i->pc;prg=i->prg;
@@ -803,8 +806,8 @@ void procObj:: call(int n, interp* i) {
   i->pc=pc+1;
   i->prg=prg;
     
-  //i->context=ctx.lock(); // 1
-  i->context=ctx;
+  //i->context=ctx.lock(); // metodo 1
+  i->context=ctx;  // metodo 2
   
   i->run();
   // toglie dallo stack il puntatore alla procedura
@@ -1035,6 +1038,7 @@ void pcodeStrType::exec(interp* interpreter){
 
 void pcodeLine::exec(interp* interpreter){
 	//cout << "line:" << value << endl;
+	interpreter->currentSourceLine=value;
 };
 
 void pcodeNotImpl::exec(interp* interpreter){
@@ -1063,8 +1067,8 @@ int main(){
   
   // prova reale ...
   pcodeProgram prg;  
-  prg.loadPcd("secondo.pcd");
-  containerObj* ctx=new containerObj();
+  prg.loadPcd("primo.pcd");
+  shared_ptr<containerObj> ctx=make_shared<containerObj>();
   interp exe(ctx);
   exe.prg=&prg;
   exe.run(); 

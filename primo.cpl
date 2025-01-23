@@ -35,3 +35,5 @@ end
 ? 'true=',true or false or true
 ? 'false=',true and false or false
 
+? not True
+? !false

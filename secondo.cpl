@@ -1,5 +1,3 @@
-? not True
-? !false
 var int i
 i:=100
 
