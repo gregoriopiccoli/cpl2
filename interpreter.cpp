@@ -362,19 +362,19 @@ public:
   virtual void call(int n,interp* i){throw domain_error("call (with interpreter) not implemented");}
   //
   virtual shared_ptr<obj> plus(const obj*) const {throw domain_error("plus not implemented");}
-  virtual shared_ptr<obj> minus(const obj*) {throw domain_error("minus not implemented");}
-  virtual shared_ptr<obj> uminus() {throw domain_error("uminus not implemented");}
-  virtual shared_ptr<obj> mult(const obj*) {throw domain_error("mult not implemented");}
-  virtual shared_ptr<obj> div(const obj*) {throw domain_error("div not implemented");}
-  virtual shared_ptr<obj> mod(const obj*) {throw domain_error("mod not implemented");}
-  virtual shared_ptr<obj> idiv(const obj*) {throw domain_error("idiv not implemented");}
+  virtual shared_ptr<obj> minus(const obj*) const {throw domain_error("minus not implemented");}
+  virtual shared_ptr<obj> uminus() const {throw domain_error("uminus not implemented");}
+  virtual shared_ptr<obj> mult(const obj*) const {throw domain_error("mult not implemented");}
+  virtual shared_ptr<obj> div(const obj*) const {throw domain_error("div not implemented");}
+  virtual shared_ptr<obj> mod(const obj*) const {throw domain_error("mod not implemented");}
+  virtual shared_ptr<obj> idiv(const obj*) const {throw domain_error("idiv not implemented");}
   //
-  virtual shared_ptr<obj> lt(const obj*) {throw domain_error("lt not implemented");}
-  virtual shared_ptr<obj> le(const obj*) {throw domain_error("le not implemented");}
-  virtual shared_ptr<obj> eq(const obj*) {throw domain_error("eq not implemented");}
-  virtual shared_ptr<obj> ge(const obj*) {throw domain_error("ge not implemented");}
-  virtual shared_ptr<obj> gt(const obj*) {throw domain_error("gt not implemented");}
-  virtual shared_ptr<obj> ne(const obj*) {throw domain_error("ne not implemented");}
+  virtual shared_ptr<obj> lt(const obj*) const {throw domain_error("lt not implemented");}
+  virtual shared_ptr<obj> le(const obj*) const {throw domain_error("le not implemented");}
+  virtual shared_ptr<obj> eq(const obj*) const {throw domain_error("eq not implemented");}
+  virtual shared_ptr<obj> ge(const obj*) const {throw domain_error("ge not implemented");}
+  virtual shared_ptr<obj> gt(const obj*) const {throw domain_error("gt not implemented");}
+  virtual shared_ptr<obj> ne(const obj*) const {throw domain_error("ne not implemented");}
   //
   //virtual shared_ptr<obj> _or() {throw domain_error("or not implemented");}
   //virtual shared_ptr<obj> _and() {throw domain_error("and not implemented");}
@@ -386,7 +386,7 @@ public:
 class nilObj: public obj {
 public:
   virtual string print() override {return "nil";}
-  virtual shared_ptr<obj> eq(const obj*) override;
+  virtual shared_ptr<obj> eq(const obj*) const override;
 };
 
 class intObj:public obj {
@@ -395,48 +395,48 @@ public:
   intObj(int v){value=v;}
   virtual string print() override {return to_string(value);}
   virtual shared_ptr<obj> plus(const obj* o) const override;
-  virtual shared_ptr<obj> minus(const obj* o) override;
-  virtual shared_ptr<obj> mult(const obj* o) override;
-  virtual shared_ptr<obj> div(const obj* o) override;
-  virtual shared_ptr<obj> idiv(const obj* o) override;
-  virtual shared_ptr<obj> mod(const obj* o) override;
-  virtual shared_ptr<obj> eq(const obj* o) override;
-  virtual shared_ptr<obj> lt(const obj* o) override;
-  virtual shared_ptr<obj> le(const obj* o) override;
-  virtual shared_ptr<obj> ge(const obj* o) override;
-  virtual shared_ptr<obj> gt(const obj* o) override;
-  virtual shared_ptr<obj> ne(const obj* o) override;
+  virtual shared_ptr<obj> minus(const obj* o) const override;
+  virtual shared_ptr<obj> mult(const obj* o) const override;
+  virtual shared_ptr<obj> div(const obj* o) const override;
+  virtual shared_ptr<obj> idiv(const obj* o) const override;
+  virtual shared_ptr<obj> mod(const obj* o) const override;
+  virtual shared_ptr<obj> eq(const obj* o) const override;
+  virtual shared_ptr<obj> lt(const obj* o) const override;
+  virtual shared_ptr<obj> le(const obj* o) const override;
+  virtual shared_ptr<obj> ge(const obj* o) const override;
+  virtual shared_ptr<obj> gt(const obj* o) const override;
+  virtual shared_ptr<obj> ne(const obj* o) const override;
   //
-  const intObj* check_int(const obj* o,string msg){const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const intObj* check_int(const obj* o,string msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
-shared_ptr<obj> intObj::plus(obj* o) {
+shared_ptr<obj> intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
   //return shared_ptr<obj>(new intObj(value+oo->value));
   return make_shared<intObj>(value+oo->value);
 }
 
-shared_ptr<obj> intObj::minus(obj* o) {
+shared_ptr<obj> intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
   return shared_ptr<obj>(new intObj(value-oo->value));
 }
 
-shared_ptr<obj> intObj::mult(obj* o) {
+shared_ptr<obj> intObj::mult(const obj* o) const {
   const intObj* oo=check_int(o,"integer * with a non integer");
   return shared_ptr<obj>(new intObj(value*oo->value));
 }
 
-shared_ptr<obj> intObj::div(obj* o) {
+shared_ptr<obj> intObj::div(const obj* o) const {
   const intObj* oo=check_int(o,"integer / with a non integer");
   return shared_ptr<obj>(new intObj(value/oo->value));
 }
 
-shared_ptr<obj> intObj::idiv(obj* o) {
-  intObj* oo=check_int(o,"integer idiv with a non integer");
+shared_ptr<obj> intObj::idiv(const obj* o) const {
+  const intObj* oo=check_int(o,"integer idiv with a non integer");
   return shared_ptr<obj>(new intObj(value/oo->value));
 }
 
-shared_ptr<obj> intObj::mod(obj* o) {
+shared_ptr<obj> intObj::mod(const obj* o) const {
   const intObj* oo=check_int(o,"integer % with a non integer");
   return shared_ptr<obj>(new intObj(value % oo->value));
 }
@@ -446,19 +446,19 @@ public:
   string value;
   strObj(string v){value=v;}
   virtual string print() override {return value;}
-  virtual shared_ptr<obj> plus(const obj* o) override;
-  virtual shared_ptr<obj> eq(const obj* o) override;
-  virtual shared_ptr<obj> lt(const obj* o) override;
-  virtual shared_ptr<obj> le(const obj* o) override;
-  virtual shared_ptr<obj> ge(const obj* o) override;
-  virtual shared_ptr<obj> gt(const obj* o) override;
-  virtual shared_ptr<obj> ne(const obj* o) override;
+  virtual shared_ptr<obj> plus(const obj* o) const override;
+  virtual shared_ptr<obj> eq(const obj* o) const override;
+  virtual shared_ptr<obj> lt(const obj* o) const override;
+  virtual shared_ptr<obj> le(const obj* o) const override;
+  virtual shared_ptr<obj> ge(const obj* o) const override;
+  virtual shared_ptr<obj> gt(const obj* o) const override;
+  virtual shared_ptr<obj> ne(const obj* o) const override;
   //
-  strObj* check_str(const obj* o,string msg){const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+   const strObj* check_str(const obj* o,string msg) const {const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
-shared_ptr<obj> strObj::plus(obj* o) {
-  strObj* oo=check_str(o,"str + with a non str");
+shared_ptr<obj> strObj::plus(const obj* o) const {
+  const strObj* oo=check_str(o,"str + with a non str");
   return shared_ptr<obj>(new strObj(value + oo->value));
 }
 
@@ -467,10 +467,10 @@ public:
   bool value;
   boolObj(bool v){value=v;};
   virtual string print() override {return (value?"true":"false");};
-  virtual shared_ptr<obj> eq(const obj* o) override;
-  virtual shared_ptr<obj> ne(const obj* o) override;
+  virtual shared_ptr<obj> eq(const obj* o) const override;
+  virtual shared_ptr<obj> ne(const obj* o) const override;
   //
-  boolObj* check_bool(const obj* o,string msg){const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const boolObj* check_bool(const obj* o,string msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 // i singleton degli oggetti che non richiedono tante copie ...
@@ -478,77 +478,77 @@ shared_ptr<obj> theTrue(new boolObj(true));
 shared_ptr<obj> theFalse(new boolObj(false));
 shared_ptr<obj> theNil(new nilObj());
 
-shared_ptr<obj> nilObj::eq(obj* o){
+shared_ptr<obj> nilObj::eq( const obj* o) const {
 	return shared_ptr<obj> (o==theNil.get()?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::eq(obj* o) {
-  intObj* oo=check_int(o,"int op = with a non int");
+shared_ptr<obj> intObj::eq(const obj* o) const {
+  const intObj* oo=check_int(o,"int op = with a non int");
   return (value == oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::lt(const obj* o) {
+shared_ptr<obj> intObj::lt(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value < oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::le(const obj* o) {
+shared_ptr<obj> intObj::le(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value <= oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::ge(const obj* o) {
+shared_ptr<obj> intObj::ge(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value >= oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::gt(const obj* o) {
+shared_ptr<obj> intObj::gt(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value > oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::ne(const obj* o) {
+shared_ptr<obj> intObj::ne(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value != oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::eq(const obj* o) {
-  strObj* oo=check_str(o,"str = with a non str");
+shared_ptr<obj> strObj::eq(const obj* o) const {
+  const strObj* oo=check_str(o,"str = with a non str");
   return (value.compare(oo->value)==0 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::lt(const obj* o) {
-  strObj* oo=check_str(o,"str < with a non str");
+shared_ptr<obj> strObj::lt(const obj* o) const {
+  const strObj* oo=check_str(o,"str < with a non str");
   return (value.compare(oo->value)==-1 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::le(const obj* o) {
-  strObj* oo=check_str(o,"str <= with a non str");
+shared_ptr<obj> strObj::le(const obj* o) const {
+  const strObj* oo=check_str(o,"str <= with a non str");
   return (value.compare(oo->value)<=0 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::ge(const obj* o) {
-  strObj* oo=check_str(o,"str >= with a non str");
+shared_ptr<obj> strObj::ge(const obj* o) const {
+  const strObj* oo=check_str(o,"str >= with a non str");
   return (value.compare(oo->value)>=0 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::gt(const obj* o) {
-  strObj* oo=check_str(o,"str > with a non str");
+shared_ptr<obj> strObj::gt(const obj* o) const {
+  const strObj* oo=check_str(o,"str > with a non str");
   return (value.compare(oo->value)==1 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::ne(const obj* o) {
-  strObj* oo=check_str(o,"str <> with a non str");
+shared_ptr<obj> strObj::ne(const obj* o)  const {
+  const strObj* oo=check_str(o,"str <> with a non str");
   return (value.compare(oo->value)!=0 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> boolObj::eq(const obj* o) {
-  boolObj* oo=check_bool(o,"bool = with a non bool");
+shared_ptr<obj> boolObj::eq(const obj* o) const {
+  const boolObj* oo=check_bool(o,"bool = with a non bool");
   return (value == oo->value ? theTrue : theFalse);
 }
 
-shared_ptr<obj> boolObj::ne(const obj* o) {
-  boolObj* oo=check_bool(o,"bool <> with a non bool");
+shared_ptr<obj> boolObj::ne(const obj* o) const {
+  const boolObj* oo=check_bool(o,"bool <> with a non bool");
   return (value != oo->value ? theTrue : theFalse);
 }
 
@@ -870,8 +870,8 @@ void pcodeIDiv::exec(interp* interpreter){
 }
 
 void pcodeEq::exec(interp* interpreter){
-  const obj* obj2*=interpreter->stack[interpreter->sp--].get();
-  const obj* obj1*=interpreter->stack[interpreter->sp].get();
+  const obj* obj2=interpreter->stack[interpreter->sp--].get();
+  const obj* obj1=interpreter->stack[interpreter->sp].get();
   interpreter->stack[interpreter->sp]=obj1->eq(obj2);
   interpreter->stack.pop_back();
 }
@@ -1053,7 +1053,7 @@ void pcodeProc::exec(interp* interpreter){
   // --- aggiunge la procedura al contesto attuale
   shared_ptr<obj> p(new procObj(value,interpreter));
   interpreter->context->add(value,theNil,p);
-  // salta il codice della procedura
+  // --- salta il codice della procedura
   int c=interpreter->prg->get(pc++)->getCode();
   while (c!=P_ENDPROC)
 	c=interpreter->prg->get(pc++)->getCode();

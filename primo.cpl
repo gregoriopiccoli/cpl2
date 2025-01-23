@@ -15,7 +15,7 @@ else
 end    
 */
 i:=0
-while i<1000000
+while i<3000000
   i:=i+1
 end  
 /*
