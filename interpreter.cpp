@@ -205,6 +205,12 @@ public:
   virtual void exec(interp* interpreter) override;
 };
 
+class pcodeSlice: public pcode {
+public:
+  explicit pcodeSlice(){code=P_SLICE;}
+  virtual void exec(interp* interpreter) override;
+};
+
 class pcodeStore: public ipcode {
 public:
   explicit pcodeStore(int v):ipcode(v){code=P_STORE;}
@@ -271,6 +277,12 @@ public:
   virtual void exec(interp* interpreter) override;
 };
 
+class pcodeAnyType: public pcode {
+public:
+  explicit pcodeAnyType(){code=P_ANY_TYPE;}
+  virtual void exec(interp* interpreter) override;
+};
+
 class pcodeIntType: public pcode {
 public:
   explicit pcodeIntType(){code=P_INT_TYPE;}
@@ -332,6 +344,7 @@ pcode* makePCode(int c,const char* s){
 	case P_VAR:return new pcodeVar(theStringIntern.add(s));
 	case P_VAR_STORE:return new pcodeVarStore(theStringIntern.add(s));
 	case P_LOAD:return new pcodeLoad(theStringIntern.add(s));
+	case P_SLICE:return new pcodeSlice();
 	case P_STORE:return new pcodeStore(theStringIntern.add(s));
 	case P_GOTO:return new pcodeGoto(atoi(s));
 	case P_LABEL:return new pcodeLabel(atoi(s));
@@ -344,6 +357,7 @@ pcode* makePCode(int c,const char* s){
 	case P_NOT:return new pcodeNot();
 	case P_PRINT:return new pcodePrint(atoi(s));
 	case P_PCODEEND:return new pcodePCodeEnd(atoi(s));
+	case P_ANY_TYPE:return new pcodeAnyType();
 	case P_INT_TYPE:return new pcodeIntType();
 	case P_STR_TYPE:return new pcodeStrType();
 	case P_LINE:return new pcodeLine(atoi(s));
@@ -360,9 +374,9 @@ class obj {
 public:
   obj() {theObjCounter++;}
   virtual ~obj(){theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
-  virtual string print() {throw domain_error("print not implemented");}
+  virtual string print() const {throw domain_error("print not implemented");}
   virtual shared_ptr<obj> load(int intern) {throw domain_error("load not implemented");}
-  virtual shared_ptr<obj> slice(shared_ptr<obj> idx) {throw domain_error("slice not implemented");}
+  virtual shared_ptr<obj> slice(const obj* idx) {throw domain_error("slice not implemented");}
   virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {throw domain_error("store not implemented");}
   virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");}
   virtual shared_ptr<obj> call(int n) {throw domain_error("call not implemented");}
@@ -392,7 +406,7 @@ public:
 
 class nilObj: public obj {
 public:
-  virtual string print() override {return "nil";}
+  virtual string print() const override {return "nil";}
   virtual shared_ptr<obj> eq(const obj*) const override;
 };
 
@@ -400,7 +414,7 @@ class intObj:public obj {
 public:
   int value;
   explicit intObj(int v){value=v;}
-  virtual string print() override {return to_string(value);}
+  virtual string print() const override {return to_string(value);}
   virtual shared_ptr<obj> plus(const obj* o) const override;
   virtual shared_ptr<obj> minus(const obj* o) const override;
   virtual shared_ptr<obj> mult(const obj* o) const override;
@@ -452,7 +466,7 @@ class strObj:public obj {
 public:
   string value;
   explicit strObj(const string& v):value{v}{}
-  virtual string print() override {return value;}
+  virtual string print() const override {return value;}
   virtual shared_ptr<obj> plus(const obj* o) const override;
   virtual shared_ptr<obj> eq(const obj* o) const override;
   virtual shared_ptr<obj> lt(const obj* o) const override;
@@ -473,7 +487,7 @@ class boolObj:public obj {
 public:
   bool value;
   explicit boolObj(bool v){value=v;};
-  virtual string print() override {return (value?"true":"false");};
+  virtual string print() const override {return (value?"true":"false");};
   virtual shared_ptr<obj> eq(const obj* o) const override;
   virtual shared_ptr<obj> ne(const obj* o) const override;
   //
@@ -563,19 +577,19 @@ class floatObj: public obj {
 public:
     float value;
     explicit floatObj(float f){value=f;};
-    virtual string print() override {return to_string(value);}
+    virtual string print() const override {return to_string(value);}
 };
 
 // --- i tipi di base
 
 class intType: public obj {
 public:
-    virtual string print() override {return "int";}
+    virtual string print() const override {return "int";}
 };
 
 class strType: public obj {
 public:
-    virtual string print() override {return "str";}
+    virtual string print() const override {return "str";}
 };
 
 //shared_ptr<obj> theIntType(new intType);
@@ -591,9 +605,10 @@ class arrayObj: public obj {
 public:
   arrayObj(){}
   explicit arrayObj(const int& sz){resize(sz);}
-  virtual shared_ptr<obj> slice(shared_ptr<obj> idx) override {
-	    const intObj* pos=dynamic_cast<intObj*>(idx.get());
-	    if (pos!=nullptr) return a[pos->value];
+  virtual shared_ptr<obj> slice(const obj* idx) override {
+	    const intObj* pos=dynamic_cast<const intObj*>(idx);
+	    if (pos!=nullptr) 
+	      return a[pos->value];
 	    throw domain_error("slicing an array with a non integer index");
 	  };
   virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) override {
@@ -605,7 +620,7 @@ public:
   virtual shared_ptr<obj> remove(int pos){shared_ptr<obj> v=a[pos];a.erase(a.begin()+pos);return v;};
   virtual shared_ptr<obj> insert(int pos,shared_ptr<obj> v){a.insert(a.begin()+pos,v);return v;};
   virtual int len(){return a.size();};
-  virtual string print() override;
+  virtual string print() const override;
   //
   shared_ptr<obj> sliceidx(int idx){return a[idx];}
   void storesliceidx(int idx, const shared_ptr<obj>& v){a[idx]=v;}
@@ -613,7 +628,7 @@ public:
   void resize(int sz){int oldsz=a.size();a.resize(sz);for(int i=oldsz;i<sz;i++) a[i]=theNil;}
 };
 
-string arrayObj::print(){
+string arrayObj::print() const {
   string res="";
   if (a.size()>0) {
     for(shared_ptr<obj> o:a){
@@ -629,14 +644,12 @@ string arrayObj::print(){
 class dictObj : public obj {
   unordered_map<string,shared_ptr<obj>> map;
 public:
-  virtual shared_ptr<obj> slice(shared_ptr<obj> idx) override {
-	 const strObj* key=dynamic_cast<strObj*>(idx.get());
-	 if (key!=nullptr){
-       if (map.contains(key->value)) return map[key->value];
-	   string err=key->value+" name not found";
-	   throw out_of_range(err);
-	 }
-	 throw domain_error("slicing a dictionary with a non string index");
+  virtual shared_ptr<obj> slice(const obj* idx) override {
+	 string key=idx->print();
+     if (map.contains(key)) 
+       return map[key];
+	 string err=key+": key not found in dict";
+	 throw out_of_range(err);
   };
   virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx, shared_ptr<obj> value) override {
 	 const strObj* key=dynamic_cast<strObj*>(idx.get());
@@ -646,13 +659,13 @@ public:
      }
      throw domain_error("storing in a dictionary with a non string key");
   };
-  virtual string print() override;
+  virtual string print() const override;
   //
   shared_ptr<obj> loadkey(const string& key){return map[key];}
   shared_ptr<obj> storekey(const string& key, shared_ptr<obj> value){map[key]=value;return value;}
 };
 
-string dictObj::print(){
+string dictObj::print() const {
   string res="";
   for(auto [key,o]:map){
 	res+=","+key+":"+o->print();
@@ -805,7 +818,7 @@ public:
 	  name=n;pc=i->pc;prg=i->prg;
 	  //ctx=i->context;
   };
-  virtual string print() override {return "<"+theStringIntern.get(name)+":pcode procedure>";};
+  virtual string print() const override {return "<"+theStringIntern.get(name)+":pcode procedure>";};
   virtual void call(int n,interp* i) override;
 };
 
@@ -960,7 +973,6 @@ void pcodeArray::exec(interp* interpreter){
   for(int i=0;i<value;i++){
 	a->storesliceidx(i,interpreter->stack[sp+i]);
   }
-  //cout << a->print() << endl;
   for(int i=sp+1;i<=interpreter->sp;i++)
     interpreter->stack.pop_back();
   interpreter->stack[sp]=a;  
@@ -980,6 +992,14 @@ void pcodeVarStore::exec(interp* interpreter){
 void pcodeLoad::exec(interp* interpreter){
   interpreter->sp++;
   interpreter->stack.push_back(interpreter->context->load(value));
+}
+
+void pcodeSlice::exec(interp* interpreter){
+  const obj* idx=interpreter->stack[interpreter->sp--].get();
+  obj* cnt=interpreter->stack[interpreter->sp].get();
+  //cout << "cnt:" << cnt->print() << " idx:" << idx->print() << endl;
+  interpreter->stack[interpreter->sp]=cnt->slice(idx);
+  interpreter->stack.pop_back();
 }
 
 void pcodeStore::exec(interp* interpreter){
@@ -1051,6 +1071,11 @@ void pcodePrint::exec(interp* interpreter){
 void pcodePCodeEnd::exec(interp* interpreter){
   //cout << "stop" << endl;
   interpreter->pc=-3; // convenzione per fermarsi
+}
+
+void pcodeAnyType::exec(interp* interpreter){
+  interpreter->sp++;
+  interpreter->stack.push_back(theNil);
 }
 
 void pcodeIntType::exec(interp* interpreter){
