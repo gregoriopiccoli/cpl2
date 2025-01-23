@@ -187,6 +187,12 @@ public:
   virtual void exec(interp* interpreter) override;
 };
 	
+class pcodeDict: public ipcode {
+public:
+  explicit pcodeDict(int v):ipcode(v){code=P_DICT;}
+  virtual void exec(interp* interpreter) override;
+};
+
 class pcodeVar: public ipcode {
 public:
   explicit pcodeVar(int v):ipcode(v){code=P_VAR;}
@@ -341,6 +347,7 @@ pcode* makePCode(int c,const char* s){
 	case P_TRUE:return new pcodeTrue();
 	case P_FALSE:return new pcodeFalse();
 	case P_ARRAY:return new pcodeArray(atoi(s));
+	case P_DICT:return new pcodeDict(atoi(s));
 	case P_VAR:return new pcodeVar(theStringIntern.add(s));
 	case P_VAR_STORE:return new pcodeVarStore(theStringIntern.add(s));
 	case P_LOAD:return new pcodeLoad(theStringIntern.add(s));
@@ -976,6 +983,18 @@ void pcodeArray::exec(interp* interpreter){
   for(int i=sp+1;i<=interpreter->sp;i++)
     interpreter->stack.pop_back();
   interpreter->stack[sp]=a;  
+  interpreter->sp=sp;
+}
+
+void pcodeDict::exec(interp* interpreter){
+  shared_ptr<dictObj> d=make_shared<dictObj>();
+  int sp=interpreter->sp-value*2+1;
+  for(int i=0;i<value;i++){
+	d->storekey(interpreter->stack[sp+i*2]->print(),interpreter->stack[sp+i*2+1]);
+  }
+  for(int i=sp+1;i<=interpreter->sp;i++)
+    interpreter->stack.pop_back();
+  interpreter->stack[sp]=d;  
   interpreter->sp=sp;
 }
 

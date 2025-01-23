@@ -416,7 +416,8 @@ dict_const ::= LBR RBR.                           {emit_i(P_DICT,0);}
 dict_const ::= LBR dict_list(N) RBR.              {emit_i(P_DICT,N);}
 dict_list(N) ::= dict_list_elem.                  {N=1;}    
 dict_list(N) ::= dict_list(P) COMMA dict_list_elem. {N=P+1;}
-dict_list_elem ::= STR_CONST(value) COLON expr.   {emit_s(P_STR_CONST,value);dispose(&value);} 
+//dict_list_elem ::= STR_CONST(value) COLON expr.   {emit_s(P_STR_CONST,value);dispose(&value);} 
+dict_list_elem ::= expr COLON expr.               //{emit_s(P_STR_CONST,value);dispose(&value);} 
 
 dict_compr ::= LSQ expr COLON expr FOR EACH ID(value) IN expr WITH expr RSQ. {emit_s(P_COMMENT,"da fare dict comprehension ...");dispose(&value);}
 dict_compr ::= LSQ expr COLON expr FOR EACH ID(value) IN expr RSQ.           {emit_s(P_COMMENT,"da fare dict comprehension ...");dispose(&value);}
