@@ -29,11 +29,14 @@ FROM
 nello stack i moduli da importare, hanno il numero di cose lasciate sullo stack
 COSI' NON FUNZIONA ...
 
+CALL
+il numero dei parametri è value%1000
+se il numero è maggior di 1000 ci sono parametri nominati
 */
 
 char* pcodetxt[256];
 
-void initpcodetxt(){
+int initpcodetxt(){
 	int i;
 	for(i=0;i<256;i++) pcodetxt[i]=(char*)"";
     pcodetxt[0]=(char*)"--";	
@@ -165,5 +168,11 @@ void initpcodetxt(){
 	pcodetxt[P_IMPORTIDX]=(char*)"IMPORTIDX"; // 104
 	
 	pcodetxt[P_IMPLEMENTS]=(char*)"IMPLEMENTS"; // 105
-
+    
+    return 1;
 }
+
+#ifdef __cplusplus
+// in c++ inizializza il resro dei pcodes
+int __pcoeds_inited=initpcodetxt();
+#endif

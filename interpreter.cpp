@@ -1062,8 +1062,8 @@ void pcodeProc::exec(interp* interpreter){
 // ------------------------------------------------
 	
 int main(){
-  //
-  initpcodetxt();
+  // -- inizializza il testo pcodes
+  //initpcodetxt();
   
   // prova reale ...
   pcodeProgram prg;  
