@@ -49,6 +49,7 @@ public:
   virtual ~pcode(){}
   virtual void exec(interp* interpreter)=0; //{throw domain_error("not an executable pcode");};
   int getCode(){return code;}
+  virtual int getIntValue(){return 0;}
 };
 
 class ipcode: public pcode {
@@ -56,6 +57,7 @@ protected:
   int value;
 public:
   explicit ipcode(int i):value{i}{}
+  virtual int getIntValue(){return value;}
 };
 
 class spcode: public pcode {
@@ -806,13 +808,13 @@ public:
 	  int instr=prg->get(pc)->getCode();
 	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
 #endif
-#define TESTSWITCH
+//#define TESTSWITCH
 #ifdef TESTSWITCH
       pcode* ppp=prg->get(pc);
       switch (ppp->getCode()){
 		  case P_INT_CONST:
             sp++;
-            stack.push_back(make_shared<intObj>(ppp->value));
+            stack.push_back(make_shared<intObj>(ppp->getIntValue()));
 		    break;
 		  case P_PLUS:  
             stack[sp-1]=stack[sp-1].get()->plus(stack[sp].get());
