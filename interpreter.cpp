@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <deque>
 #include <memory>
 
 using namespace std;
@@ -735,55 +736,62 @@ public:
 #include "pcodes.c"
 
 class pcodeProgram {
-	vector<pcode*> prg;    // i pcode che costituiscono il programma
-	vector<int> labelPos;  // la posizione delle label nel pcode, per effettuare i salti
+protected:	
+  vector<pcode*> prg;    // i pcode che costituiscono il programma
+  vector<int> labelPos;  // la posizione delle label nel pcode, per effettuare i salti
 public:
-    void add(pcode* p){prg.push_back(p);}
-    pcode* get(int i){return prg[i];}
-    int getLabelPos(int l){return labelPos[l];}
-    virtual ~pcodeProgram(){for(auto p:prg) delete p;}
-    int loadPcd(string fn);
+  void add(pcode* p){
+	prg.push_back(p);
+	if (p->getCode()==P_LABEL) putLabelPos(p->getIntValue());
+  }
+  pcode* get(int i){return prg[i];}
+  int getLabelPos(int l){return labelPos[l];}
+  virtual ~pcodeProgram(){for(auto p:prg) delete p;}
+  int loadPcd(string fn);
+  void putLabelPos(int id){
+	if ((int)labelPos.size()<=id) labelPos.resize(id+1);
+ 	labelPos[id]=prg.size()-1;
+  }
 };
 
 int pcodeProgram::loadPcd(string fn){
-	ifstream pcd(fn);
-    if (pcd.good()) {
-		char line[2000];
-		prg.clear();
-		unsigned char code=0;
-		pcd.getline(line,2000);
-		if (strcmp(line,"#cpl20.0.1")!=0){
-			cout << "not a compiled cpl2 file ..." <<endl;
-			prg.push_back(new pcodePCodeEnd(0));
-			return 0;
-		}
-		pcd.getline(line,2000);
-		while (!pcd.eof() && code!=P_PCODEEND) {
-          code=((unsigned char)line[0])-31;
-          //cout << line << endl;
-          //cout << prg.size() << " " << pcodetxt[code] << "(" << (int)code << ") " << (char*)(line+1) << endl;
-          pcode* p=makePCode(code,line+1);
-          prg.push_back(p);
-          // gestione delle label
-          if (code==P_LABEL){
-			  int id=atoi(line+1);
-			  if ((int)labelPos.size()<=id) labelPos.resize(id+1);
- 			  labelPos[id]=prg.size()-1;
-			  //cout << "-- label:" << id << " pos:" << prg.size()-1 << endl;
-		  }
-		  pcd.getline(line,2000);
-        }
-        pcode* last=prg[prg.size()-1];
-        if (last->getCode()!=P_PCODEEND || last->getIntValue()!=0){
-			prg.clear();
-			prg.push_back(new pcodePCodeEnd(0));
-			cout << fn << " has errors!" << endl;
-			return 0;
-		}
-        return 1;
+  ifstream pcd(fn);
+  if (pcd.good()) {
+	char line[2000];
+	string header="#cpl20.0.1";
+	prg.clear();
+	unsigned char code=0;
+	pcd.getline(line,2000);
+	if (header.compare(line)!=0){
+	  cout << "not a compiled cpl2 file ..." <<endl;
+	  prg.push_back(new pcodePCodeEnd(0));
+	  return 0;
+	}
+	pcd.getline(line,2000);
+	while (!pcd.eof() && code!=P_PCODEEND) {
+      code=((unsigned char)line[0])-31;
+      //cout << line << endl;
+      //cout << prg.size() << " " << pcodetxt[code] << "(" << (int)code << ") " << (char*)(line+1) << endl;
+      pcode* p=makePCode(code,line+1);
+      prg.push_back(p);
+      // gestione delle label
+      if (code==P_LABEL){
+	    putLabelPos(atoi(line+1));
+		//cout << "-- label:" << id << " pos:" << prg.size()-1 << endl;
+	  }
+	  pcd.getline(line,2000);
     }
-	prg.push_back(new pcodePCodeEnd(0));
-    return 0;
+    pcode* last=prg[prg.size()-1];
+    if (last->getCode()!=P_PCODEEND || last->getIntValue()!=0){
+	  prg.clear();
+	  prg.push_back(new pcodePCodeEnd(0));
+	  cout << fn << " has errors!" << endl;
+	  return 0;
+	}
+    return 1;
+  }
+  prg.push_back(new pcodePCodeEnd(0));
+  return 0;
 };
 
 class sys {
@@ -807,9 +815,9 @@ public:
   shared_ptr<containerObj>& context;
   //
   explicit interp(shared_ptr<containerObj>& c):context{c}{
-	  sp=-1;pc=0;currentSourceLine=0;
-	  prg=nullptr;
-	  stack.reserve(10);
+	sp=-1;pc=0;currentSourceLine=0;
+	prg=nullptr;
+	stack.reserve(20);
   }
   void run(){
 	while(pc!=-2){
@@ -821,17 +829,17 @@ public:
 #ifdef TESTSWITCH
       pcode* ppp=prg->get(pc);
       switch (ppp->getCode()){
-		  case P_INT_CONST:
-            sp++;
-            stack.push_back(make_shared<intObj>(ppp->getIntValue()));
-		    break;
-		  case P_PLUS:  
-            stack[sp-1]=stack[sp-1].get()->plus(stack[sp].get());
-            sp--;
-            stack.pop_back();
-            break;
-		  default:
-		    ppp->exec(*this);
+	    case P_INT_CONST:
+          sp++;
+          stack.push_back(make_shared<intObj>(ppp->getIntValue()));
+		  break;
+	    case P_PLUS:  
+          stack[sp-1]=stack[sp-1].get()->plus(stack[sp].get());
+          sp--;
+          stack.pop_back();
+          break;
+	    default:
+		  ppp->exec(*this);
 	  }
 #else      
 	  prg->get(pc)->exec(*this);
@@ -1162,20 +1170,43 @@ void pcodeProc::exec(interp& interpreter){
 // ------------------------------------------------
 
 int main(){
-  // -- inizializza il testo pcodes
-  //initpcodetxt();
 
   // prova reale ...
   pcodeProgram prg;
-  int r=prg.loadPcd("primo.pcd");
+  int r=prg.loadPcd("primo.pcd");  
   shared_ptr<containerObj> ctx=make_shared<containerObj>();
   interp exe(ctx);
   exe.prg=&prg;
   if (r) exe.run();
+
   return 0;
 }
 
   /*
+  int r=1;
+  prg.labelPos.resize(10);
+  prg.code(new pcodeIntType());     // 0: INT_TYPE
+  prg.code(new pcodeVar(0));        // 1: VAR i
+  prg.code(new pcodePop());         // 2: POP
+  prg.code(new pcodeIntConst(0));   // 3: INT_CONST 0
+  prg.code(new pcodeStore(0));      // 4: STORE i
+  prg.code(new pcodePop());         // 5: POP 
+  prg.code(new pcodeLabel(3));      // 6: LABEL 3
+  prg.code(new pcodeLoad(0));       // 7: LOAD i
+  prg.code(new pcodeIntConst(1000000)); // 8: INT_CONST 1000000
+  prg.code(new pcodeLt());          // 9: LT 
+  prg.code(new pcodeIfFalse(4));    //10: IF_FALSE 4
+  prg.code(new pcodeLoad(0));       //11: LOAD i
+  prg.code(new pcodeIntConst(1));   //12: INT_CONST 1
+  prg.code(new pcodePlus());        //13: PLUS 
+  prg.code(new pcodeStore(0));      //14: STORE i
+  prg.code(new pcodePop());         //15: POP 
+  prg.code(new pcodeGoto(3));       //16: GOTO 3
+  prg.code(new pcodeLabel(4));      //17: LABEL 4
+  prg.code(new pcodePCodeEnd(9));
+  */
+
+/*
   //
   int x=theStringIntern.add("x");
   int y=theStringIntern.add("y");
