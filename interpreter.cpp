@@ -673,11 +673,14 @@ public:
 
 string dictObj::print() const {
   string res="";
-  for(auto [key,o]:map){
-	res+=","+key+":"+o->print();
-  }
-  res+="}";
-  res[0]='{';
+  if (map.size()>0){
+    for(auto [key,o]:map){
+	  res+=","+key+":"+o->print();
+    }
+    res+="}";
+    res[0]='{';
+  } else
+    res="{}";  
   return res;
 }
 
@@ -685,50 +688,46 @@ string dictObj::print() const {
 
 class containerObj : public obj {
 protected:
+  containerObj& superlevel;
   unordered_map<int,shared_ptr<obj>> objs;
   unordered_map<int,shared_ptr<obj>> types;
 public:
+  containerObj();
+  explicit containerObj(containerObj& sl):superlevel{sl}{}
   void add(int intern, shared_ptr<obj> type) {
-	  if (objs.contains(intern)) throw out_of_range("name already in context");
-	  objs[intern]=theNil;
-	  types[intern]=type;
+	if (objs.contains(intern)) throw out_of_range("name already in context");
+	objs[intern]=theNil;
+	types[intern]=type;
   }
   void add(int intern, shared_ptr<obj> type, shared_ptr<obj> value) {
-	  if (objs.contains(intern)) throw out_of_range("name already in context");
-	  objs[intern]=value;
-	  types[intern]=type;
+	if (objs.contains(intern)) throw out_of_range("name already in context");
+	objs[intern]=value;
+	types[intern]=type;
   }
   virtual shared_ptr<obj> load(int intern) override {
-     if (objs.contains(intern)) return objs[intern];
-	 string err=theStringIntern.get(intern)+" name not found";
-	 throw out_of_range(err);
+    if (objs.contains(intern)) return objs[intern];
+    return superlevel.load(intern);
   }
   virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) override {
-	 if (objs.contains(intern)){
-	   objs[intern]=value;
-	   return value;
-	 }
-	 string err=theStringIntern.get(intern)+" name not found";
-	 throw out_of_range(err);
+	if (objs.contains(intern)){
+	  objs[intern]=value;
+	  return value;
+	}
+	return superlevel.store(intern,value);
   }
 };
 
+class builtInContainer : public containerObj {
+public:	
+  builtInContainer();
+};
+builtInContainer theBuiltIn;
+
+containerObj::containerObj():superlevel{theBuiltIn}{
+}
+
 // --- contenitore che cerca in locale e nel modulo
 class procContextObj : public containerObj {
-public:
-  containerObj* superlevel;
-  explicit procContextObj(containerObj* sl){superlevel=sl;};
-  virtual shared_ptr<obj> load(int intern) override {
-     if (objs.contains(intern)) return objs[intern];
-     return superlevel->load(intern);
-  }
-  virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) override {
-	 if (objs.contains(intern)){
-	   objs[intern]=value;
-	   return value;
-	 }
-	 return superlevel->store(intern,value);
-  }
 };
 
 // --- il sistema ---
@@ -848,6 +847,33 @@ public:
 	}
   }
 };
+
+class cppFunc : public obj {
+protected:
+  string name;
+public:  	
+  //virtual void call(int n,interp& i) override {... da implementare in ogni funzione ...}
+  virtual string print() const override {return "<"+name+": built-in function>";};
+  void getParms(interp& i){
+	// da fare ...
+	
+	// alla fine toglie dallo stack l'oggetto della call  
+	i.stack.pop_back();  
+  };
+};
+	
+class hello : public cppFunc {
+public:	
+  hello(){name="hello";}
+  virtual void call(int n,interp& i) override {
+	getParms(i);  
+	i.stack.push_back(make_shared<strObj>("hello bult-in!"));
+  }
+};
+	
+builtInContainer::builtInContainer(){
+  add(theStringIntern.add("hello"),theNil,make_shared<hello>());
+}
 
 // --- l'oggetto che implementa la procedura
 
@@ -1017,9 +1043,13 @@ void pcodeArray::exec(interp& interpreter){
   for(int i=0;i<value;i++){
 	a->storesliceidx(i,interpreter.stack[sp+i]);
   }
-  for(int i=sp+1;i<=interpreter.sp;i++)
-    interpreter.stack.pop_back();
-  interpreter.stack[sp]=a;  
+  if (value>0){
+    for(int i=sp+1;i<=interpreter.sp;i++)
+      interpreter.stack.pop_back();
+    interpreter.stack[sp]=a;  
+  } else {
+	interpreter.stack.push_back(a); 
+  }
   interpreter.sp=sp;
 }
 
@@ -1029,9 +1059,13 @@ void pcodeDict::exec(interp& interpreter){
   for(int i=0;i<value;i++){
 	d->storekey(interpreter.stack[sp+i*2]->print(),interpreter.stack[sp+i*2+1]);
   }
-  for(int i=sp+1;i<=interpreter.sp;i++)
-    interpreter.stack.pop_back();
-  interpreter.stack[sp]=d;  
+  if (value>0){
+    for(int i=sp+1;i<=interpreter.sp;i++)
+      interpreter.stack.pop_back();
+    interpreter.stack[sp]=d;
+  } else {
+    interpreter.stack.push_back(d);
+  }
   interpreter.sp=sp;
 }
 
@@ -1168,9 +1202,10 @@ void pcodeProc::exec(interp& interpreter){
 }
 
 // ------------------------------------------------
+#define ANKERL_NANOBENCH_IMPLEMENT
+#include "nanobench.h"
 
-int main(){
-
+void test(){
   // prova reale ...
   pcodeProgram prg;
   int r=prg.loadPcd("primo.pcd");  
@@ -1178,7 +1213,12 @@ int main(){
   interp exe(ctx);
   exe.prg=&prg;
   if (r) exe.run();
+}
 
+int main(){
+  ankerl::nanobench::Bench().run("conta fino a 1000000", [&] {
+	  test();
+  });
   return 0;
 }
 

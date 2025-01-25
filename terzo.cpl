@@ -1,0 +1,6 @@
+proc p(int i, int j)
+  ? i,' ',j
+end
+
+p(100,200)
+
