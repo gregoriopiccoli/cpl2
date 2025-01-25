@@ -388,8 +388,8 @@ public:
   virtual shared_ptr<obj> slice(const obj* idx) {throw domain_error("slice not implemented");}
   virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {throw domain_error("store not implemented");}
   virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");}
-  virtual shared_ptr<obj> call(int n) {throw domain_error("call not implemented");}
-  virtual void call(int n,interp& i){throw domain_error("call (with interpreter) not implemented");}
+  //virtual shared_ptr<obj> call(int parmCount) {throw domain_error("call not implemented");}
+  virtual void call(int parmCount,interp& interpreter){throw domain_error("call (with interpreter) not implemented");}
   //
   virtual shared_ptr<obj> plus(const obj*) const {throw domain_error("plus not implemented");}
   virtual shared_ptr<obj> minus(const obj*) const {throw domain_error("minus not implemented");}
@@ -704,6 +704,7 @@ public:
 	objs[intern]=value;
 	types[intern]=type;
   }
+  int adx(int intern, shared_ptr<obj> type, shared_ptr<obj> value){add(intern,type,value);return 1;}
   virtual shared_ptr<obj> load(int intern) override {
     if (objs.contains(intern)) return objs[intern];
     return superlevel.load(intern);
@@ -719,7 +720,7 @@ public:
 
 class builtInContainer : public containerObj {
 public:	
-  builtInContainer();
+  //builtInContainer();
 };
 builtInContainer theBuiltIn;
 
@@ -852,28 +853,39 @@ class cppFunc : public obj {
 protected:
   string name;
 public:  	
-  //virtual void call(int n,interp& i) override {... da implementare in ogni funzione ...}
   virtual string print() const override {return "<"+name+": built-in function>";};
-  void getParms(interp& i){
+  void getParms(int n, interp& i){
 	// da fare ...
-	
+	// ... lettura e pop dei parametri ...
 	// alla fine toglie dallo stack l'oggetto della call  
 	i.stack.pop_back();  
   };
 };
-	
+
+#define BUILTIN(_fn_) class builtin_##_fn_ : public cppFunc { public: \
+  builtin_##_fn_(){name=#_fn_;} \
+  virtual void call(int parmCount,interp& interpreter) override { getParms(parmCount,interpreter);		  
+#define BUILTINEND(_fn_) }}; \
+  int add_builtin_##_fn_=theBuiltIn.adx(theStringIntern.add(#_fn_),theNil,make_shared<builtin_##_fn_>());
+
+/*	
 class hello : public cppFunc {
 public:	
   hello(){name="hello";}
-  virtual void call(int n,interp& i) override {
+  virtual void call(int paraCount,interp& interpreter) override {
 	getParms(i);  
 	i.stack.push_back(make_shared<strObj>("hello bult-in!"));
   }
 };
-	
-builtInContainer::builtInContainer(){
-  add(theStringIntern.add("hello"),theNil,make_shared<hello>());
-}
+*/
+//int add_hello_builtin=theBuiltIn.adx(theStringIntern.add("hello"),theNil,make_shared<builtin_hello>());
+//builtInContainer::builtInContainer(){
+  //add(theStringIntern.add("hello"),theNil,make_shared<builtin_hello>());
+//}
+
+BUILTIN(hello)
+  interpreter.stack.push_back(make_shared<strObj>("hello bult-in!"));
+BUILTINEND(hello)
 
 // --- l'oggetto che implementa la procedura
 
@@ -889,32 +901,32 @@ public:
 	  //ctx=i->context;
   };
   virtual string print() const override {return "<"+theStringIntern.get(name)+":pcode procedure>";};
-  virtual void call(int n,interp& i) override;
+  virtual void call(int parmCount,interp& interpreter) override;
 };
 
-void procObj:: call(int n, interp& i) {
+void procObj:: call(int parmCount, interp& interpreter) {
   // salva lo stato dell'interprete
-  int retpc=i.pc;
-  pcodeProgram* retprg=i.prg;
-  shared_ptr<containerObj> retctx=i.context;
+  int retpc=interpreter.pc;
+  pcodeProgram* retprg=interpreter.prg;
+  shared_ptr<containerObj> retctx=interpreter.context;
   // raccoglie i parametri
   // DA FARE
   // esegue la procedura
-  i.pc=pc+1;
-  i.prg=prg;
+  interpreter.pc=pc+1;
+  interpreter.prg=prg;
 
   //i->context=ctx.lock(); // metodo 1
-  i.context=ctx;  // metodo 2
+  interpreter.context=ctx;  // metodo 2
 
-  i.run();
+  interpreter.run();
   // toglie dallo stack il puntatore alla procedura
   // mette un nil che è sempre il risultato di una procedura
-  i.stack.pop_back();
-  i.stack.push_back(theNil);
+  interpreter.stack.pop_back();
+  interpreter.stack.push_back(theNil);
   // rimette a posto lo stato dell'interprete a prima della chiamata
-  i.pc=retpc;
-  i.prg=retprg;
-  i.context=retctx;
+  interpreter.pc=retpc;
+  interpreter.prg=retprg;
+  interpreter.context=retctx;
 }
 
 // --- riprendo i pcode
@@ -1216,9 +1228,9 @@ void test(){
 }
 
 int main(){
-  ankerl::nanobench::Bench().run("conta fino a 1000000", [&] {
+  //ankerl::nanobench::Bench().run("conta fino a 1000000", [&] {
 	  test();
-  });
+  //});
   return 0;
 }
 
