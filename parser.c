@@ -69,7 +69,8 @@ int getTokenCodeFromString(const char* token){
 		  if (strcmp(token,"false")==0) return TOK_FALSE;
 		  if (strcmp(token,"from")==0) return TOK_FROM;
 		  if (strcmp(token,"float")==0) return TOK_FLOAT;
-		 break;  
+		  if (strcmp(token,"finally")==0) return TOK_FINALLY;
+		  break;  
 		case 'i':
 		  if (strcmp(token,"int")==0) return TOK_INT;  
 		  if (strcmp(token,"if")==0) return TOK_IF;  

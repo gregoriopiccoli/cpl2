@@ -270,11 +270,14 @@ repeat_tok(N) ::= REPEAT.                         {N=sState->labelCnt++;emit_i(P
 
 // --- try/catch statement ---
 
-try_catch_stm ::=  trystart stm_list catch_list END.
+try_catch_stm ::=  trystart stm_list catch_list finally END.
+
 trystart ::= TRY EOL.                             {emit(P_TRY);}
-catch_list ::= catch_catch.
+catch_list ::= .
 catch_list ::= catch_list catch_catch.
 catch_catch ::= CATCH LPAR type ID(value) RPAR EOL stm_list. {emit_s(P_COMMENT,"da fare catch ...");dispose(&value);}
+finally ::= .
+finally ::= FINALLY EOL stm_list.
 
 raise_stm ::= RAISE.                              {emit_i(P_RAISE,0);}
 raise_stm ::= RAISE LPAR expr RPAR.               {emit_i(P_RAISE,1);}
@@ -299,11 +302,13 @@ invariant_stm ::= INVARIANT expr.                {emit_s(P_COMMENT,"da fare inva
 
 // --- espressioni con assegnazione ---
 
-expr ::= lexpr.                            
-expr ::= ID(value) ASSIGN expr.                   {emit_s(P_STORE,value);dispose(&value);}
-expr ::= RESULT ASSIGN expr.                      {emit(P_STORE_RESULT);}
-expr ::= ref DOT ID(value) ASSIGN expr.           {emit_s(P_STOREX,value);dispose(&value);}
-expr ::= ref LSQ expr RSQ ASSIGN expr.            {emit(P_STORESLICE);}
+expr ::= lexpr. 
+expr ::= aexpr.                    
+       
+aexpr ::= ID(value) ASSIGN expr.                   {emit_s(P_STORE,value);dispose(&value);}
+aexpr ::= RESULT ASSIGN expr.                      {emit(P_STORE_RESULT);}
+aexpr ::= ref DOT ID(value) ASSIGN expr.           {emit_s(P_STOREX,value);dispose(&value);}
+aexpr ::= ref LSQ expr RSQ ASSIGN expr.            {emit(P_STORESLICE);}
 
 // --- espressioni logiche ---
 lexpr ::= lexpra.
