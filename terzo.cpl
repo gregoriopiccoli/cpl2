@@ -12,6 +12,9 @@ proc ee()
   ? 'in ee, i:',i,' j:',j
 end
 
+? p
+? ee
+
 ee()
 j:=103
 ee()

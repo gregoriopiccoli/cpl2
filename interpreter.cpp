@@ -2,7 +2,7 @@
 Dove possibile usare sempre referenze!
 
 DA FARE: 
-  Blocco dei parametri da fare una volta sola
+  Blocco dei parametri da fare una volta sola, FATTO ora però devo fare i blocchi di codice di inizializzazione e poi devo usarlo!
   La print di una procedura/funzione dovrebbe descriverla completamente
   Float e operazioni miste tra int e float
    
@@ -712,16 +712,16 @@ class contextObj : public obj {
 protected:
   contextObj& superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
   unordered_map<int,shared_ptr<obj>> objs;              
-  unordered_map<int,shared_ptr<obj>> types;
+  unordered_map<int,shared_ptr<const obj>> types;
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
   explicit contextObj(contextObj& sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
-  void add(int intern, shared_ptr<obj> type) {
+  virtual void add(int intern, shared_ptr<obj> type) {
 	if (objs.contains(intern)) throw out_of_range("name already in context");
 	objs[intern]=theNil;
 	types[intern]=type;
   }
-  void add(int intern, shared_ptr<obj> type, shared_ptr<obj> value) {
+  virtual void add(int intern, shared_ptr<obj> type, shared_ptr<obj> value) {
 	if (objs.contains(intern)) throw out_of_range("name already in context");
 	objs[intern]=value;
 	types[intern]=type;
@@ -851,7 +851,7 @@ public:
 };
 sys theSys;
 
-#define PRINT_PCODE_EXECUTION
+//#define PRINT_PCODE_EXECUTION
 
 class interp {
 public:
@@ -871,7 +871,7 @@ public:
 	while(!stop){
 #ifdef PRINT_PCODE_EXECUTION
 	  int instr=prg->get(pc)->getCode();
-	  //cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
+	  //cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << " " << prg->get(pc)->getIntValue() << endl;
 	  cout << "pc:" << pc << " sp:" << sp << " instr:" << instr << " " << pcodetxt[instr] << " " << prg->get(pc)->getIntValue() << endl;
 #endif
 //#define TESTSWITCH
@@ -936,6 +936,19 @@ BUILTINEND(hello)
 // --- l'oggetto che implementa la procedura
 
 class procParm : public contextObj  {
+public:
+  vector<int> prmOrder;
+  void add(int intern, shared_ptr<obj> type) override {
+	contextObj::add(intern,type);
+	prmOrder.push_back(intern);
+  }
+  virtual string print() const override {
+	string s="";
+	for(int i=0;i<prmOrder.size();i++){
+		s+=(i!=0?", ":"")+types.at(prmOrder[i])->print()+" "+theStringIntern.get(prmOrder[i]);
+	}
+	return s;
+  }
 };
 
 class procObj : public obj {
@@ -946,13 +959,12 @@ protected:
   shared_ptr<procParm> prm=make_shared<procParm>();
 public:
   procObj(int n, interp& i);
-  virtual string print() const override {return "<"+theStringIntern.get(name)+":pcode procedure>";};
+  virtual string print() const override {return "<"+theStringIntern.get(name)+"("+prm->print()+"):pcode procedure>";}
   virtual void call(int parmCnt,interp& interpreter) override;
 };
 
 procObj::procObj(int n, interp& i):ctx{i.context}{
   name=n;
-  pc=i.pc;   // setta il punto di partenza della procedura
   prg=i.prg; // tiene un puntatore al codice
   // ora può creare il blocco dei parametri, così viene creata una volta la struttura che poi servirà a processare i parametri dallo stack  
   shared_ptr<contextObj> c=i.context;
@@ -962,7 +974,8 @@ procObj::procObj(int n, interp& i):ctx{i.context}{
   // 
   i.context=c;            // ripristina il contesto di esecuzione dell'interprete
   i.stop=false;
-  cout << prm->print() << endl;
+  //cout << "proc " << theStringIntern.get(name) << "(" << prm->print() << ")" << endl;
+  pc=i.pc; // setta il punto di partenza della procedura: dopo il blocco dei parametri
 };
 
 void procObj:: call(int parmCnt, interp& interpreter) {
@@ -1179,7 +1192,7 @@ void pcodeCall::exec(interp& interpreter){
 
 void pcodeParm::exec(interp& interpreter){
   // aggiunge un parametro alla lista dei parametri che si sta formando
-  cout << "param value:" << value << " type:" << interpreter.stack[interpreter.sp]->print() << endl;
+  //cout << "param value:" << value << " type:" << interpreter.stack[interpreter.sp]->print() << endl;
   interpreter.context->add(value,interpreter.stack[interpreter.sp]);
 }
 
@@ -1277,12 +1290,12 @@ void pcodeProc::exec(interp& interpreter){
   interpreter.context->add(value,theNil,p);
   // --- salta il codice della procedura
   pc=interpreter.pc;
-  cout << "cerca fine proc " << pc << endl;
+  //cout << "cerca fine proc " << pc << endl;
   int c=interpreter.prg->get(pc++)->getCode();
   while (c!=P_ENDPROC)
 	c=interpreter.prg->get(pc++)->getCode();
   interpreter.pc=pc-1;
-  cout << "trovato fine " << pc-1 << endl;
+  //cout << "trovato fine " << pc-1 << endl;
 }
 
 // ------------------------------------------------
@@ -1307,6 +1320,6 @@ int bench(string fn){
 }
 
 int main(){
-  //bench("primo.pcd");
-  test("terzo.pcd");
+  bench("primo.pcd");
+  //test("terzo.pcd");
 }
