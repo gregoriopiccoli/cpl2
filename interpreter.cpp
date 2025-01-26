@@ -46,6 +46,9 @@ StringIntern theStringIntern;
 
 // --- il pcode
 
+#include "pcodes.h"
+#include "pcodes.c"
+
 class interp;
 
 class pcode {
@@ -56,7 +59,8 @@ public:
   virtual ~pcode(){}
   virtual void exec(interp& interpreter)=0; //{throw domain_error("not an executable pcode");};
   int getCode(){return code;}
-  virtual int getIntValue(){return 0;}
+  virtual int _getIntValue(){return 0;}
+  virtual string print(){return pcodetxt[code];}
 };
 
 class ipcode: public pcode {
@@ -64,7 +68,17 @@ protected:
   int value;
 public:
   explicit ipcode(int i):value{i}{}
-  virtual int getIntValue(){return value;}
+  virtual int _getIntValue(){return value;}
+  virtual string print(){return string(pcodetxt[value])+" "/*+value*/;}
+};
+
+class interningpcode: public pcode {
+protected:
+  int value;
+public:
+  explicit interningpcode(string& s):value{theStringIntern.add(s)}{}
+  virtual int _getIntValue(){return value;}
+  virtual string print(){return string(pcodetxt[code])+" "+theStringIntern.get(value);}
 };
 
 class spcode: public pcode {
@@ -72,9 +86,8 @@ protected:
   string value;
 public:
   explicit spcode(const string& s):value{s}{}
+  virtual string print(){return string(pcodetxt[code])+" "+value;}
 };
-
-#include "pcodes.h"
 
 class pcodePlus: public pcode {
 public:
@@ -202,21 +215,21 @@ public:
   virtual void exec(interp& interpreter) override;
 };
 
-class pcodeVar: public ipcode {
+class pcodeVar: public interningpcode {
 public:
-  explicit pcodeVar(int v):ipcode(v){code=P_VAR;}
+  explicit pcodeVar(string v):interningpcode(v){code=P_VAR;}
   virtual void exec(interp& interpreter) override;
 };
 
-class pcodeVarStore: public ipcode {
+class pcodeVarStore: public interningpcode {
 public:
-  explicit pcodeVarStore(int v):ipcode(v){code=P_VAR;}
+  explicit pcodeVarStore(string v):interningpcode(v){code=P_VAR;}
   virtual void exec(interp& interpreter) override;
 };
 
-class pcodeLoad: public ipcode {
+class pcodeLoad: public interningpcode {
 public:
-  explicit pcodeLoad(int v):ipcode(v){code=P_LOAD;}
+  explicit pcodeLoad(string v):interningpcode(v){code=P_LOAD;}
   virtual void exec(interp& interpreter) override;
 };
 
@@ -226,9 +239,9 @@ public:
   virtual void exec(interp& interpreter) override;
 };
 
-class pcodeStore: public ipcode {
+class pcodeStore: public interningpcode {
 public:
-  explicit pcodeStore(int v):ipcode(v){code=P_STORE;}
+  explicit pcodeStore(string v):interningpcode(v){code=P_STORE;}
   virtual void exec(interp& interpreter) override;
 };
 
@@ -250,9 +263,9 @@ public:
   virtual void exec(interp& interpreter) override;
 };
 
-class pcodeParm: public ipcode {
+class pcodeParm: public interningpcode {
 public:
-  explicit pcodeParm(int v):ipcode(v){code=P_PARM;}
+  explicit pcodeParm(string v):interningpcode(v){code=P_PARM;}
   virtual void exec(interp& interpreter) override;
 };
 
@@ -322,9 +335,15 @@ public:
   virtual void exec(interp& interpreter) override;
 };
 
-class pcodeProc: public ipcode {
+class pcodeProc: public interningpcode {
 public:
-  explicit pcodeProc(int v):ipcode(v){code=P_PROC;}
+  explicit pcodeProc(string v):interningpcode(v){code=P_PROC;}
+  virtual void exec(interp& interpreter) override;
+};
+
+class pcodeFunc: public interningpcode {
+public:
+  explicit pcodeFunc(string v):interningpcode(v){code=P_FUNC;}
   virtual void exec(interp& interpreter) override;
 };
 
@@ -363,15 +382,15 @@ pcode* makePCode(int c,const char* s){
 	case P_FALSE:return new pcodeFalse();
 	case P_ARRAY:return new pcodeArray(atoi(s));
 	case P_DICT:return new pcodeDict(atoi(s));
-	case P_VAR:return new pcodeVar(theStringIntern.add(s));
-	case P_VAR_STORE:return new pcodeVarStore(theStringIntern.add(s));
-	case P_LOAD:return new pcodeLoad(theStringIntern.add(s));
+	case P_VAR:return new pcodeVar(s);
+	case P_VAR_STORE:return new pcodeVarStore(s);
+	case P_LOAD:return new pcodeLoad(s);
 	case P_SLICE:return new pcodeSlice();
-	case P_STORE:return new pcodeStore(theStringIntern.add(s));
+	case P_STORE:return new pcodeStore(s);
 	case P_GOTO:return new pcodeGoto(atoi(s));
 	case P_LABEL:return new pcodeLabel(atoi(s));
 	case P_CALL:return new pcodeCall(atoi(s));
-	case P_PARM:return new pcodeParm(theStringIntern.add(s));
+	case P_PARM:return new pcodeParm(s);
 	case P_ENDPARM:return new pcodeEndParm();
 	case P_ENDPROC:return new pcodeEndProc();
 	case P_IF_FALSE:return new pcodeIfFalse(atoi(s));
@@ -384,7 +403,8 @@ pcode* makePCode(int c,const char* s){
 	case P_INT_TYPE:return new pcodeIntType();
 	case P_STR_TYPE:return new pcodeStrType();
 	case P_LINE:return new pcodeLine(atoi(s));
-	case P_PROC:return new pcodeProc(theStringIntern.add(s));
+	case P_PROC:return new pcodeProc(s);
+	case P_FUNC:return new pcodeFunc(s);
   }
   return new pcodeNotImpl(c,s);
 }
@@ -779,8 +799,6 @@ class procContextObj : public contextObj {
 
 // --- il sistema ---
 
-#include "pcodes.c"
-
 class pcodeProgram {
 protected:	
   vector<pcode*> prg;    // i pcode che costituiscono il programma
@@ -788,7 +806,7 @@ protected:
 public:
   void add(pcode* p){
 	prg.push_back(p);
-	if (p->getCode()==P_LABEL) putLabelPos(p->getIntValue());
+	if (p->getCode()==P_LABEL) putLabelPos(p->_getIntValue());
   }
   pcode* get(int i){return prg[i];}
   int getLabelPos(int l){return labelPos[l];}
@@ -828,7 +846,7 @@ int pcodeProgram::loadPcd(string fn){
 	  pcd.getline(line,2000);
     }
     pcode* last=prg[prg.size()-1];
-    if (last->getCode()!=P_PCODEEND || last->getIntValue()!=0){
+    if (last->getCode()!=P_PCODEEND || last->_getIntValue()!=0){
 	  prg.clear();
 	  prg.push_back(new pcodePCodeEnd(0));
 	  cout << fn << " has errors!" << endl;
@@ -960,8 +978,17 @@ protected:
   shared_ptr<procParm> prm=make_shared<procParm>();
 public:
   procObj(int n, interp& i);
-  virtual string print() const override {return "<"+theStringIntern.get(name)+"("+prm->print()+"):pcode procedure>";}
+  virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+"):pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
+};
+
+class funcObj: public procObj {
+protected:
+  shared_ptr<obj> result_type;
+  shared_ptr<obj> result_value;
+public:  
+  funcObj(int n, interp& i, shared_ptr<obj>& t):procObj(n,i){result_type=t;result_value=theNil;}
+  virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+"):pcode>";}
 };
 
 procObj::procObj(int n, interp& i):ctx{i.context}{
@@ -975,7 +1002,7 @@ procObj::procObj(int n, interp& i):ctx{i.context}{
   // 
   i.context=c;            // ripristina il contesto di esecuzione dell'interprete
   i.stop=false;
-  //cout << "proc " << theStringIntern.get(name) << "(" << prm->print() << ")" << endl;
+  cout << "proc/func " << theStringIntern.get(name) << "(" << prm->print() << ")" << endl;
   pc=i.pc; // setta il punto di partenza della procedura: dopo il blocco dei parametri
 };
 
@@ -1296,7 +1323,26 @@ void pcodeNotImpl::exec(interp& interpreter){
   throw domain_error("pcode not implemented");
 }
 
+void makeProcOrFunc(interp& interpreter, int value, shared_ptr<obj>& p, shared_ptr<obj> type){
+  int pc=interpreter.pc;
+  //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter.pc <<endl;
+  // --- aggiunge la procedura/funzione al contesto attuale
+  // -- era: shared_ptr<obj> p(new procObj(value,interpreter));
+  interpreter.context->add(value,type,p);
+  // --- salta il codice della procedura
+  pc=interpreter.pc;
+  //cout << "cerca fine proc " << pc << endl;
+  int c=interpreter.prg->get(pc++)->getCode();
+  while (c!=P_ENDPROC && c!=P_ENDFUNC)
+	c=interpreter.prg->get(pc++)->getCode();
+  interpreter.pc=pc-1;
+  //cout << "trovato fine " << pc-1 << endl;
+}
+
 void pcodeProc::exec(interp& interpreter){
+  shared_ptr<obj> p(new procObj(value,interpreter));
+  makeProcOrFunc(interpreter,value,p,theNil);
+  /*
   int pc=interpreter.pc;
   //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter.pc <<endl;
   // --- aggiunge la procedura al contesto attuale
@@ -1310,6 +1356,16 @@ void pcodeProc::exec(interp& interpreter){
 	c=interpreter.prg->get(pc++)->getCode();
   interpreter.pc=pc-1;
   //cout << "trovato fine " << pc-1 << endl;
+  */
+}
+
+void pcodeFunc::exec(interp& interpreter){
+  shared_ptr<obj> t=interpreter.stack[interpreter.sp--];
+  interpreter.stack.pop_back();	
+  cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
+  shared_ptr<obj> f(new funcObj(value,interpreter,t));
+  makeProcOrFunc(interpreter,value,f,t);
+  cout << "finito: " << f->print() << endl;
 }
 
 // ------------------------------------------------
@@ -1335,5 +1391,6 @@ int bench(string fn){
 
 int main(){
   //bench("primo.pcd");
-  test("terzo.pcd");
+  //test("terzo.pcd");
+  test("fib.pcd");
 }

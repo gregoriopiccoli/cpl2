@@ -24,3 +24,6 @@ ee()
 ? 'in base, j:',j
 --? 'in base, i:',i // deve dare errore
   
+func int doppio(int x)
+  result:=x+x
+end
