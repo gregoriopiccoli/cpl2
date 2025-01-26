@@ -949,6 +949,7 @@ public:
 	}
 	return s;
   }
+  void initParms(shared_ptr<contextObj>& vars, interp& i, int parmCnt);
 };
 
 class procObj : public obj {
@@ -979,12 +980,15 @@ procObj::procObj(int n, interp& i):ctx{i.context}{
 };
 
 void procObj:: call(int parmCnt, interp& interpreter) {
+  cout << this->print() << " parametri:" << prm->prmOrder.size() << " parametri passati:" << parmCnt << endl; 	
   // salva lo stato dell'interprete
   int retPc=interpreter.pc;                           // il program counter attuale
   pcodeProgram* retPrg=interpreter.prg;               // il programma che sta eseguendo l'interprete
   shared_ptr<contextObj> retCtx=interpreter.context;  // il contesto attuale dell'interprete
   // setta l'interprete allo stato della procedura
   shared_ptr<contextObj> vars=make_shared<contextObj>(*ctx); // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura
+  prm->initParms(vars,interpreter,parmCnt);                  // crea le variabili dalla lista dei parametri
+  // ora ha tolto dallo stack i parametri e sono state create delle variabili locali inizalizzate con i valori passati DA FARE: valori di default
   interpreter.context=vars;                                  // setta le variabili come nuovo contesto dell'interprete
   interpreter.prg=prg;                                       // setta come programma il pcode della procedura
   interpreter.pc=pc+1;                                       // mette il program counte alla posizione del codice della procedura
@@ -1000,6 +1004,10 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   interpreter.stop=false;
 }
 
+void procParm::initParms(shared_ptr<contextObj>& vars, interp& i, int parmCnt){
+  for(int i=0;i<prmOrder.size();i++){	  
+  }
+}
 // --- riprendo i pcode
 
 void pcodePlus::exec(interp& interpreter){
@@ -1320,6 +1328,6 @@ int bench(string fn){
 }
 
 int main(){
-  bench("primo.pcd");
-  //test("terzo.pcd");
+  //bench("primo.pcd");
+  test("terzo.pcd");
 }
