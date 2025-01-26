@@ -2,7 +2,7 @@
 Dove possibile usare sempre referenze!
 
 DA FARE: 
-  Blocco dei parametri da fare una volta sola, FATTO ora però devo fare i blocchi di codice di inizializzazione e poi devo usarlo!
+  Blocco dei parametri da fare una volta sola, FATTO ora però devo fare i blocchi di codice di inizializzazione FATTO e poi devo usarlo!
   La print di una procedura/funzione dovrebbe descriverla completamente
   Float e operazioni miste tra int e float
    
@@ -712,7 +712,7 @@ class contextObj : public obj {
 protected:
   contextObj& superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
   unordered_map<int,shared_ptr<obj>> objs;              
-  unordered_map<int,shared_ptr<const obj>> types;
+  unordered_map<int,shared_ptr<obj>> types;
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
   explicit contextObj(contextObj& sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
@@ -944,7 +944,7 @@ public:
   }
   virtual string print() const override {
 	string s="";
-	for(int i=0;i<prmOrder.size();i++){
+	for(int i=0;i<(int)prmOrder.size();i++){
 		s+=(i!=0?", ":"")+types.at(prmOrder[i])->print()+" "+theStringIntern.get(prmOrder[i]);
 	}
 	return s;
@@ -980,7 +980,7 @@ procObj::procObj(int n, interp& i):ctx{i.context}{
 };
 
 void procObj:: call(int parmCnt, interp& interpreter) {
-  cout << this->print() << " parametri:" << prm->prmOrder.size() << " parametri passati:" << parmCnt << endl; 	
+  //cout << this->print() << " parametri:" << prm->prmOrder.size() << " parametri passati:" << parmCnt << endl; 	
   // salva lo stato dell'interprete
   int retPc=interpreter.pc;                           // il program counter attuale
   pcodeProgram* retPrg=interpreter.prg;               // il programma che sta eseguendo l'interprete
@@ -1005,7 +1005,13 @@ void procObj:: call(int parmCnt, interp& interpreter) {
 }
 
 void procParm::initParms(shared_ptr<contextObj>& vars, interp& i, int parmCnt){
-  for(int i=0;i<prmOrder.size();i++){	  
+  int sp=i.sp-parmCnt+1;
+  int pnp=(int)prmOrder.size();
+  if (pnp<parmCnt) throw domain_error("too many parameters calling ... ");
+  for(int j=0;j<pnp;j++){
+	int p=prmOrder[j];  
+	//cout << "parm:" << theStringIntern.get(p) << " type:" << types[p]->print() << " value:" << (j<parmCnt?i.stack[sp+j]->print():"nil") << endl;
+	vars->add(p,types[p],(j<parmCnt?i.stack[sp+j]:theNil));
   }
 }
 // --- riprendo i pcode
@@ -1195,7 +1201,7 @@ void pcodeGoto::exec(interp& interpreter){
 
 void pcodeCall::exec(interp& interpreter){
   //cout << "call stack:" << interpreter.sp << " " << interpreter.stack.size() << endl;
-  interpreter.stack[interpreter.sp].get()->call(value,interpreter);
+  interpreter.stack[interpreter.sp-value].get()->call(value,interpreter);
 }
 
 void pcodeParm::exec(interp& interpreter){

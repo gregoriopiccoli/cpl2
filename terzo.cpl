@@ -22,5 +22,5 @@ j:=103
 ee()
 
 ? 'in base, j:',j
---? 'in base, i:',i
+--? 'in base, i:',i // deve dare errore
   
