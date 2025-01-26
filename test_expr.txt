@@ -102,3 +102,76 @@ end
 proc p(int i ...) abstract
 proc p(int d*) abstract
           
+
+  /*
+  int r=1;
+  prg.labelPos.resize(10);
+  prg.code(new pcodeIntType());     // 0: INT_TYPE
+  prg.code(new pcodeVar(0));        // 1: VAR i
+  prg.code(new pcodePop());         // 2: POP
+  prg.code(new pcodeIntConst(0));   // 3: INT_CONST 0
+  prg.code(new pcodeStore(0));      // 4: STORE i
+  prg.code(new pcodePop());         // 5: POP 
+  prg.code(new pcodeLabel(3));      // 6: LABEL 3
+  prg.code(new pcodeLoad(0));       // 7: LOAD i
+  prg.code(new pcodeIntConst(1000000)); // 8: INT_CONST 1000000
+  prg.code(new pcodeLt());          // 9: LT 
+  prg.code(new pcodeIfFalse(4));    //10: IF_FALSE 4
+  prg.code(new pcodeLoad(0));       //11: LOAD i
+  prg.code(new pcodeIntConst(1));   //12: INT_CONST 1
+  prg.code(new pcodePlus());        //13: PLUS 
+  prg.code(new pcodeStore(0));      //14: STORE i
+  prg.code(new pcodePop());         //15: POP 
+  prg.code(new pcodeGoto(3));       //16: GOTO 3
+  prg.code(new pcodeLabel(4));      //17: LABEL 4
+  prg.code(new pcodePCodeEnd(9));
+  */
+
+/*
+  //
+  int x=theStringIntern.add("x");
+  int y=theStringIntern.add("y");
+  // --- oggetti di base
+  shared_ptr<obj> n(new intObj(100));
+  shared_ptr<obj> s(new strObj("pippo"));
+  cout << n->print() << " " << s->print() << endl;
+  // --- contenitore
+  shared_ptr<containerObj> cc(new containerObj());
+  cc->add(x,theNil);
+  cc->add(y,theNil);
+  cc->store(x,n);
+  cc->store(y,s);
+  cout << cc->load(y)->print() << " " << cc->load(x)->print() << endl;
+  // --- array
+  shared_ptr<arrayObj> aa(new arrayObj());
+  aa->append(n);
+  aa->append(s);
+  aa->append(theTrue);
+  aa->append(theFalse);
+  cout << aa->sliceidx(0)->print() << " " << aa->sliceidx(1)->print() << " len:" << aa->len() << endl;
+  aa->storesliceidx(0,s);
+  cout << 1 << endl;
+  shared_ptr<obj> ff(new floatObj(12.34));
+  aa->insert(0,ff);
+  aa->remove(1);
+  cout << aa->sliceidx(0)->print() << " " << aa->sliceidx(1)->print() << " len:" << aa->len() << endl;
+  // --- dizionari
+  shared_ptr<dictObj> dd(new dictObj());
+  dd->storekey("n",n);
+  dd->storekey(n->print(),s);
+  dd->storekey("xxx",n);
+  dd->storekey("aa",aa);
+  cout << "dd['n']=" << dd->loadkey("n")->print() << " dd['"<< n->print() <<"']=" << dd->loadkey(n->print())->print() << " dd['xxx']=" << dd->loadkey("xxx")->print() << endl;
+  // --- stampa di array
+  cout << aa->print() << endl;
+  // --- stampa del dizionario
+  cout << dd->print() << endl;
+  // --- prova di cast ...
+  //obj* ir=n;
+  intObj* ii=dynamic_cast<intObj*>(n.get());
+  if (ii!=0) printf("riuscito come dovrebbe essere!\n");
+  shared_ptr<strObj> iii(dynamic_cast<strObj*>(n.get()));
+  if (iii.get()==0) printf("non riuscito come dovrebbe essere!\n");
+  u8string utf8=u8"Hello € world! ↗";
+  printf("%s\n",(char*)utf8.c_str());
+  */

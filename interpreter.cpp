@@ -1,4 +1,13 @@
 /*
+Dove possibile usare sempre referenze!
+
+DA FARE: 
+  Blocco dei parametri da fare una volta sola
+  La print di una procedura/funzione dovrebbe descriverla completamente
+  Float e operazioni miste tra int e float
+   
+FATTO: 
+  Provato a riciclare gli interi ... ci si mette più tempo! Dovrò provare con la garbage collection.
   Nil è meglio con nullptr o con uno specifico oggetto nil? per ora provo con un oggetto specifico così non è mai un puntatore non inizializzato ...
   Devo fare che le stringhe abbiano le loro operazioni ... prima prova di classe C++!
   fare trucco della compare per tipo e mettere le operazioni di confronto sulla compare
@@ -28,8 +37,6 @@ public:
 	 return n;
    }
    string get(int k){
-     //if (imap.contains(k)) return imap[k];
-	 //return "";
 	 return imap[k-1];
    }
 };
@@ -603,8 +610,14 @@ public:
     virtual string print() const override {return "str";}
 };
 
+class floatType: public obj {
+public:
+    virtual string print() const override {return "float";}
+};
+
 shared_ptr<obj> theIntType=make_shared<intType>();
 shared_ptr<obj> theStrType=make_shared<strType>();
+shared_ptr<obj> theFloatType=make_shared<floatType>();
 
 // --- gli array e i dizionari
 
@@ -905,44 +918,46 @@ BUILTINEND(hello)
 
 // --- l'oggetto che implementa la procedura
 
+class procParm {
+  int defaultInitPc;
+};
+
 class procObj : public obj {
 protected:
   int name,pc;
   pcodeProgram* prg;
-  //weak_ptr<contextObj> ctx; // metodo 1
-  shared_ptr<contextObj>& ctx; // metodo 2
+  shared_ptr<contextObj>& ctx;
 public:
-  procObj(int n, interp& i):ctx{i.context}{
-	  name=n;pc=i.pc;prg=i.prg;
-	  //ctx=i->context;
-  };
+  procObj(int n, interp& i);
   virtual string print() const override {return "<"+theStringIntern.get(name)+":pcode procedure>";};
   virtual void call(int parmCnt,interp& interpreter) override;
 };
 
+procObj::procObj(int n, interp& i):ctx{i.context}{
+  name=n;
+  pc=i.pc;   // setta il punto di partenza della procedura
+  prg=i.prg; // tiene un puntatore al codice
+};
+
 void procObj:: call(int parmCnt, interp& interpreter) {
   // salva lo stato dell'interprete
-  int retpc=interpreter.pc;
-  pcodeProgram* retprg=interpreter.prg;
-  shared_ptr<contextObj> retctx=interpreter.context;
-  // raccoglie i parametri
-  // DA FARE
-  // esegue la procedura
-  interpreter.pc=pc+1;
-  interpreter.prg=prg;
-
-  //i->context=ctx.lock(); // metodo 1
-  interpreter.context=ctx;  // metodo 2
-
+  int retPc=interpreter.pc;                           // il program counter attuale
+  pcodeProgram* retPrg=interpreter.prg;               // il programma che sta eseguendo l'interprete
+  shared_ptr<contextObj> retCtx=interpreter.context;  // il contesto attuale dell'interprete
+  // setta l'interprete allo stato della procedura
+  shared_ptr<contextObj> vars=make_shared<contextObj>(*ctx); // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura
+  interpreter.context=vars;                                  // setta le variabili come nuovo contesto dell'interprete
+  interpreter.prg=prg;                                       // setta come programma il pcode della procedura
+  interpreter.pc=pc+1;                                       // mette il program counte alla posizione del codice della procedura
+  // ora può interpretare i pcode della procedura
   interpreter.run();
-  // toglie dallo stack il puntatore alla procedura
   // mette un nil che è sempre il risultato di una procedura
-  interpreter.stack.pop_back();
+  interpreter.stack.pop_back(); // toglie l'oggeto procedura che è nella cima dello stack
   interpreter.stack.push_back(theNil);
   // rimette a posto lo stato dell'interprete a prima della chiamata
-  interpreter.pc=retpc;
-  interpreter.prg=retprg;
-  interpreter.context=retctx;
+  interpreter.pc=retPc;
+  interpreter.prg=retPrg;
+  interpreter.context=retCtx;
 }
 
 // --- riprendo i pcode
@@ -1131,6 +1146,7 @@ void pcodeGoto::exec(interp& interpreter){
 }
 
 void pcodeCall::exec(interp& interpreter){
+	cout << "call stack:" << interpreter.sp << " " << interpreter.stack.size() << endl;
   interpreter.stack[interpreter.sp].get()->call(value,interpreter);
 }
 
@@ -1233,92 +1249,23 @@ void pcodeProc::exec(interp& interpreter){
 #define ANKERL_NANOBENCH_IMPLEMENT
 #include "nanobench.h"
 
-void test(){
+void test(string fn){
   // prova reale ...
   pcodeProgram prg;
-  int r=prg.loadPcd("primo.pcd");  
+  int r=prg.loadPcd(fn);  
   shared_ptr<contextObj> ctx=make_shared<contextObj>();
   interp exe(ctx);
   exe.prg=&prg;
   if (r) exe.run();
 }
 
-int main(){
+int bench(string fn){
   ankerl::nanobench::Bench().run("conta fino a 1000000", [&] {
-	  test();
+	  test(fn);
   });
   return 0;
 }
 
-  /*
-  int r=1;
-  prg.labelPos.resize(10);
-  prg.code(new pcodeIntType());     // 0: INT_TYPE
-  prg.code(new pcodeVar(0));        // 1: VAR i
-  prg.code(new pcodePop());         // 2: POP
-  prg.code(new pcodeIntConst(0));   // 3: INT_CONST 0
-  prg.code(new pcodeStore(0));      // 4: STORE i
-  prg.code(new pcodePop());         // 5: POP 
-  prg.code(new pcodeLabel(3));      // 6: LABEL 3
-  prg.code(new pcodeLoad(0));       // 7: LOAD i
-  prg.code(new pcodeIntConst(1000000)); // 8: INT_CONST 1000000
-  prg.code(new pcodeLt());          // 9: LT 
-  prg.code(new pcodeIfFalse(4));    //10: IF_FALSE 4
-  prg.code(new pcodeLoad(0));       //11: LOAD i
-  prg.code(new pcodeIntConst(1));   //12: INT_CONST 1
-  prg.code(new pcodePlus());        //13: PLUS 
-  prg.code(new pcodeStore(0));      //14: STORE i
-  prg.code(new pcodePop());         //15: POP 
-  prg.code(new pcodeGoto(3));       //16: GOTO 3
-  prg.code(new pcodeLabel(4));      //17: LABEL 4
-  prg.code(new pcodePCodeEnd(9));
-  */
-
-/*
-  //
-  int x=theStringIntern.add("x");
-  int y=theStringIntern.add("y");
-  // --- oggetti di base
-  shared_ptr<obj> n(new intObj(100));
-  shared_ptr<obj> s(new strObj("pippo"));
-  cout << n->print() << " " << s->print() << endl;
-  // --- contenitore
-  shared_ptr<containerObj> cc(new containerObj());
-  cc->add(x,theNil);
-  cc->add(y,theNil);
-  cc->store(x,n);
-  cc->store(y,s);
-  cout << cc->load(y)->print() << " " << cc->load(x)->print() << endl;
-  // --- array
-  shared_ptr<arrayObj> aa(new arrayObj());
-  aa->append(n);
-  aa->append(s);
-  aa->append(theTrue);
-  aa->append(theFalse);
-  cout << aa->sliceidx(0)->print() << " " << aa->sliceidx(1)->print() << " len:" << aa->len() << endl;
-  aa->storesliceidx(0,s);
-  cout << 1 << endl;
-  shared_ptr<obj> ff(new floatObj(12.34));
-  aa->insert(0,ff);
-  aa->remove(1);
-  cout << aa->sliceidx(0)->print() << " " << aa->sliceidx(1)->print() << " len:" << aa->len() << endl;
-  // --- dizionari
-  shared_ptr<dictObj> dd(new dictObj());
-  dd->storekey("n",n);
-  dd->storekey(n->print(),s);
-  dd->storekey("xxx",n);
-  dd->storekey("aa",aa);
-  cout << "dd['n']=" << dd->loadkey("n")->print() << " dd['"<< n->print() <<"']=" << dd->loadkey(n->print())->print() << " dd['xxx']=" << dd->loadkey("xxx")->print() << endl;
-  // --- stampa di array
-  cout << aa->print() << endl;
-  // --- stampa del dizionario
-  cout << dd->print() << endl;
-  // --- prova di cast ...
-  //obj* ir=n;
-  intObj* ii=dynamic_cast<intObj*>(n.get());
-  if (ii!=0) printf("riuscito come dovrebbe essere!\n");
-  shared_ptr<strObj> iii(dynamic_cast<strObj*>(n.get()));
-  if (iii.get()==0) printf("non riuscito come dovrebbe essere!\n");
-  u8string utf8=u8"Hello € world! ↗";
-  printf("%s\n",(char*)utf8.c_str());
-  */
+int main(){
+  bench("primo.pcd");
+}

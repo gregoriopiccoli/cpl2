@@ -2,5 +2,20 @@ proc p(int i, int j)
   ? i,' ',j
 end
 
-p(100,200)
+-- p(100,200)
 
+var int j:=102
+
+proc ee()
+  var int i
+  i:=101
+  ? 'in ee, i:',i,' j:',j
+end
+
+ee()
+j:=103
+ee()
+
+? 'in base, j:',j
+--? 'in base, i:',i
+  
