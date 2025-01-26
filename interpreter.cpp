@@ -250,6 +250,12 @@ public:
   virtual void exec(interp& interpreter) override;
 };
 
+class pcodeParm: public ipcode {
+public:
+  explicit pcodeParm(int v):ipcode(v){code=P_PARM;}
+  virtual void exec(interp& interpreter) override;
+};
+
 class pcodeIfFalse: public ipcode {
 public:
   explicit pcodeIfFalse(int v):ipcode(v){code=P_IF_FALSE;}
@@ -325,7 +331,7 @@ public:
 class pcodeEndParm: public pcode {
 public:
   pcodeEndParm(){code=P_ENDPARM;}
-  virtual void exec(interp& interpreter) override {};
+  virtual void exec(interp& interpreter) override;
 };
 
 class pcodeEndProc: public pcode {
@@ -365,6 +371,7 @@ pcode* makePCode(int c,const char* s){
 	case P_GOTO:return new pcodeGoto(atoi(s));
 	case P_LABEL:return new pcodeLabel(atoi(s));
 	case P_CALL:return new pcodeCall(atoi(s));
+	case P_PARM:return new pcodeParm(theStringIntern.add(s));
 	case P_ENDPARM:return new pcodeEndParm();
 	case P_ENDPROC:return new pcodeEndProc();
 	case P_IF_FALSE:return new pcodeIfFalse(atoi(s));
@@ -730,6 +737,13 @@ public:
 	}
 	return superlevel.store(intern,value);
   }
+  virtual string print() const override {
+	string s="";
+	for(auto [k,t]:types){
+		s+=","+theStringIntern.get(k)+":"+t->print();
+	}
+	return s;
+  }
 };
 
 // la classe che implementa i builtin: ferma la ricerca perché è sempre l'ultimo livello
@@ -837,7 +851,7 @@ public:
 };
 sys theSys;
 
-//#define PRINT_PCODE_EXECUTION
+#define PRINT_PCODE_EXECUTION
 
 class interp {
 public:
@@ -845,6 +859,7 @@ public:
   vector<shared_ptr<obj>> stack;
   int sp,pc,currentSourceLine;
   shared_ptr<contextObj>& context;
+  bool stop;
   //
   explicit interp(shared_ptr<contextObj>& c):context{c}{
 	sp=-1;pc=0;currentSourceLine=0;
@@ -852,10 +867,12 @@ public:
 	stack.reserve(20);
   }
   void run(){
-	while(pc!=-2){
+	stop=false;  
+	while(!stop){
 #ifdef PRINT_PCODE_EXECUTION
 	  int instr=prg->get(pc)->getCode();
-	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
+	  //cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << endl;
+	  cout << "pc:" << pc << " sp:" << sp << " instr:" << instr << " " << pcodetxt[instr] << " " << prg->get(pc)->getIntValue() << endl;
 #endif
 //#define TESTSWITCH
 #ifdef TESTSWITCH
@@ -918,8 +935,7 @@ BUILTINEND(hello)
 
 // --- l'oggetto che implementa la procedura
 
-class procParm {
-  int defaultInitPc;
+class procParm : public contextObj  {
 };
 
 class procObj : public obj {
@@ -927,6 +943,7 @@ protected:
   int name,pc;
   pcodeProgram* prg;
   shared_ptr<contextObj>& ctx;
+  shared_ptr<procParm> prm=make_shared<procParm>();
 public:
   procObj(int n, interp& i);
   virtual string print() const override {return "<"+theStringIntern.get(name)+":pcode procedure>";};
@@ -937,6 +954,15 @@ procObj::procObj(int n, interp& i):ctx{i.context}{
   name=n;
   pc=i.pc;   // setta il punto di partenza della procedura
   prg=i.prg; // tiene un puntatore al codice
+  // ora può creare il blocco dei parametri, così viene creata una volta la struttura che poi servirà a processare i parametri dallo stack  
+  shared_ptr<contextObj> c=i.context;
+  i.context=prm;
+  i.pc++;                   // si sposta dall'istruzione PROC, trova la lista dei parametri che termina con ENDPARM
+  i.run();                  // eseguendo il codice della lista dei parametri riempie il contesto con nomi e tipi
+  // 
+  i.context=c;            // ripristina il contesto di esecuzione dell'interprete
+  i.stop=false;
+  cout << prm->print() << endl;
 };
 
 void procObj:: call(int parmCnt, interp& interpreter) {
@@ -958,6 +984,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   interpreter.pc=retPc;
   interpreter.prg=retPrg;
   interpreter.context=retCtx;
+  interpreter.stop=false;
 }
 
 // --- riprendo i pcode
@@ -1146,12 +1173,22 @@ void pcodeGoto::exec(interp& interpreter){
 }
 
 void pcodeCall::exec(interp& interpreter){
-	cout << "call stack:" << interpreter.sp << " " << interpreter.stack.size() << endl;
+  //cout << "call stack:" << interpreter.sp << " " << interpreter.stack.size() << endl;
   interpreter.stack[interpreter.sp].get()->call(value,interpreter);
 }
 
+void pcodeParm::exec(interp& interpreter){
+  // aggiunge un parametro alla lista dei parametri che si sta formando
+  cout << "param value:" << value << " type:" << interpreter.stack[interpreter.sp]->print() << endl;
+  interpreter.context->add(value,interpreter.stack[interpreter.sp]);
+}
+
+void pcodeEndParm::exec(interp& interpreter){
+  interpreter.stop=true;
+}
+
 void pcodeEndProc::exec(interp& interpreter){
-  interpreter.pc=-3;
+  interpreter.stop=true;
 }
 
 void pcodeIfFalse::exec(interp& interpreter){
@@ -1204,7 +1241,7 @@ void pcodePrint::exec(interp& interpreter){
 
 void pcodePCodeEnd::exec(interp& interpreter){
   //cout << "stop" << endl;
-  interpreter.pc=-3; // convenzione per fermarsi
+  interpreter.stop=true;
 }
 
 void pcodeAnyType::exec(interp& interpreter){
@@ -1234,15 +1271,18 @@ void pcodeNotImpl::exec(interp& interpreter){
 
 void pcodeProc::exec(interp& interpreter){
   int pc=interpreter.pc;
-  //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter->pc <<endl;
+  //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter.pc <<endl;
   // --- aggiunge la procedura al contesto attuale
   shared_ptr<obj> p(new procObj(value,interpreter));
   interpreter.context->add(value,theNil,p);
   // --- salta il codice della procedura
+  pc=interpreter.pc;
+  cout << "cerca fine proc " << pc << endl;
   int c=interpreter.prg->get(pc++)->getCode();
   while (c!=P_ENDPROC)
 	c=interpreter.prg->get(pc++)->getCode();
   interpreter.pc=pc-1;
+  cout << "trovato fine " << pc-1 << endl;
 }
 
 // ------------------------------------------------
@@ -1267,5 +1307,6 @@ int bench(string fn){
 }
 
 int main(){
-  bench("primo.pcd");
+  //bench("primo.pcd");
+  test("terzo.pcd");
 }
