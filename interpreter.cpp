@@ -388,8 +388,8 @@ public:
   virtual shared_ptr<obj> slice(const obj* idx) {throw domain_error("slice not implemented");}
   virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {throw domain_error("store not implemented");}
   virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");}
-  //virtual shared_ptr<obj> call(int parmCount) {throw domain_error("call not implemented");}
-  virtual void call(int parmCount,interp& interpreter){throw domain_error("call (with interpreter) not implemented");}
+  virtual shared_ptr<obj> call(int parmCnt) {throw domain_error("call (without interpreter) not implemented");}
+  virtual void call(int parmCnt,interp& interpreter){throw domain_error("call (with interpreter) not implemented");}
   //
   virtual shared_ptr<obj> plus(const obj*) const {throw domain_error("plus not implemented");}
   virtual shared_ptr<obj> minus(const obj*) const {throw domain_error("minus not implemented");}
@@ -410,7 +410,10 @@ public:
   //virtual shared_ptr<obj> _and() {throw domain_error("and not implemented");}
   virtual shared_ptr<obj> _not() {throw domain_error("not not implemented");}
   virtual shared_ptr<obj> is(const obj*) {throw domain_error("is not implemented");}
-
+  //
+  // --- prova andata male ... riciclare porta via tanto tempo
+  //virtual void tryRecycle(const shared_ptr<obj>& r) const {};
+  //virtual void fix(int i){};
 };
 
 class nilObj: public obj {
@@ -442,33 +445,32 @@ public:
 
 shared_ptr<obj> intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  //return shared_ptr<obj>(new intObj(value+oo->value));
   return make_shared<intObj>(value+oo->value);
 }
 
 shared_ptr<obj> intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
-  return shared_ptr<obj>(new intObj(value-oo->value));
+  return make_shared<intObj>(value-oo->value);
 }
 
 shared_ptr<obj> intObj::mult(const obj* o) const {
   const intObj* oo=check_int(o,"integer * with a non integer");
-  return shared_ptr<obj>(new intObj(value*oo->value));
+  return make_shared<intObj>(value*oo->value);
 }
 
 shared_ptr<obj> intObj::div(const obj* o) const {
   const intObj* oo=check_int(o,"integer / with a non integer");
-  return shared_ptr<obj>(new intObj(value/oo->value));
+  return make_shared<intObj>(value/oo->value);
 }
 
 shared_ptr<obj> intObj::idiv(const obj* o) const {
   const intObj* oo=check_int(o,"integer idiv with a non integer");
-  return shared_ptr<obj>(new intObj(value/oo->value));
+  return make_shared<intObj>(value/oo->value);
 }
 
 shared_ptr<obj> intObj::mod(const obj* o) const {
   const intObj* oo=check_int(o,"integer % with a non integer");
-  return shared_ptr<obj>(new intObj(value % oo->value));
+  return make_shared<intObj>(value % oo->value);
 }
 
 class strObj:public obj {
@@ -686,14 +688,14 @@ string dictObj::print() const {
 
 // --- i contenitori con nomi (classi, variabili locali, moduli ...)
 
-class containerObj : public obj {
+class contextObj : public obj {
 protected:
-  containerObj& superlevel;
-  unordered_map<int,shared_ptr<obj>> objs;
+  contextObj& superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
+  unordered_map<int,shared_ptr<obj>> objs;              
   unordered_map<int,shared_ptr<obj>> types;
 public:
-  containerObj();
-  explicit containerObj(containerObj& sl):superlevel{sl}{}
+  contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
+  explicit contextObj(contextObj& sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
   void add(int intern, shared_ptr<obj> type) {
 	if (objs.contains(intern)) throw out_of_range("name already in context");
 	objs[intern]=theNil;
@@ -704,7 +706,6 @@ public:
 	objs[intern]=value;
 	types[intern]=type;
   }
-  int adx(int intern, shared_ptr<obj> type, shared_ptr<obj> value){add(intern,type,value);return 1;}
   virtual shared_ptr<obj> load(int intern) override {
     if (objs.contains(intern)) return objs[intern];
     return superlevel.load(intern);
@@ -718,17 +719,35 @@ public:
   }
 };
 
-class builtInContainer : public containerObj {
+// la classe che implementa i builtin: ferma la ricerca perché è sempre l'ultimo livello
+class builtInContainer : public contextObj {
 public:	
-  //builtInContainer();
+  virtual shared_ptr<obj> load(int intern) override {
+    if (objs.contains(intern)) 
+      return objs[intern];
+	string err=theStringIntern.get(intern)+" name not found";
+	cout << err << endl;
+	throw out_of_range(err);
+  }
+  virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) override {
+	if (objs.contains(intern)){
+	  objs[intern]=value;
+	  return value;
+	}
+	string err=theStringIntern.get(intern)+" name not found";
+	cout << err << endl;
+	throw out_of_range(err);
+	
+  }
+  int adx(int intern, shared_ptr<obj> type, shared_ptr<obj> value){add(intern,type,value);return 1;} // funzione per caricare le procedure c++ nei builtin
 };
 builtInContainer theBuiltIn;
 
-containerObj::containerObj():superlevel{theBuiltIn}{
-}
+// il costruttore di un contesto che non specifica qual è il suo contesto di base riceve builtin come punto finale della ricerca
+contextObj::contextObj():superlevel{theBuiltIn}{}
 
 // --- contenitore che cerca in locale e nel modulo
-class procContextObj : public containerObj {
+class procContextObj : public contextObj {
 };
 
 // --- il sistema ---
@@ -812,9 +831,9 @@ public:
   pcodeProgram* prg;
   vector<shared_ptr<obj>> stack;
   int sp,pc,currentSourceLine;
-  shared_ptr<containerObj>& context;
+  shared_ptr<contextObj>& context;
   //
-  explicit interp(shared_ptr<containerObj>& c):context{c}{
+  explicit interp(shared_ptr<contextObj>& c):context{c}{
 	sp=-1;pc=0;currentSourceLine=0;
 	prg=nullptr;
 	stack.reserve(20);
@@ -864,24 +883,21 @@ public:
 
 #define BUILTIN(_fn_) class builtin_##_fn_ : public cppFunc { public: \
   builtin_##_fn_(){name=#_fn_;} \
-  virtual void call(int parmCount,interp& interpreter) override { getParms(parmCount,interpreter);		  
+  virtual void call(int parmCnt,interp& interpreter) override { getParms(parmCnt,interpreter);		  
 #define BUILTINEND(_fn_) }}; \
   int add_builtin_##_fn_=theBuiltIn.adx(theStringIntern.add(#_fn_),theNil,make_shared<builtin_##_fn_>());
 
-/*	
+/*	Esempio di traduzione per le funzioni c++ aggiunte ai builtin
 class hello : public cppFunc {
 public:	
   hello(){name="hello";}
-  virtual void call(int paraCount,interp& interpreter) override {
-	getParms(i);  
+  virtual void call(int parmCnt,interp& interpreter) override {
+	getParms(parmCnt);  
 	i.stack.push_back(make_shared<strObj>("hello bult-in!"));
   }
 };
+int add_hello_builtin=theBuiltIn.adx(theStringIntern.add("hello"),theNil,make_shared<builtin_hello>());
 */
-//int add_hello_builtin=theBuiltIn.adx(theStringIntern.add("hello"),theNil,make_shared<builtin_hello>());
-//builtInContainer::builtInContainer(){
-  //add(theStringIntern.add("hello"),theNil,make_shared<builtin_hello>());
-//}
 
 BUILTIN(hello)
   interpreter.stack.push_back(make_shared<strObj>("hello bult-in!"));
@@ -893,22 +909,22 @@ class procObj : public obj {
 protected:
   int name,pc;
   pcodeProgram* prg;
-  //weak_ptr<containerObj> ctx; // metodo 1
-  shared_ptr<containerObj>& ctx; // metodo 2
+  //weak_ptr<contextObj> ctx; // metodo 1
+  shared_ptr<contextObj>& ctx; // metodo 2
 public:
   procObj(int n, interp& i):ctx{i.context}{
 	  name=n;pc=i.pc;prg=i.prg;
 	  //ctx=i->context;
   };
   virtual string print() const override {return "<"+theStringIntern.get(name)+":pcode procedure>";};
-  virtual void call(int parmCount,interp& interpreter) override;
+  virtual void call(int parmCnt,interp& interpreter) override;
 };
 
-void procObj:: call(int parmCount, interp& interpreter) {
+void procObj:: call(int parmCnt, interp& interpreter) {
   // salva lo stato dell'interprete
   int retpc=interpreter.pc;
   pcodeProgram* retprg=interpreter.prg;
-  shared_ptr<containerObj> retctx=interpreter.context;
+  shared_ptr<contextObj> retctx=interpreter.context;
   // raccoglie i parametri
   // DA FARE
   // esegue la procedura
@@ -1221,16 +1237,16 @@ void test(){
   // prova reale ...
   pcodeProgram prg;
   int r=prg.loadPcd("primo.pcd");  
-  shared_ptr<containerObj> ctx=make_shared<containerObj>();
+  shared_ptr<contextObj> ctx=make_shared<contextObj>();
   interp exe(ctx);
   exe.prg=&prg;
   if (r) exe.run();
 }
 
 int main(){
-  //ankerl::nanobench::Bench().run("conta fino a 1000000", [&] {
+  ankerl::nanobench::Bench().run("conta fino a 1000000", [&] {
 	  test();
-  //});
+  });
   return 0;
 }
 
