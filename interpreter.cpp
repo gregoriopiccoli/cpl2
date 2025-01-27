@@ -21,6 +21,8 @@ FATTO:
 #include <deque>
 #include <memory>
 
+//#include "robin_map.h"
+
 using namespace std;
 
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
@@ -31,7 +33,8 @@ class StringIntern {
    int n=0;
 public:
    int add(string s){
-     if (map.contains(s)) return map[s];
+	 auto ff=map.find(s);  
+     if (ff!=map.end()) return ff->second;
 	 map[s]=++n;
 	 imap.push_back(s);
 	 return n;
@@ -68,17 +71,17 @@ protected:
   int value;
 public:
   explicit ipcode(int i):value{i}{}
-  virtual int _getIntValue(){return value;}
-  virtual string print(){return string(pcodetxt[code])+" "+to_string(value);}
+  virtual int _getIntValue() override {return value;}
+  virtual string print() override {return string(pcodetxt[code])+" "+to_string(value);}
 };
 
 class interningpcode: public pcode {
 protected:
   int value;
 public:
-  explicit interningpcode(string& s):value{theStringIntern.add(s)}{}
-  virtual int _getIntValue(){return value;}
-  virtual string print(){return string(pcodetxt[code])+" "+theStringIntern.get(value);}
+  explicit interningpcode(const string& s):value{theStringIntern.add(s)}{}
+  virtual int _getIntValue() override {return value;}
+  virtual string print() override {return string(pcodetxt[code])+" "+theStringIntern.get(value);}
 };
 
 class spcode: public pcode {
@@ -86,7 +89,7 @@ protected:
   string value;
 public:
   explicit spcode(const string& s):value{s}{}
-  virtual string print(){return string(pcodetxt[code])+" "+value;}
+  virtual string print() override {return string(pcodetxt[code])+" "+value;}
 };
 
 class pcodePlus: public pcode {
@@ -217,19 +220,19 @@ public:
 
 class pcodeVar: public interningpcode {
 public:
-  explicit pcodeVar(string v):interningpcode(v){code=P_VAR;}
+  explicit pcodeVar(const string& v):interningpcode(v){code=P_VAR;}
   virtual void exec(interp& interpreter) override;
 };
 
 class pcodeVarStore: public interningpcode {
 public:
-  explicit pcodeVarStore(string v):interningpcode(v){code=P_VAR;}
+  explicit pcodeVarStore(const string& v):interningpcode(v){code=P_VAR;}
   virtual void exec(interp& interpreter) override;
 };
 
 class pcodeLoad: public interningpcode {
 public:
-  explicit pcodeLoad(string v):interningpcode(v){code=P_LOAD;}
+  explicit pcodeLoad(const string& v):interningpcode(v){code=P_LOAD;}
   virtual void exec(interp& interpreter) override;
 };
 
@@ -241,7 +244,7 @@ public:
 
 class pcodeStore: public interningpcode {
 public:
-  explicit pcodeStore(string v):interningpcode(v){code=P_STORE;}
+  explicit pcodeStore(const string& v):interningpcode(v){code=P_STORE;}
   virtual void exec(interp& interpreter) override;
 };
 
@@ -265,7 +268,7 @@ public:
 
 class pcodeParm: public interningpcode {
 public:
-  explicit pcodeParm(string v):interningpcode(v){code=P_PARM;}
+  explicit pcodeParm(const string& v):interningpcode(v){code=P_PARM;}
   virtual void exec(interp& interpreter) override;
 };
 
@@ -337,13 +340,13 @@ public:
 
 class pcodeProc: public interningpcode {
 public:
-  explicit pcodeProc(string v):interningpcode(v){code=P_PROC;}
+  explicit pcodeProc(const string& v):interningpcode(v){code=P_PROC;}
   virtual void exec(interp& interpreter) override;
 };
 
 class pcodeFunc: public interningpcode {
 public:
-  explicit pcodeFunc(string v):interningpcode(v){code=P_FUNC;}
+  explicit pcodeFunc(const string& v):interningpcode(v){code=P_FUNC;}
   virtual void exec(interp& interpreter) override;
 };
 
@@ -766,12 +769,17 @@ public:
 	types[intern]=type;
   }
   virtual shared_ptr<obj> load(int intern) override {
-    if (objs.contains(intern)) return objs[intern];
+    //if (objs.contains(intern)) return objs[intern];
+    auto ff=objs.find(intern);
+    if (ff!=objs.end()) return ff->second;
     return superlevel.load(intern);
   }
   virtual void store(int intern, shared_ptr<obj> value) override {
-	if (objs.contains(intern)){
-	  objs[intern]=value;
+	//if (objs.contains(intern)){
+	//  objs[intern]=value;
+	auto ff=objs.find(intern);
+	if (ff!=objs.end()){
+	  ff->second=value;	
 	} else {
 	  superlevel.store(intern,value);
     }
@@ -789,15 +797,19 @@ public:
 class builtInContainer : public contextObj {
 public:	
   virtual shared_ptr<obj> load(int intern) override {
-    if (objs.contains(intern)) 
-      return objs[intern];
+	auto ff=objs.find(intern);  
+    if (ff!=objs.end()) 
+      return ff->second;
 	string err=theStringIntern.get(intern)+" name not found";
 	cout << err << endl;
 	throw out_of_range(err);
   }
   virtual void store(int intern, shared_ptr<obj> value) override {
-	if (objs.contains(intern)){
-	  objs[intern]=value;
+	//if (objs.contains(intern)){
+	//	objs[intern]=value;  
+	auto ff=objs.find(intern);  
+	if (ff!=objs.end()){
+	  ff->second=value;
 	} else {
 	  string err=theStringIntern.get(intern)+" name not found";
 	  cout << err << endl;
@@ -898,7 +910,8 @@ public:
   bool stop;
   //
   explicit interp(shared_ptr<contextObj>& c):context{c}{
-	sp=-1;pc=0;currentSourceLine=0;
+	sp=-1;pc=0;stop=false;
+	currentSourceLine=0;
 	prg=nullptr;
 	stack.reserve(20);
   }
@@ -973,7 +986,7 @@ BUILTINEND(hello)
 
 class procVars : public contextObj {
 public:	
-  procVars(contextObj& ctx):contextObj{ctx}{}
+  explicit procVars(contextObj& ctx):contextObj{ctx}{}
   virtual shared_ptr<obj> getResult(){return theNil;}
 };
 
@@ -1008,10 +1021,10 @@ public:
 };
 
 class funcVars: public procVars {
-  shared_ptr<obj> result_value;
   shared_ptr<obj>& result_type;
+  shared_ptr<obj> result_value;
 public:	
-  funcVars(contextObj& ctx,shared_ptr<obj>& t):procVars{ctx},result_type{t}{result_value=theNil;}
+  funcVars(contextObj& ctx,shared_ptr<obj>& t):procVars{ctx},result_type{t},result_value{theNil}{}
   virtual void store_result(shared_ptr<obj> value) override {result_value=value;}
   virtual shared_ptr<obj> getResult() override {return result_value;}
 };
@@ -1020,7 +1033,7 @@ class funcObj: public procObj {
 protected:
   shared_ptr<obj> result_type;
 public:  
-  funcObj(int n, interp& i, shared_ptr<obj>& t):procObj(n,i){result_type=t;}
+  funcObj(int n, interp& i, shared_ptr<obj>& t):procObj(n,i),result_type{t}{}
   virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual shared_ptr<procVars> mkVars()override {return make_shared<funcVars>(*ctx,result_type);}
 };
@@ -1370,8 +1383,8 @@ void pcodeNotImpl::exec(interp& interpreter){
   throw domain_error("pcode not implemented");
 }
 
-void makeProcOrFunc(interp& interpreter, int value, shared_ptr<obj>& p, shared_ptr<obj> type){
-  int pc=interpreter.pc;
+void makeProcOrFunc(interp& interpreter, int value, const shared_ptr<obj>& p, shared_ptr<obj> type){
+  int pc;
   //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter.pc <<endl;
   // --- aggiunge la procedura/funzione al contesto attuale
   // -- era: shared_ptr<obj> p(new procObj(value,interpreter));
@@ -1422,7 +1435,7 @@ void pcodeStoreResult::exec(interp& interpreter){
 #define ANKERL_NANOBENCH_IMPLEMENT
 #include "nanobench.h"
 
-void test(string fn){
+void test(const string& fn){
   // prova reale ...
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
