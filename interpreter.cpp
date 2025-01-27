@@ -69,7 +69,7 @@ protected:
 public:
   explicit ipcode(int i):value{i}{}
   virtual int _getIntValue(){return value;}
-  virtual string print(){return string(pcodetxt[code])+" "+value;}
+  virtual string print(){return string(pcodetxt[code])+" "+to_string(value);}
 };
 
 class interningpcode: public pcode {
@@ -359,6 +359,12 @@ public:
   virtual void exec(interp& interpreter) override;
 };
 
+class pcodeEndFunc: public pcode {
+public:
+  pcodeEndFunc(){code=P_ENDFUNC;}
+  virtual void exec(interp& interpreter) override;
+};
+
 class pcodeStoreResult: public pcode {
 public:
   pcodeStoreResult(){code=P_STORE_RESULT;}
@@ -398,7 +404,10 @@ pcode* makePCode(int c,const char* s){
 	case P_CALL:return new pcodeCall(atoi(s));
 	case P_PARM:return new pcodeParm(s);
 	case P_ENDPARM:return new pcodeEndParm();
+	case P_PROC:return new pcodeProc(s);
 	case P_ENDPROC:return new pcodeEndProc();
+	case P_FUNC:return new pcodeFunc(s);
+	case P_ENDFUNC:return new pcodeEndFunc();
 	case P_IF_FALSE:return new pcodeIfFalse(atoi(s));
 	case P_IF_AND:return new pcodeIfAnd(atoi(s));
 	case P_IF_OR:return new pcodeIfOr(atoi(s));
@@ -409,8 +418,6 @@ pcode* makePCode(int c,const char* s){
 	case P_INT_TYPE:return new pcodeIntType();
 	case P_STR_TYPE:return new pcodeStrType();
 	case P_LINE:return new pcodeLine(atoi(s));
-	case P_PROC:return new pcodeProc(s);
-	case P_FUNC:return new pcodeFunc(s);
 	case P_STORE_RESULT:return new pcodeStoreResult();
   }
   return new pcodeNotImpl(c,s);
@@ -900,8 +907,8 @@ public:
 	while(!stop){
 #ifdef PRINT_PCODE_EXECUTION
 	  //int instr=prg->get(pc)->getCode();
-	  //cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << " " << prg->get(pc)->getIntValue() << endl;
-	  cout << "pc:" << pc << " sp:" << sp << " " << prg->get(pc)->getCode() << " " << prg->get(pc)->print() << endl;
+	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " " << prg->get(pc)->print() << endl;
+	  //cout << "pc:" << pc << " sp:" << sp << " " << prg->get(pc)->getCode() << " " << prg->get(pc)->print() << endl;
 #endif
 //#define TESTSWITCH
 #ifdef TESTSWITCH
@@ -964,6 +971,12 @@ BUILTINEND(hello)
 
 // --- l'oggetto che implementa la procedura
 
+class procVars : public contextObj {
+public:	
+  procVars(contextObj& ctx):contextObj{ctx}{}
+  virtual shared_ptr<obj> getResult(){return theNil;}
+};
+
 class procParm : public contextObj  {
 public:
   vector<int> prmOrder;
@@ -978,7 +991,7 @@ public:
 	}
 	return s;
   }
-  void initParms(shared_ptr<contextObj>& vars, interp& i, int parmCnt);
+  void initParms(shared_ptr<procVars>& vars, interp& i, int parmCnt);
 };
 
 class procObj : public obj {
@@ -989,17 +1002,27 @@ protected:
   shared_ptr<procParm> prm=make_shared<procParm>();
 public:
   procObj(int n, interp& i);
-  virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+"):pcode>";}
+  virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
+  virtual shared_ptr<procVars> mkVars(){return make_shared<procVars>(*ctx);}
+};
+
+class funcVars: public procVars {
+  shared_ptr<obj> result_value;
+  shared_ptr<obj>& result_type;
+public:	
+  funcVars(contextObj& ctx,shared_ptr<obj>& t):procVars{ctx},result_type{t}{result_value=theNil;}
+  virtual void store_result(shared_ptr<obj> value) override {result_value=value;}
+  virtual shared_ptr<obj> getResult() override {return result_value;}
 };
 
 class funcObj: public procObj {
 protected:
   shared_ptr<obj> result_type;
-  shared_ptr<obj> result_value;
 public:  
-  funcObj(int n, interp& i, shared_ptr<obj>& t):procObj(n,i){result_type=t;result_value=theNil;}
-  virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+"):pcode>";}
+  funcObj(int n, interp& i, shared_ptr<obj>& t):procObj(n,i){result_type=t;}
+  virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  virtual shared_ptr<procVars> mkVars()override {return make_shared<funcVars>(*ctx,result_type);}
 };
 
 procObj::procObj(int n, interp& i):ctx{i.context}{
@@ -1013,18 +1036,19 @@ procObj::procObj(int n, interp& i):ctx{i.context}{
   // 
   i.context=c;            // ripristina il contesto di esecuzione dell'interprete
   i.stop=false;
-  cout << "proc/func " << theStringIntern.get(name) << "(" << prm->print() << ")" << endl;
+  //cout << "proc/func " << theStringIntern.get(name) << "(" << prm->print() << ")" << endl;
   pc=i.pc; // setta il punto di partenza della procedura: dopo il blocco dei parametri
 };
 
 void procObj:: call(int parmCnt, interp& interpreter) {
-  //cout << this->print() << " parametri:" << prm->prmOrder.size() << " parametri passati:" << parmCnt << endl; 	
+  // cout << this->print() << " parametri:" << prm->prmOrder.size() << " parametri passati:" << parmCnt << endl; 	
   // salva lo stato dell'interprete
   int retPc=interpreter.pc;                           // il program counter attuale
   pcodeProgram* retPrg=interpreter.prg;               // il programma che sta eseguendo l'interprete
   shared_ptr<contextObj> retCtx=interpreter.context;  // il contesto attuale dell'interprete
   // setta l'interprete allo stato della procedura
-  shared_ptr<contextObj> vars=make_shared<contextObj>(*ctx); // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura
+  shared_ptr<procVars> vars=mkVars();                        // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura 
+  // ^--- func/proc shared_ptr<contextObj> vars=make_shared<contextObj>(*ctx); // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura
   prm->initParms(vars,interpreter,parmCnt);                  // crea le variabili dalla lista dei parametri
   // ora ha tolto dallo stack i parametri e sono state create delle variabili locali inizalizzate con i valori passati DA FARE: valori di default
   interpreter.context=vars;                                  // setta le variabili come nuovo contesto dell'interprete
@@ -1034,7 +1058,8 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   interpreter.run();
   // mette un nil che è sempre il risultato di una procedura
   interpreter.stack.pop_back(); // toglie l'oggeto procedura che è nella cima dello stack
-  interpreter.stack.push_back(theNil);
+  interpreter.stack.push_back(vars->getResult());
+  // ^--- func/proc interpreter.stack.push_back(theNil);
   // rimette a posto lo stato dell'interprete a prima della chiamata
   interpreter.pc=retPc;
   interpreter.prg=retPrg;
@@ -1042,7 +1067,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   interpreter.stop=false;
 }
 
-void procParm::initParms(shared_ptr<contextObj>& vars, interp& i, int parmCnt){
+void procParm::initParms(shared_ptr<procVars>& vars, interp& i, int parmCnt){
   int sp=i.sp-parmCnt+1;
   int pnp=(int)prmOrder.size();
   if (pnp<parmCnt) throw domain_error("too many parameters calling ... ");
@@ -1051,6 +1076,10 @@ void procParm::initParms(shared_ptr<contextObj>& vars, interp& i, int parmCnt){
 	//cout << "parm:" << theStringIntern.get(p) << " type:" << types[p]->print() << " value:" << (j<parmCnt?i.stack[sp+j]->print():"nil") << endl;
 	vars->add(p,types[p],(j<parmCnt?i.stack[sp+j]:theNil));
   }
+  // sistema lo stack togliendo i valori dei parametri passati alla funzione 
+  for(int j=0;j<parmCnt;j++)
+    i.stack.pop_back();
+  i.sp-=parmCnt;  
 }
 // --- riprendo i pcode
 
@@ -1253,6 +1282,10 @@ void pcodeEndParm::exec(interp& interpreter){
 }
 
 void pcodeEndProc::exec(interp& interpreter){
+  interpreter.stop=true;
+}
+
+void pcodeEndFunc::exec(interp& interpreter){
   interpreter.stop=true;
 }
 
