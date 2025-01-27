@@ -1,3 +1,11 @@
+func int doppio(int i)
+  result:=i+i
+end
+
+--? doppio(1)
+--? doppio(10)
+--? doppio(100)
+
 func int fib(int n)
   if n<1
     result:=1
@@ -9,11 +17,8 @@ end
 --? fib(5)
 --? fib(10)
 --? fib(15)
-  
-func int doppio(int i)
-  result:=i+i
-end
-
-? doppio(1)
-? doppio(10)
-? doppio(100)
+--? fib(20)
+--? fib(23)
+--? fib(25)
+--? fib(28)  
+? 'fib(30)=',fib(30)

@@ -3577,13 +3577,13 @@ static YYACTIONTYPE yy_reduce(
         break;
       case 158: /* par_list ::= par_list COMMA par_expr */
 #line 405 "cpl2.gram"
-{yylhsminor.yy4=yymsp[-2].minor.yy4+yymsp[0].minor.yy4;}
+{yylhsminor.yy4=yymsp[-2].minor.yy4+yymsp[0].minor.yy4;if (yylhsminor.yy4>1000000) yylhsminor.yy4=1000000+yylhsminor.yy4%1000000;}
 #line 3581 "cpl2.c"
   yymsp[-2].minor.yy4 = yylhsminor.yy4;
         break;
       case 159: /* par_expr ::= par_expr_named lexpr */
 #line 406 "cpl2.gram"
-{yymsp[-1].minor.yy4=1002;}
+{yymsp[-1].minor.yy4=1000002;}
 #line 3587 "cpl2.c"
         break;
       case 160: /* par_expr_named ::= ID ASSIGN */

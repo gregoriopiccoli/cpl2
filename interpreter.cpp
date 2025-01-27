@@ -887,7 +887,7 @@ public:
 };
 sys theSys;
 
-#define PRINT_PCODE_EXECUTION
+//#define PRINT_PCODE_EXECUTION
 
 class interp {
 public:
@@ -1275,6 +1275,9 @@ void pcodeParm::exec(interp& interpreter){
   // aggiunge un parametro alla lista dei parametri che si sta formando
   //cout << "param value:" << value << " type:" << interpreter.stack[interpreter.sp]->print() << endl;
   interpreter.context->add(value,interpreter.stack[interpreter.sp]);
+  interpreter.sp--;
+  interpreter.stack.pop_back();
+  // DA FARE: parametri con valore di default
 }
 
 void pcodeEndParm::exec(interp& interpreter){
@@ -1380,8 +1383,7 @@ void makeProcOrFunc(interp& interpreter, int value, shared_ptr<obj>& p, shared_p
   while (c!=P_ENDPROC && c!=P_ENDFUNC)
 	c=interpreter.prg->get(pc++)->getCode();
   interpreter.pc=pc-1;
-  //cout << "trovato fine " << pc-1 << endl;
-  cout << "finita dichiarazione: " << p->print() << endl;
+  //cout << "finita dichiarazione: " << p->print() << endl;
 }
 
 void pcodeProc::exec(interp& interpreter){
@@ -1407,7 +1409,7 @@ void pcodeProc::exec(interp& interpreter){
 void pcodeFunc::exec(interp& interpreter){
   shared_ptr<obj> t=interpreter.stack[interpreter.sp--];
   interpreter.stack.pop_back();	
-  cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
+  //cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
   shared_ptr<obj> f(new funcObj(value,interpreter,t));
   makeProcOrFunc(interpreter,value,f,t);
 }
