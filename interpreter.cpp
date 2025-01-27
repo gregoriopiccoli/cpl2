@@ -69,7 +69,7 @@ protected:
 public:
   explicit ipcode(int i):value{i}{}
   virtual int _getIntValue(){return value;}
-  virtual string print(){return string(pcodetxt[value])+" "/*+value*/;}
+  virtual string print(){return string(pcodetxt[code])+" "+value;}
 };
 
 class interningpcode: public pcode {
@@ -359,6 +359,12 @@ public:
   virtual void exec(interp& interpreter) override;
 };
 
+class pcodeStoreResult: public pcode {
+public:
+  pcodeStoreResult(){code=P_STORE_RESULT;}
+  virtual void exec(interp& interpreter) override;
+};
+	
 pcode* makePCode(int c,const char* s){
   switch(c){
 	case P_PLUS:return new pcodePlus();
@@ -405,6 +411,7 @@ pcode* makePCode(int c,const char* s){
 	case P_LINE:return new pcodeLine(atoi(s));
 	case P_PROC:return new pcodeProc(s);
 	case P_FUNC:return new pcodeFunc(s);
+	case P_STORE_RESULT:return new pcodeStoreResult();
   }
   return new pcodeNotImpl(c,s);
 }
@@ -420,10 +427,12 @@ public:
   virtual string print() const {throw domain_error("print not implemented");}
   virtual shared_ptr<obj> load(int intern) {throw domain_error("load not implemented");}
   virtual shared_ptr<obj> slice(const obj* idx) {throw domain_error("slice not implemented");}
-  virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) {throw domain_error("store not implemented");}
-  virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");}
-  virtual shared_ptr<obj> call(int parmCnt) {throw domain_error("call (without interpreter) not implemented");}
+  virtual void store(int intern, shared_ptr<obj> value) {throw domain_error("store not implemented");}
+  virtual void storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");}
+  virtual void call(int parmCnt) {throw domain_error("call (without interpreter) not implemented");}
   virtual void call(int parmCnt,interp& interpreter){throw domain_error("call (with interpreter) not implemented");}
+  //
+  virtual void store_result(shared_ptr<obj> value) {throw domain_error("store result not implemented");}
   //
   virtual shared_ptr<obj> plus(const obj*) const {throw domain_error("plus not implemented");}
   virtual shared_ptr<obj> minus(const obj*) const {throw domain_error("minus not implemented");}
@@ -659,10 +668,13 @@ public:
 	      return a[pos->value];
 	    throw domain_error("slicing an array with a non integer index");
 	  };
-  virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) override {
+  virtual void storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) override {
 	    const intObj* pos=dynamic_cast<intObj*>(idx.get());
-	    if (pos!=nullptr) {a[pos->value]=value;return value;}
-	    throw domain_error("storing in an array with a non integer index");
+	    if (pos!=nullptr) {
+		  a[pos->value]=value;
+		} else {
+	      throw domain_error("storing in an array with a non integer index");
+	    }
 	  };
   virtual shared_ptr<obj> append(shared_ptr<obj> v){a.push_back(v);return v;};
   virtual shared_ptr<obj> remove(int pos){shared_ptr<obj> v=a[pos];a.erase(a.begin()+pos);return v;};
@@ -699,13 +711,13 @@ public:
 	 string err=key+": key not found in dict";
 	 throw out_of_range(err);
   };
-  virtual shared_ptr<obj> storeslice(shared_ptr<obj> idx, shared_ptr<obj> value) override {
+  virtual void storeslice(shared_ptr<obj> idx, shared_ptr<obj> value) override {
 	 const strObj* key=dynamic_cast<strObj*>(idx.get());
 	 if (key!=nullptr){
 	   map[key->value]=value;
-	   return value;
+     } else {
+       throw domain_error("storing in a dictionary with a non string key");
      }
-     throw domain_error("storing in a dictionary with a non string key");
   };
   virtual string print() const override;
   //
@@ -750,12 +762,12 @@ public:
     if (objs.contains(intern)) return objs[intern];
     return superlevel.load(intern);
   }
-  virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) override {
+  virtual void store(int intern, shared_ptr<obj> value) override {
 	if (objs.contains(intern)){
 	  objs[intern]=value;
-	  return value;
-	}
-	return superlevel.store(intern,value);
+	} else {
+	  superlevel.store(intern,value);
+    }
   }
   virtual string print() const override {
 	string s="";
@@ -776,15 +788,14 @@ public:
 	cout << err << endl;
 	throw out_of_range(err);
   }
-  virtual shared_ptr<obj> store(int intern, shared_ptr<obj> value) override {
+  virtual void store(int intern, shared_ptr<obj> value) override {
 	if (objs.contains(intern)){
 	  objs[intern]=value;
-	  return value;
+	} else {
+	  string err=theStringIntern.get(intern)+" name not found";
+	  cout << err << endl;
+	  throw out_of_range(err);
 	}
-	string err=theStringIntern.get(intern)+" name not found";
-	cout << err << endl;
-	throw out_of_range(err);
-	
   }
   int adx(int intern, shared_ptr<obj> type, shared_ptr<obj> value){add(intern,type,value);return 1;} // funzione per caricare le procedure c++ nei builtin
 };
@@ -869,7 +880,7 @@ public:
 };
 sys theSys;
 
-//#define PRINT_PCODE_EXECUTION
+#define PRINT_PCODE_EXECUTION
 
 class interp {
 public:
@@ -888,9 +899,9 @@ public:
 	stop=false;  
 	while(!stop){
 #ifdef PRINT_PCODE_EXECUTION
-	  int instr=prg->get(pc)->getCode();
+	  //int instr=prg->get(pc)->getCode();
 	  //cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " instr:" << instr << " " << pcodetxt[instr] << " " << prg->get(pc)->getIntValue() << endl;
-	  cout << "pc:" << pc << " sp:" << sp << " instr:" << instr << " " << pcodetxt[instr] << " " << prg->get(pc)->getIntValue() << endl;
+	  cout << "pc:" << pc << " sp:" << sp << " " << prg->get(pc)->getCode() << " " << prg->get(pc)->print() << endl;
 #endif
 //#define TESTSWITCH
 #ifdef TESTSWITCH
@@ -1337,6 +1348,7 @@ void makeProcOrFunc(interp& interpreter, int value, shared_ptr<obj>& p, shared_p
 	c=interpreter.prg->get(pc++)->getCode();
   interpreter.pc=pc-1;
   //cout << "trovato fine " << pc-1 << endl;
+  cout << "finita dichiarazione: " << p->print() << endl;
 }
 
 void pcodeProc::exec(interp& interpreter){
@@ -1365,7 +1377,10 @@ void pcodeFunc::exec(interp& interpreter){
   cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
   shared_ptr<obj> f(new funcObj(value,interpreter,t));
   makeProcOrFunc(interpreter,value,f,t);
-  cout << "finito: " << f->print() << endl;
+}
+
+void pcodeStoreResult::exec(interp& interpreter){
+  interpreter.context->store_result(interpreter.stack[interpreter.sp]);
 }
 
 // ------------------------------------------------
