@@ -716,8 +716,11 @@ class dictObj : public obj {
 public:
   virtual shared_ptr<obj> slice(const obj* idx) override {
 	 string key=idx->print();
-     if (map.contains(key)) 
-       return map[key];
+     //if (map.contains(key)) 
+     //  return map[key];
+     auto ff=map.find(key);
+     if (ff!=map.end())
+       return ff->second;
 	 string err=key+": key not found in dict";
 	 throw out_of_range(err);
   };
@@ -759,12 +762,16 @@ public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
   explicit contextObj(contextObj& sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
   virtual void add(int intern, shared_ptr<obj> type) {
-	if (objs.contains(intern)) throw out_of_range("name already in context");
+	//if (objs.contains(intern)) throw out_of_range("name already in context");
+	auto ff=objs.find(intern);
+	if (ff!=objs.end()) throw out_of_range("name already in context");
 	objs[intern]=theNil;
 	types[intern]=type;
   }
   virtual void add(int intern, shared_ptr<obj> type, shared_ptr<obj> value) {
-	if (objs.contains(intern)) throw out_of_range("name already in context");
+	//if (objs.contains(intern)) throw out_of_range("name already in context");
+	auto ff=objs.find(intern);
+	if (ff!=objs.end()) throw out_of_range("name already in context");
 	objs[intern]=value;
 	types[intern]=type;
   }
@@ -787,7 +794,7 @@ public:
   virtual string print() const override {
 	string s="";
 	for(auto [k,t]:types){
-		s+=","+theStringIntern.get(k)+":"+t->print();
+		s+=","+t->print()+" "+theStringIntern.get(k);
 	}
 	return s;
   }
