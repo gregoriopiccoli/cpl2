@@ -21,8 +21,6 @@ FATTO:
 #include <deque>
 #include <memory>
 
-//#include "robin_map.h"
-
 using namespace std;
 
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
@@ -194,9 +192,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class obj;
+
 class pcodeIntConst: public ipcode {
+  shared_ptr<obj> theConst;	
 public:
-  explicit pcodeIntConst(int v):ipcode(v){code=P_INT_CONST;}
+  explicit pcodeIntConst(int v);
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -467,6 +468,7 @@ public:
   // --- prova andata male ... riciclare porta via tanto tempo
   //virtual void tryRecycle(const shared_ptr<obj>& r) const {};
   //virtual void fix(int i){};
+  virtual const obj* getBaseType() const;
 };
 
 class nilObj: public obj {
@@ -493,8 +495,13 @@ public:
   virtual shared_ptr<obj> gt(const obj* o) const override;
   virtual shared_ptr<obj> ne(const obj* o) const override;
   //
+  virtual const obj* getBaseType() const override;
+  //
   const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  //const intObj* check_int(const obj* o,const char* msg) const;
 };
+
+pcodeIntConst::pcodeIntConst(int v):ipcode{v}{code=P_INT_CONST;theConst=make_shared<intObj>(v);}
 
 shared_ptr<obj> intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
@@ -539,7 +546,9 @@ public:
   virtual shared_ptr<obj> gt(const obj* o) const override;
   virtual shared_ptr<obj> ne(const obj* o) const override;
   //
-   const strObj* check_str(const obj* o,const char* msg) const {const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  virtual const obj* getBaseType() const override;
+  //
+  const strObj* check_str(const obj* o,const char* msg) const {const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 shared_ptr<obj> strObj::plus(const obj* o) const {
@@ -555,7 +564,9 @@ public:
   virtual shared_ptr<obj> eq(const obj* o) const override;
   virtual shared_ptr<obj> ne(const obj* o) const override;
   //
-  const boolObj* check_bool(const obj* o,const char* msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  virtual const obj* getBaseType() const override;  
+  //
+  const boolObj* check_bool(const obj* o, const char* msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 // i singleton degli oggetti che non richiedono tante copie ...
@@ -639,9 +650,11 @@ shared_ptr<obj> boolObj::ne(const obj* o) const {
 
 class floatObj: public obj {
 public:
-    float value;
-    explicit floatObj(float f){value=f;};
-    virtual string print() const override {return to_string(value);}
+  float value;
+  explicit floatObj(float f){value=f;};
+  virtual string print() const override {return to_string(value);}
+  //
+  virtual const obj* getBaseType() const override;
 };
 
 // --- i tipi di base
@@ -649,6 +662,11 @@ public:
 class intType: public obj {
 public:
     virtual string print() const override {return "int";}
+};
+
+class boolType: public obj {
+public:
+    virtual string print() const override {return "bool";}
 };
 
 class strType: public obj {
@@ -662,9 +680,21 @@ public:
 };
 
 shared_ptr<obj> theIntType=make_shared<intType>();
+shared_ptr<obj> theBoolType=make_shared<boolType>();
 shared_ptr<obj> theStrType=make_shared<strType>();
 shared_ptr<obj> theFloatType=make_shared<floatType>();
 
+const obj* obj::getBaseType() const {return theNil.get();}
+const obj* intObj::getBaseType() const {return theIntType.get();}
+const obj* boolObj::getBaseType() const {return theBoolType.get();}
+const obj* strObj::getBaseType() const {return theStrType.get();}
+const obj* floatObj::getBaseType() const {return theFloatType.get();}
+/*
+const intObj* intObj::check_int(const obj* o,const char* msg) const {
+  if (o->getBaseType()!=theIntType.get()) throw domain_error(msg);
+  return (const intObj*)o;
+}
+*/
 // --- gli array e i dizionari
 
 class arrayObj: public obj {
@@ -1217,7 +1247,8 @@ void pcodeFalse::exec(interp& interpreter) const {
 
 void pcodeIntConst::exec(interp& interpreter) const {
   interpreter.sp++;
-  interpreter.stack.push_back(make_shared<intObj>(value));
+  //interpreter.stack.push_back(make_shared<intObj>(value));
+  interpreter.stack.push_back(theConst);
 }
 
 void pcodeStrConst::exec(interp& interpreter) const {
@@ -1488,18 +1519,16 @@ void test_cc(){
   intp.stack.push_back(i);intp.sp++;   //prg.get(7)->exec(intp);  // load i
   intp.stack.push_back(c_1000000); intp.sp++; //prg.get(8)->exec(intp);  // int const 1000000
   prg[9].exec(intp);                                              // lt
-  
+ 
   //if false 4
   bool t=intp.stack[intp.sp--]==theFalse;
   intp.stack.pop_back();
   if (t) goto label4;  
-  
+
   intp.stack.push_back(i);intp.sp++;  //prg.get(11)->exec(intp);  // load i
   intp.stack.push_back(c_1);intp.sp++;//prg.get(12)->exec(intp);  // int const 1
   prg[13].exec(intp);                                             // plus
-  
-  i=intp.stack[intp.sp];               //prg.get(14)->exec(intp); // store i;
-  
+  i=intp.stack[intp.sp];               //prg.get(14)->exec(intp); // store i;  
   intp.stack.pop_back();intp.sp--;     //prg.get(15)->exec(intp); // pop
   goto label3;
   label4:   
@@ -1531,9 +1560,9 @@ int bench_cc(){
 }
 
 int main(){
-  //bench("primo.pcd");
+  bench("primo.pcd");
   //test("terzo.pcd");
   //test("fib.pcd");
-  bench_cc();
+  //bench_cc();
   //test_cc();
 }
