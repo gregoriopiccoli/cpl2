@@ -493,7 +493,7 @@ public:
   virtual shared_ptr<obj> gt(const obj* o) const override;
   virtual shared_ptr<obj> ne(const obj* o) const override;
   //
-  const intObj* check_int(const obj* o,string msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 shared_ptr<obj> intObj::plus(const obj* o) const {
@@ -539,7 +539,7 @@ public:
   virtual shared_ptr<obj> gt(const obj* o) const override;
   virtual shared_ptr<obj> ne(const obj* o) const override;
   //
-   const strObj* check_str(const obj* o,string msg) const {const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+   const strObj* check_str(const obj* o,const char* msg) const {const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 shared_ptr<obj> strObj::plus(const obj* o) const {
@@ -555,7 +555,7 @@ public:
   virtual shared_ptr<obj> eq(const obj* o) const override;
   virtual shared_ptr<obj> ne(const obj* o) const override;
   //
-  const boolObj* check_bool(const obj* o,string msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const boolObj* check_bool(const obj* o,const char* msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 // i singleton degli oggetti che non richiedono tante copie ...
@@ -1450,7 +1450,6 @@ void test_cc(){
   pcodeProgram prg;	
   shared_ptr<contextObj> ctx=make_shared<contextObj>();
   interp intp(ctx,prg);
-  //intp.prg=&prg;
   theStringIntern.add("i");
   //
   prg.add(new pcodeIntType());     // 0: INT_TYPE
@@ -1479,29 +1478,29 @@ void test_cc(){
   shared_ptr<intObj> c_1000000(new intObj(1000000));
   
   // esecuzione
-  prg[0].exec(intp);                                      // int type
-  shared_ptr<obj> i;                 //prg.get(1)->exec(intp); // var i
-  intp.stack.pop_back();intp.sp--;     //prg.get(2)->exec(intp); // pop
-  prg[3].exec(intp);                                      // int const 0
-  i=intp.stack[intp.sp];               //prg.get(4)->exec(intp); // store i
-  intp.stack.pop_back();intp.sp--;     //prg.get(5)->exec(intp); // pop
-  label3:                                                     // label 3
-  intp.stack.push_back(i);intp.sp++;   //prg.get(7)->exec(intp); // load i
+  prg[0].exec(intp);                                              // int type
+  shared_ptr<obj> i;                   //prg.get(1)->exec(intp);  // var i
+  intp.stack.pop_back();intp.sp--;     //prg.get(2)->exec(intp);  // pop
+  prg[3].exec(intp);                                              // int const 0
+  i=intp.stack[intp.sp];               //prg.get(4)->exec(intp);  // store i
+  intp.stack.pop_back();intp.sp--;     //prg.get(5)->exec(intp);  // pop
+  label3:                                                         // label 3
+  intp.stack.push_back(i);intp.sp++;   //prg.get(7)->exec(intp);  // load i
   intp.stack.push_back(c_1000000); intp.sp++; //prg.get(8)->exec(intp);  // int const 1000000
-  prg[9].exec(intp);                                      // lt
+  prg[9].exec(intp);                                              // lt
   
   //if false 4
   bool t=intp.stack[intp.sp--]==theFalse;
   intp.stack.pop_back();
   if (t) goto label4;  
   
-  intp.stack.push_back(i);intp.sp++;  //prg.get(11)->exec(intp); // load i
-  intp.stack.push_back(c_1);intp.sp++;//prg.get(12)->exec(intp); // int const 1
-  prg[13].exec(intp);                                     // plus
+  intp.stack.push_back(i);intp.sp++;  //prg.get(11)->exec(intp);  // load i
+  intp.stack.push_back(c_1);intp.sp++;//prg.get(12)->exec(intp);  // int const 1
+  prg[13].exec(intp);                                             // plus
   
-  i=intp.stack[intp.sp];              //prg.get(14)->exec(intp); // store i;
+  i=intp.stack[intp.sp];               //prg.get(14)->exec(intp); // store i;
   
-  intp.stack.pop_back();intp.sp--;    //prg.get(15)->exec(intp); // pop
+  intp.stack.pop_back();intp.sp--;     //prg.get(15)->exec(intp); // pop
   goto label3;
   label4:   
   intp.stack.push_back(i);intp.sp++;  //prg[18].exec(intp);              
