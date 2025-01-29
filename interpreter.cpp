@@ -62,7 +62,7 @@ public:
   virtual ~pcode(){}
   virtual void exec(interp& interpreter)=0; //{throw domain_error("not an executable pcode");};
   int getCode(){return code;}
-  virtual int _getIntValue(){return 0;}
+  virtual int getIntValue(){return 0;}
   virtual string print(){return pcodetxt[code];}
 };
 
@@ -71,7 +71,7 @@ protected:
   int value;
 public:
   explicit ipcode(int i):value{i}{}
-  virtual int _getIntValue() override {return value;}
+  virtual int getIntValue() override {return value;}
   virtual string print() override {return string(pcodetxt[code])+" "+to_string(value);}
 };
 
@@ -80,7 +80,7 @@ protected:
   int value;
 public:
   explicit interningpcode(const string& s):value{theStringIntern.add(s)}{}
-  virtual int _getIntValue() override {return value;}
+  virtual int getIntValue() override {return value;}
   virtual string print() override {return string(pcodetxt[code])+" "+theStringIntern.get(value);}
 };
 
@@ -843,7 +843,7 @@ protected:
 public:
   void add(pcode* p){
 	prg.push_back(p);
-	if (p->getCode()==P_LABEL) putLabelPos(p->_getIntValue());
+	if (p->getCode()==P_LABEL) putLabelPos(p->getIntValue());
   }
   pcode* get(int i){return prg[i];}
   int getLabelPos(int l){return labelPos[l];}
@@ -883,7 +883,7 @@ int pcodeProgram::loadPcd(string fn){
 	  pcd.getline(line,2000);
     }
     pcode* last=prg[prg.size()-1];
-    if (last->getCode()!=P_PCODEEND || last->_getIntValue()!=0){
+    if (last->getCode()!=P_PCODEEND || last->getIntValue()!=0){
 	  prg.clear();
 	  prg.push_back(new pcodePCodeEnd(0));
 	  cout << fn << " has errors!" << endl;
