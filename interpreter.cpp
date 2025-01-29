@@ -60,8 +60,8 @@ protected:
 public:
   pcode():code{0}{}
   virtual ~pcode(){}
-  virtual void exec(interp& interpreter)=0; //{throw domain_error("not an executable pcode");};
-  int getCode(){return code;}
+  virtual void exec(interp& interpreter) const {throw domain_error("not an executable pcode");};
+  int getCode() const {return code;}
   virtual int getIntValue(){return 0;}
   virtual string print(){return pcodetxt[code];}
 };
@@ -95,283 +95,283 @@ public:
 class pcodePlus: public pcode {
 public:
   pcodePlus(){code=P_PLUS;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeMinus: public pcode {
 public:
   pcodeMinus(){code=P_MINUS;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeUMinus: public pcode {
 public:
   pcodeUMinus(){code=P_UMINUS;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeMult: public pcode {
 public:
   pcodeMult(){code=P_MULT;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeDiv: public pcode {
 public:
   pcodeDiv(){code=P_DIV;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeMod: public pcode {
 public:
   pcodeMod(){code=P_MOD;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeIDiv: public pcode {
 public:
   pcodeIDiv(){code=P_IDIV;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeEq: public pcode {
 public:
   pcodeEq(){code=P_EQ;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeLt: public pcode {
 public:
   pcodeLt(){code=P_LT;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeLe: public pcode {
 public:
   pcodeLe(){code=P_LE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeGe: public pcode {
 public:
   pcodeGe(){code=P_GE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeGt: public pcode {
 public:
   pcodeGt(){code=P_GT;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeNe: public pcode {
 public:
   pcodeNe(){code=P_NE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodePop: public pcode {
 public:
   pcodePop(){code=P_POP;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeNil: public pcode {
 public:
   pcodeNil(){code=P_NIL;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeTrue: public pcode {
 public:
   pcodeTrue(){code=P_TRUE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeFalse: public pcode {
 public:
   pcodeFalse(){code=P_FALSE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeIntConst: public ipcode {
 public:
   explicit pcodeIntConst(int v):ipcode(v){code=P_INT_CONST;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeStrConst: public spcode {
 public:
   explicit pcodeStrConst(const string& v):spcode(v){code=P_STR_CONST;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeArray: public ipcode {
 public:
   explicit pcodeArray(int v):ipcode(v){code=P_ARRAY;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 	
 class pcodeDict: public ipcode {
 public:
   explicit pcodeDict(int v):ipcode(v){code=P_DICT;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeVar: public interningpcode {
 public:
   explicit pcodeVar(const string& v):interningpcode(v){code=P_VAR;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeVarStore: public interningpcode {
 public:
   explicit pcodeVarStore(const string& v):interningpcode(v){code=P_VAR;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeLoad: public interningpcode {
 public:
   explicit pcodeLoad(const string& v):interningpcode(v){code=P_LOAD;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeSlice: public pcode {
 public:
   explicit pcodeSlice(){code=P_SLICE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeStore: public interningpcode {
 public:
   explicit pcodeStore(const string& v):interningpcode(v){code=P_STORE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeGoto: public ipcode {
 public:
   explicit pcodeGoto(int v):ipcode(v){code=P_GOTO;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeLabel: public ipcode {
 public:
   explicit pcodeLabel(int v):ipcode(v){code=P_LABEL;}
-  virtual void exec(interp& interpreter) override {}; // il pcode Label in esecuzione è una NOP
+  virtual void exec(interp& interpreter) const override {}; // il pcode Label in esecuzione è una NOP
 };
 
 class pcodeCall: public ipcode {
 public:
   explicit pcodeCall(int v):ipcode(v){code=P_CALL;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeParm: public interningpcode {
 public:
   explicit pcodeParm(const string& v):interningpcode(v){code=P_PARM;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeIfFalse: public ipcode {
 public:
   explicit pcodeIfFalse(int v):ipcode(v){code=P_IF_FALSE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeIfAnd: public ipcode {
 public:
   explicit pcodeIfAnd(int v):ipcode(v){code=P_IF_AND;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeIfOr: public ipcode {
 public:
   explicit pcodeIfOr(int v):ipcode(v){code=P_IF_OR;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeNot: public pcode {
 public:
   pcodeNot(){code=P_NOT;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodePrint: public ipcode {
 public:
   explicit pcodePrint(int v):ipcode(v){code=P_PRINT;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodePCodeEnd: public ipcode {
 public:
   explicit pcodePCodeEnd(int v):ipcode(v){code=P_PCODEEND;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeNotImpl: public spcode {
 public:
   explicit pcodeNotImpl(int c,const string& v):spcode(v){code=c;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeAnyType: public pcode {
 public:
   explicit pcodeAnyType(){code=P_ANY_TYPE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeIntType: public pcode {
 public:
   explicit pcodeIntType(){code=P_INT_TYPE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeStrType: public pcode {
 public:
   explicit pcodeStrType(){code=P_STR_TYPE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeLine: public ipcode {
 public:
   explicit pcodeLine(int v):ipcode(v){code=P_LINE;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeProc: public interningpcode {
 public:
   explicit pcodeProc(const string& v):interningpcode(v){code=P_PROC;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeFunc: public interningpcode {
 public:
   explicit pcodeFunc(const string& v):interningpcode(v){code=P_FUNC;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeEndParm: public pcode {
 public:
   pcodeEndParm(){code=P_ENDPARM;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeEndProc: public pcode {
 public:
   pcodeEndProc(){code=P_ENDPROC;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeEndFunc: public pcode {
 public:
   pcodeEndFunc(){code=P_ENDFUNC;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeStoreResult: public pcode {
 public:
   pcodeStoreResult(){code=P_STORE_RESULT;}
-  virtual void exec(interp& interpreter) override;
+  virtual void exec(interp& interpreter) const override;
 };
 	
 pcode* makePCode(int c,const char* s){
@@ -428,12 +428,12 @@ pcode* makePCode(int c,const char* s){
 
 // --- gli oggetti dell'esecuzione dell'interprete
 
-static int theObjCounter=0;
+//static int theObjCounter=0;
 
 class obj {
 public:
-  obj() {theObjCounter++;}
-  virtual ~obj(){theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
+  //obj() {theObjCounter++;}
+  virtual ~obj(){}; //{theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
   virtual string print() const {throw domain_error("print not implemented");}
   virtual shared_ptr<obj> load(int intern) {throw domain_error("load not implemented");}
   virtual shared_ptr<obj> slice(const obj* idx) {throw domain_error("slice not implemented");}
@@ -836,6 +836,8 @@ class procContextObj : public contextObj {
 
 // --- il sistema ---
 
+class interp;
+
 class pcodeProgram {
 protected:	
   vector<pcode*> prg;    // i pcode che costituiscono il programma
@@ -845,7 +847,7 @@ public:
 	prg.push_back(p);
 	if (p->getCode()==P_LABEL) putLabelPos(p->getIntValue());
   }
-  pcode* get(int i){return prg[i];}
+  const pcode& get(int i){return *prg[i];}
   int getLabelPos(int l){return labelPos[l];}
   virtual ~pcodeProgram(){for(auto p:prg) delete p;}
   int loadPcd(string fn);
@@ -853,6 +855,7 @@ public:
 	if ((int)labelPos.size()<=id) labelPos.resize(id+1);
  	labelPos[id]=prg.size()-1;
   }
+  const pcode& operator[](int i) const {return *prg[i];}
 };
 
 int pcodeProgram::loadPcd(string fn){
@@ -910,19 +913,19 @@ sys theSys;
 
 class interp {
 public:
-  pcodeProgram* prg;
   vector<shared_ptr<obj>> stack;
   int sp,pc,currentSourceLine;
   shared_ptr<contextObj>& context;
+  pcodeProgram& prg;
   bool stop;
   //
-  explicit interp(shared_ptr<contextObj>& c):context{c}{
+  explicit interp(shared_ptr<contextObj>& c, pcodeProgram& p):context{c},prg{p}{
 	sp=-1;pc=0;stop=false;
 	currentSourceLine=0;
-	prg=nullptr;
+	//prg=nullptr;
 	stack.reserve(20);
   }
-  void run(){
+  void run() {
 	stop=false;  
 	while(!stop){
 #ifdef PRINT_PCODE_EXECUTION
@@ -947,7 +950,7 @@ public:
 		  ppp->exec(*this);
 	  }
 #else      
-	  prg->get(pc)->exec(*this);
+	  prg[pc].exec(*this);
 #endif	  
 	  pc++;
 	}
@@ -1017,8 +1020,8 @@ public:
 class procObj : public obj {
 protected:
   int name,pc;
-  pcodeProgram* prg;
   shared_ptr<contextObj>& ctx;
+  pcodeProgram& prg;
   shared_ptr<procParm> prm=make_shared<procParm>();
 public:
   procObj(int n, interp& i);
@@ -1028,6 +1031,7 @@ public:
 };
 
 class funcVars: public procVars {
+protected:	
   shared_ptr<obj>& result_type;
   shared_ptr<obj> result_value;
 public:	
@@ -1038,16 +1042,16 @@ public:
 
 class funcObj: public procObj {
 protected:
-  shared_ptr<obj> result_type;
+  shared_ptr<obj>& result_type;
 public:  
   funcObj(int n, interp& i, shared_ptr<obj>& t):procObj(n,i),result_type{t}{}
   virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual shared_ptr<procVars> mkVars()override {return make_shared<funcVars>(*ctx,result_type);}
 };
 
-procObj::procObj(int n, interp& i):ctx{i.context}{
+procObj::procObj(int n, interp& i):ctx{i.context},prg{i.prg}{
   name=n;
-  prg=i.prg; // tiene un puntatore al codice
+  //prg=&i.prg; // tiene un puntatore al codice
   // ora può creare il blocco dei parametri, così viene creata una volta la struttura che poi servirà a processare i parametri dallo stack  
   shared_ptr<contextObj> c=i.context;
   i.context=prm;
@@ -1063,9 +1067,9 @@ procObj::procObj(int n, interp& i):ctx{i.context}{
 void procObj:: call(int parmCnt, interp& interpreter) {
   // cout << this->print() << " parametri:" << prm->prmOrder.size() << " parametri passati:" << parmCnt << endl; 	
   // salva lo stato dell'interprete
-  int retPc=interpreter.pc;                           // il program counter attuale
-  pcodeProgram* retPrg=interpreter.prg;               // il programma che sta eseguendo l'interprete
-  shared_ptr<contextObj> retCtx=interpreter.context;  // il contesto attuale dell'interprete
+  int retPc=interpreter.pc;                                 // il program counter attuale
+  const pcodeProgram& retPrg=interpreter.prg;               // il programma che sta eseguendo l'interprete
+  const shared_ptr<contextObj> retCtx=interpreter.context;  // il contesto attuale dell'interprete
   // setta l'interprete allo stato della procedura
   shared_ptr<procVars> vars=mkVars();                        // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura 
   // ^--- func/proc shared_ptr<contextObj> vars=make_shared<contextObj>(*ctx); // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura
@@ -1103,125 +1107,125 @@ void procParm::initParms(shared_ptr<procVars>& vars, interp& i, int parmCnt){
 }
 // --- riprendo i pcode
 
-void pcodePlus::exec(interp& interpreter){
+void pcodePlus::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->plus(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeMinus::exec(interp& interpreter){
+void pcodeMinus::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->minus(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeUMinus::exec(interp& interpreter){
+void pcodeUMinus::exec(interp& interpreter) const {
   interpreter.stack[interpreter.sp]=interpreter.stack[interpreter.sp]->uminus();
 }
 
-void pcodeMult::exec(interp& interpreter){
+void pcodeMult::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->mult(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeDiv::exec(interp& interpreter){
+void pcodeDiv::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->div(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeMod::exec(interp& interpreter){
+void pcodeMod::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->mod(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeIDiv::exec(interp& interpreter){
+void pcodeIDiv::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->idiv(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeEq::exec(interp& interpreter){
+void pcodeEq::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->eq(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeLt::exec(interp& interpreter){
+void pcodeLt::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->lt(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeLe::exec(interp& interpreter){
+void pcodeLe::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->le(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeGe::exec(interp& interpreter){
+void pcodeGe::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->ge(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeGt::exec(interp& interpreter){
+void pcodeGt::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->gt(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodeNe::exec(interp& interpreter){
+void pcodeNe::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--].get();
   const obj* obj1=interpreter.stack[interpreter.sp].get();
   interpreter.stack[interpreter.sp]=obj1->ne(obj2);
   interpreter.stack.pop_back();
 }
 
-void pcodePop::exec(interp& interpreter){
+void pcodePop::exec(interp& interpreter) const {
   interpreter.sp--;
   interpreter.stack.pop_back();
 }
 
-void pcodeNil::exec(interp& interpreter){
+void pcodeNil::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(theNil);
 }
 
-void pcodeTrue::exec(interp& interpreter){
+void pcodeTrue::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(theTrue);
 };
 
-void pcodeFalse::exec(interp& interpreter){
+void pcodeFalse::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(theFalse);
 }
 
-void pcodeIntConst::exec(interp& interpreter){
+void pcodeIntConst::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(make_shared<intObj>(value));
 }
 
-void pcodeStrConst::exec(interp& interpreter){
+void pcodeStrConst::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(make_shared<strObj>(value));
 }
 
-void pcodeArray::exec(interp& interpreter){
+void pcodeArray::exec(interp& interpreter) const {
   shared_ptr<arrayObj> a=make_shared<arrayObj>(value);
   int sp=interpreter.sp-value+1;
   for(int i=0;i<value;i++){
@@ -1237,7 +1241,7 @@ void pcodeArray::exec(interp& interpreter){
   interpreter.sp=sp;
 }
 
-void pcodeDict::exec(interp& interpreter){
+void pcodeDict::exec(interp& interpreter) const {
   shared_ptr<dictObj> d=make_shared<dictObj>();
   int sp=interpreter.sp-value*2+1;
   for(int i=0;i<value;i++){
@@ -1253,22 +1257,22 @@ void pcodeDict::exec(interp& interpreter){
   interpreter.sp=sp;
 }
 
-void pcodeVar::exec(interp& interpreter){
+void pcodeVar::exec(interp& interpreter) const {
   interpreter.context->add(value,interpreter.stack[interpreter.sp]);
 }
 
-void pcodeVarStore::exec(interp& interpreter){
+void pcodeVarStore::exec(interp& interpreter) const {
   interpreter.context->add(value,interpreter.stack[interpreter.sp-1],interpreter.stack[interpreter.sp]);
   interpreter.sp--;
   interpreter.stack.pop_back();
 }
 
-void pcodeLoad::exec(interp& interpreter){
+void pcodeLoad::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(interpreter.context->load(value));
 }
 
-void pcodeSlice::exec(interp& interpreter){
+void pcodeSlice::exec(interp& interpreter) const {
   const obj* idx=interpreter.stack[interpreter.sp--].get();
   obj* cnt=interpreter.stack[interpreter.sp].get();
   //cout << "cnt:" << cnt->print() << " idx:" << idx->print() << endl;
@@ -1276,22 +1280,22 @@ void pcodeSlice::exec(interp& interpreter){
   interpreter.stack.pop_back();
 }
 
-void pcodeStore::exec(interp& interpreter){
+void pcodeStore::exec(interp& interpreter) const {
   interpreter.context->store(value,interpreter.stack[interpreter.sp]);
 }
 
-void pcodeGoto::exec(interp& interpreter){
+void pcodeGoto::exec(interp& interpreter) const {
   //cout << "GoTo " << value << " at " << interpreter->prg->getLabelPos(value) << endl;
-  int p=interpreter.prg->getLabelPos(value);
+  int p=interpreter.prg.getLabelPos(value);
   interpreter.pc=p;
 }
 
-void pcodeCall::exec(interp& interpreter){
+void pcodeCall::exec(interp& interpreter) const {
   //cout << "call stack:" << interpreter.sp << " " << interpreter.stack.size() << endl;
   interpreter.stack[interpreter.sp-value].get()->call(value,interpreter);
 }
 
-void pcodeParm::exec(interp& interpreter){
+void pcodeParm::exec(interp& interpreter) const {
   // aggiunge un parametro alla lista dei parametri che si sta formando
   //cout << "param value:" << value << " type:" << interpreter.stack[interpreter.sp]->print() << endl;
   interpreter.context->add(value,interpreter.stack[interpreter.sp]);
@@ -1300,55 +1304,55 @@ void pcodeParm::exec(interp& interpreter){
   // DA FARE: parametri con valore di default
 }
 
-void pcodeEndParm::exec(interp& interpreter){
+void pcodeEndParm::exec(interp& interpreter) const {
   interpreter.stop=true;
 }
 
-void pcodeEndProc::exec(interp& interpreter){
+void pcodeEndProc::exec(interp& interpreter) const {
   interpreter.stop=true;
 }
 
-void pcodeEndFunc::exec(interp& interpreter){
+void pcodeEndFunc::exec(interp& interpreter) const {
   interpreter.stop=true;
 }
 
-void pcodeIfFalse::exec(interp& interpreter){
+void pcodeIfFalse::exec(interp& interpreter) const {
   const obj* v=interpreter.stack[interpreter.sp].get();
   if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("if with a non boolean expression");
   interpreter.sp--;
   interpreter.stack.pop_back();
-  if (v==theFalse.get()) interpreter.pc=interpreter.prg->getLabelPos(value);
+  if (v==theFalse.get()) interpreter.pc=interpreter.prg.getLabelPos(value);
 }
 
-void pcodeIfAnd::exec(interp& interpreter){
+void pcodeIfAnd::exec(interp& interpreter) const {
   const obj* v=interpreter.stack[interpreter.sp].get();
   if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("and with a non boolean expression");
   if (v==theFalse.get())
-    interpreter.pc=interpreter.prg->getLabelPos(value);
+    interpreter.pc=interpreter.prg.getLabelPos(value);
   else {
     interpreter.sp--;
 	interpreter.stack.pop_back();
   }
 }
 
-void pcodeIfOr::exec(interp& interpreter){
+void pcodeIfOr::exec(interp& interpreter) const {
   const obj* v=interpreter.stack[interpreter.sp].get();
   if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("or with a non boolean expression");
   if (v==theTrue.get())
-    interpreter.pc=interpreter.prg->getLabelPos(value);
+    interpreter.pc=interpreter.prg.getLabelPos(value);
   else {
   	interpreter.sp--;
 	interpreter.stack.pop_back();
   }
 }
 
-void pcodeNot::exec(interp& interpreter){
+void pcodeNot::exec(interp& interpreter) const {
   const obj* v=interpreter.stack[interpreter.sp].get();
   if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("not with a non boolean expression");
   interpreter.stack[interpreter.sp]=(v==theTrue.get()?theFalse:theTrue);
 }
 
-void pcodePrint::exec(interp& interpreter){
+void pcodePrint::exec(interp& interpreter) const {
   int i;
   for(i=1;i<=value;i++){
     shared_ptr<obj> o=interpreter.stack[interpreter.sp-value+i];
@@ -1360,32 +1364,32 @@ void pcodePrint::exec(interp& interpreter){
     interpreter.stack.pop_back();
 }
 
-void pcodePCodeEnd::exec(interp& interpreter){
+void pcodePCodeEnd::exec(interp& interpreter) const {
   //cout << "stop" << endl;
   interpreter.stop=true;
 }
 
-void pcodeAnyType::exec(interp& interpreter){
+void pcodeAnyType::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(theNil);
 }
 
-void pcodeIntType::exec(interp& interpreter){
+void pcodeIntType::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(theIntType);
 }
 
-void pcodeStrType::exec(interp& interpreter){
+void pcodeStrType::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(theStrType);
 }
 
-void pcodeLine::exec(interp& interpreter){
+void pcodeLine::exec(interp& interpreter) const {
   //cout << "line:" << value << endl;
   interpreter.currentSourceLine=value;
 }
 
-void pcodeNotImpl::exec(interp& interpreter){
+void pcodeNotImpl::exec(interp& interpreter) const {
   cout << "pcode:" << code << " " << pcodetxt[code] << " value:" << value << " not impl!" << endl;
   throw domain_error("pcode not implemented");
 }
@@ -1399,14 +1403,14 @@ void makeProcOrFunc(interp& interpreter, int value, const shared_ptr<obj>& p, sh
   // --- salta il codice della procedura
   pc=interpreter.pc;
   //cout << "cerca fine proc " << pc << endl;
-  int c=interpreter.prg->get(pc++)->getCode();
+  int c=interpreter.prg.get(pc++).getCode();
   while (c!=P_ENDPROC && c!=P_ENDFUNC)
-	c=interpreter.prg->get(pc++)->getCode();
+	c=interpreter.prg.get(pc++).getCode();
   interpreter.pc=pc-1;
   //cout << "finita dichiarazione: " << p->print() << endl;
 }
 
-void pcodeProc::exec(interp& interpreter){
+void pcodeProc::exec(interp& interpreter) const {
   shared_ptr<obj> p(new procObj(value,interpreter));
   makeProcOrFunc(interpreter,value,p,theNil);
   /*
@@ -1426,7 +1430,7 @@ void pcodeProc::exec(interp& interpreter){
   */
 }
 
-void pcodeFunc::exec(interp& interpreter){
+void pcodeFunc::exec(interp& interpreter) const {
   shared_ptr<obj> t=interpreter.stack[interpreter.sp--];
   interpreter.stack.pop_back();	
   //cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
@@ -1434,7 +1438,7 @@ void pcodeFunc::exec(interp& interpreter){
   makeProcOrFunc(interpreter,value,f,t);
 }
 
-void pcodeStoreResult::exec(interp& interpreter){
+void pcodeStoreResult::exec(interp& interpreter) const {
   interpreter.context->store_result(interpreter.stack[interpreter.sp]);
 }
 
@@ -1442,14 +1446,75 @@ void pcodeStoreResult::exec(interp& interpreter){
 #define ANKERL_NANOBENCH_IMPLEMENT
 #include "nanobench.h"
 
+void test_cc(){
+  pcodeProgram prg;	
+  shared_ptr<contextObj> ctx=make_shared<contextObj>();
+  interp intp(ctx,prg);
+  //intp.prg=&prg;
+  theStringIntern.add("i");
+  //
+  prg.add(new pcodeIntType());     // 0: INT_TYPE
+  prg.add(new pcodeVar("i"));      // 1: VAR i
+  prg.add(new pcodePop());         // 2: POP
+  prg.add(new pcodeIntConst(0));   // 3: INT_CONST 0
+  prg.add(new pcodeStore("i"));    // 4: STORE i
+  prg.add(new pcodePop());         // 5: POP 
+  prg.add(new pcodeLabel(3));      // 6: LABEL 3
+  prg.add(new pcodeLoad("i"));     // 7: LOAD i
+  prg.add(new pcodeIntConst(1000000)); // 8: INT_CONST 1000000
+  prg.add(new pcodeLt());          // 9: LT 
+  prg.add(new pcodeIfFalse(4));    //10: IF_FALSE 4
+  prg.add(new pcodeLoad("i"));     //11: LOAD i
+  prg.add(new pcodeIntConst(1));   //12: INT_CONST 1
+  prg.add(new pcodePlus());        //13: PLUS 
+  prg.add(new pcodeStore("i"));    //14: STORE i
+  prg.add(new pcodePop());         //15: POP 
+  prg.add(new pcodeGoto(3));       //16: GOTO 3
+  prg.add(new pcodeLabel(4));      //17: LABEL 4
+  prg.add(new pcodeLoad("i"));
+  prg.add(new pcodePrint(1));
+  prg.add(new pcodePCodeEnd(9));
+  
+  shared_ptr<intObj> c_1(new intObj(1));
+  shared_ptr<intObj> c_1000000(new intObj(1000000));
+  
+  // esecuzione
+  prg[0].exec(intp);                                      // int type
+  shared_ptr<obj> i;                 //prg.get(1)->exec(intp); // var i
+  intp.stack.pop_back();intp.sp--;     //prg.get(2)->exec(intp); // pop
+  prg[3].exec(intp);                                      // int const 0
+  i=intp.stack[intp.sp];               //prg.get(4)->exec(intp); // store i
+  intp.stack.pop_back();intp.sp--;     //prg.get(5)->exec(intp); // pop
+  label3:                                                     // label 3
+  intp.stack.push_back(i);intp.sp++;   //prg.get(7)->exec(intp); // load i
+  intp.stack.push_back(c_1000000); intp.sp++; //prg.get(8)->exec(intp);  // int const 1000000
+  prg[9].exec(intp);                                      // lt
+  
+  //if false 4
+  bool t=intp.stack[intp.sp--]==theFalse;
+  intp.stack.pop_back();
+  if (t) goto label4;  
+  
+  intp.stack.push_back(i);intp.sp++;  //prg.get(11)->exec(intp); // load i
+  intp.stack.push_back(c_1);intp.sp++;//prg.get(12)->exec(intp); // int const 1
+  prg[13].exec(intp);                                     // plus
+  
+  i=intp.stack[intp.sp];              //prg.get(14)->exec(intp); // store i;
+  
+  intp.stack.pop_back();intp.sp--;    //prg.get(15)->exec(intp); // pop
+  goto label3;
+  label4:   
+  intp.stack.push_back(i);intp.sp++;  //prg[18].exec(intp);              
+  prg[19].exec(intp);
+}
+  
 void test(const string& fn){
   // prova reale ...
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
   shared_ptr<contextObj> ctx=make_shared<contextObj>();
-  interp exe(ctx);
-  exe.prg=&prg;
-  if (r) exe.run();
+  interp intp(ctx,prg);
+  if (r) intp.run();
 }
 
 int bench(string fn){
@@ -1459,8 +1524,17 @@ int bench(string fn){
   return 0;
 }
 
+int bench_cc(){
+  ankerl::nanobench::Bench().run("conta fino a 1000000 in cc", [&] {
+	test_cc();
+  });
+  return 0;
+}
+
 int main(){
   //bench("primo.pcd");
   //test("terzo.pcd");
-  test("fib.pcd");
+  //test("fib.pcd");
+  bench_cc();
+  //test_cc();
 }
