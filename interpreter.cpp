@@ -19,9 +19,7 @@ FATTO:
 #include <unordered_map>
 #include <vector>
 #include <deque>
-#include <memory>
-
-//#include "robin_map.h"
+//#include <memory>
 
 using namespace std;
 
@@ -435,34 +433,34 @@ public:
   //obj() {theObjCounter++;}
   virtual ~obj(){}; //{theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
   virtual string print() const {throw domain_error("print not implemented");}
-  virtual shared_ptr<obj> load(int intern) {throw domain_error("load not implemented");}
-  virtual shared_ptr<obj> slice(const obj* idx) {throw domain_error("slice not implemented");}
-  virtual void store(int intern, shared_ptr<obj> value) {throw domain_error("store not implemented");}
-  virtual void storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) {throw domain_error("storeslice not implemented");}
+  virtual obj* load(int intern) {throw domain_error("load not implemented");}
+  virtual obj* slice(const obj* idx) {throw domain_error("slice not implemented");}
+  virtual void store(int intern, obj* value) {throw domain_error("store not implemented");}
+  virtual void storeslice(obj* idx,obj* value) {throw domain_error("storeslice not implemented");}
   virtual void call(int parmCnt) {throw domain_error("call (without interpreter) not implemented");}
   virtual void call(int parmCnt,interp& interpreter){throw domain_error("call (with interpreter) not implemented");}
   //
-  virtual void store_result(shared_ptr<obj> value) {throw domain_error("store result not implemented");}
+  virtual void store_result(obj* value) {throw domain_error("store result not implemented");}
   //
-  virtual shared_ptr<obj> plus(const obj*) const {throw domain_error("plus not implemented");}
-  virtual shared_ptr<obj> minus(const obj*) const {throw domain_error("minus not implemented");}
-  virtual shared_ptr<obj> uminus() const {throw domain_error("uminus not implemented");}
-  virtual shared_ptr<obj> mult(const obj*) const {throw domain_error("mult not implemented");}
-  virtual shared_ptr<obj> div(const obj*) const {throw domain_error("div not implemented");}
-  virtual shared_ptr<obj> mod(const obj*) const {throw domain_error("mod not implemented");}
-  virtual shared_ptr<obj> idiv(const obj*) const {throw domain_error("idiv not implemented");}
+  virtual obj* plus(const obj*) const {throw domain_error("plus not implemented");}
+  virtual obj* minus(const obj*) const {throw domain_error("minus not implemented");}
+  virtual obj* uminus() const {throw domain_error("uminus not implemented");}
+  virtual obj* mult(const obj*) const {throw domain_error("mult not implemented");}
+  virtual obj* div(const obj*) const {throw domain_error("div not implemented");}
+  virtual obj* mod(const obj*) const {throw domain_error("mod not implemented");}
+  virtual obj* idiv(const obj*) const {throw domain_error("idiv not implemented");}
   //
-  virtual shared_ptr<obj> lt(const obj*) const {throw domain_error("lt not implemented");}
-  virtual shared_ptr<obj> le(const obj*) const {throw domain_error("le not implemented");}
-  virtual shared_ptr<obj> eq(const obj*) const {throw domain_error("eq not implemented");}
-  virtual shared_ptr<obj> ge(const obj*) const {throw domain_error("ge not implemented");}
-  virtual shared_ptr<obj> gt(const obj*) const {throw domain_error("gt not implemented");}
-  virtual shared_ptr<obj> ne(const obj*) const {throw domain_error("ne not implemented");}
+  virtual obj* lt(const obj*) const {throw domain_error("lt not implemented");}
+  virtual obj* le(const obj*) const {throw domain_error("le not implemented");}
+  virtual obj* eq(const obj*) const {throw domain_error("eq not implemented");}
+  virtual obj* ge(const obj*) const {throw domain_error("ge not implemented");}
+  virtual obj* gt(const obj*) const {throw domain_error("gt not implemented");}
+  virtual obj* ne(const obj*) const {throw domain_error("ne not implemented");}
   //
   //virtual shared_ptr<obj> _or() {throw domain_error("or not implemented");}
   //virtual shared_ptr<obj> _and() {throw domain_error("and not implemented");}
-  virtual shared_ptr<obj> _not() {throw domain_error("not not implemented");}
-  virtual shared_ptr<obj> is(const obj*) {throw domain_error("is not implemented");}
+  virtual obj* _not() {throw domain_error("not not implemented");}
+  virtual obj* is(const obj*) {throw domain_error("is not implemented");}
   //
   // --- prova andata male ... riciclare porta via tanto tempo
   //virtual void tryRecycle(const shared_ptr<obj>& r) const {};
@@ -472,7 +470,7 @@ public:
 class nilObj: public obj {
 public:
   virtual string print() const override {return "nil";}
-  virtual shared_ptr<obj> eq(const obj*) const override;
+  virtual obj* eq(const obj*) const override;
 };
 
 class intObj:public obj {
@@ -480,50 +478,50 @@ public:
   int value;
   explicit intObj(int v){value=v;}
   virtual string print() const override {return to_string(value);}
-  virtual shared_ptr<obj> plus(const obj* o) const override;
-  virtual shared_ptr<obj> minus(const obj* o) const override;
-  virtual shared_ptr<obj> mult(const obj* o) const override;
-  virtual shared_ptr<obj> div(const obj* o) const override;
-  virtual shared_ptr<obj> idiv(const obj* o) const override;
-  virtual shared_ptr<obj> mod(const obj* o) const override;
-  virtual shared_ptr<obj> eq(const obj* o) const override;
-  virtual shared_ptr<obj> lt(const obj* o) const override;
-  virtual shared_ptr<obj> le(const obj* o) const override;
-  virtual shared_ptr<obj> ge(const obj* o) const override;
-  virtual shared_ptr<obj> gt(const obj* o) const override;
-  virtual shared_ptr<obj> ne(const obj* o) const override;
+  virtual obj* plus(const obj* o) const override;
+  virtual obj* minus(const obj* o) const override;
+  virtual obj* mult(const obj* o) const override;
+  virtual obj* div(const obj* o) const override;
+  virtual obj* idiv(const obj* o) const override;
+  virtual obj* mod(const obj* o) const override;
+  virtual obj* eq(const obj* o) const override;
+  virtual obj* lt(const obj* o) const override;
+  virtual obj* le(const obj* o) const override;
+  virtual obj* ge(const obj* o) const override;
+  virtual obj* gt(const obj* o) const override;
+  virtual obj* ne(const obj* o) const override;
   //
   const intObj* check_int(const obj* o,string msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
-shared_ptr<obj> intObj::plus(const obj* o) const {
+obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  return make_shared<intObj>(value+oo->value);
+  return new intObj(value+oo->value);
 }
 
-shared_ptr<obj> intObj::minus(const obj* o) const {
+obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
-  return make_shared<intObj>(value-oo->value);
+  return new intObj(value-oo->value);
 }
 
-shared_ptr<obj> intObj::mult(const obj* o) const {
+obj* intObj::mult(const obj* o) const {
   const intObj* oo=check_int(o,"integer * with a non integer");
-  return make_shared<intObj>(value*oo->value);
+  return new intObj(value*oo->value);
 }
 
-shared_ptr<obj> intObj::div(const obj* o) const {
+obj* intObj::div(const obj* o) const {
   const intObj* oo=check_int(o,"integer / with a non integer");
-  return make_shared<intObj>(value/oo->value);
+  return new intObj(value/oo->value);
 }
 
-shared_ptr<obj> intObj::idiv(const obj* o) const {
+obj* intObj::idiv(const obj* o) const {
   const intObj* oo=check_int(o,"integer idiv with a non integer");
-  return make_shared<intObj>(value/oo->value);
+  return new intObj(value/oo->value);
 }
 
-shared_ptr<obj> intObj::mod(const obj* o) const {
+obj* intObj::mod(const obj* o) const {
   const intObj* oo=check_int(o,"integer % with a non integer");
-  return make_shared<intObj>(value % oo->value);
+  return new intObj(value % oo->value);
 }
 
 class strObj:public obj {
@@ -531,20 +529,20 @@ public:
   string value;
   explicit strObj(const string& v):value{v}{}
   virtual string print() const override {return value;}
-  virtual shared_ptr<obj> plus(const obj* o) const override;
-  virtual shared_ptr<obj> eq(const obj* o) const override;
-  virtual shared_ptr<obj> lt(const obj* o) const override;
-  virtual shared_ptr<obj> le(const obj* o) const override;
-  virtual shared_ptr<obj> ge(const obj* o) const override;
-  virtual shared_ptr<obj> gt(const obj* o) const override;
-  virtual shared_ptr<obj> ne(const obj* o) const override;
+  virtual obj* plus(const obj* o) const override;
+  virtual obj* eq(const obj* o) const override;
+  virtual obj* lt(const obj* o) const override;
+  virtual obj* le(const obj* o) const override;
+  virtual obj* ge(const obj* o) const override;
+  virtual obj* gt(const obj* o) const override;
+  virtual obj* ne(const obj* o) const override;
   //
    const strObj* check_str(const obj* o,string msg) const {const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
-shared_ptr<obj> strObj::plus(const obj* o) const {
+obj* strObj::plus(const obj* o) const {
   const strObj* oo=check_str(o,"str + with a non str");
-  return shared_ptr<obj>(new strObj(value + oo->value));
+  return new strObj(value + oo->value);
 }
 
 class boolObj:public obj {
@@ -552,87 +550,87 @@ public:
   bool value;
   explicit boolObj(bool v){value=v;};
   virtual string print() const override {return (value?"true":"false");};
-  virtual shared_ptr<obj> eq(const obj* o) const override;
-  virtual shared_ptr<obj> ne(const obj* o) const override;
+  virtual obj* eq(const obj* o) const override;
+  virtual obj* ne(const obj* o) const override;
   //
   const boolObj* check_bool(const obj* o,string msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 // i singleton degli oggetti che non richiedono tante copie ...
-shared_ptr<obj> theTrue(new boolObj(true));
-shared_ptr<obj> theFalse(new boolObj(false));
-shared_ptr<obj> theNil(new nilObj());
+obj* theTrue(new boolObj(true));
+obj* theFalse(new boolObj(false));
+obj* theNil(new nilObj());
 
-shared_ptr<obj> nilObj::eq( const obj* o) const {
-	return shared_ptr<obj> (o==theNil.get()?theTrue:theFalse);
+obj* nilObj::eq(const obj* o) const {
+	return (o==theNil?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::eq(const obj* o) const {
+obj* intObj::eq(const obj* o) const {
   const intObj* oo=check_int(o,"int op = with a non int");
   return (value == oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::lt(const obj* o) const {
+obj* intObj::lt(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value < oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::le(const obj* o) const {
+obj* intObj::le(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value <= oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::ge(const obj* o) const {
+obj* intObj::ge(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value >= oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::gt(const obj* o) const {
+obj* intObj::gt(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value > oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> intObj::ne(const obj* o) const {
+obj* intObj::ne(const obj* o) const {
   const intObj* oo=check_int(o,"int op < with a non int");
   return (value != oo->value?theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::eq(const obj* o) const {
+obj* strObj::eq(const obj* o) const {
   const strObj* oo=check_str(o,"str = with a non str");
   return (value.compare(oo->value)==0 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::lt(const obj* o) const {
+obj* strObj::lt(const obj* o) const {
   const strObj* oo=check_str(o,"str < with a non str");
   return (value.compare(oo->value)==-1 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::le(const obj* o) const {
+obj* strObj::le(const obj* o) const {
   const strObj* oo=check_str(o,"str <= with a non str");
   return (value.compare(oo->value)<=0 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::ge(const obj* o) const {
+obj* strObj::ge(const obj* o) const {
   const strObj* oo=check_str(o,"str >= with a non str");
   return (value.compare(oo->value)>=0 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::gt(const obj* o) const {
+obj* strObj::gt(const obj* o) const {
   const strObj* oo=check_str(o,"str > with a non str");
   return (value.compare(oo->value)==1 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> strObj::ne(const obj* o)  const {
+obj* strObj::ne(const obj* o)  const {
   const strObj* oo=check_str(o,"str <> with a non str");
   return (value.compare(oo->value)!=0 ? theTrue:theFalse);
 }
 
-shared_ptr<obj> boolObj::eq(const obj* o) const {
+obj* boolObj::eq(const obj* o) const {
   const boolObj* oo=check_bool(o,"bool = with a non bool");
   return (value == oo->value ? theTrue : theFalse);
 }
 
-shared_ptr<obj> boolObj::ne(const obj* o) const {
+obj* boolObj::ne(const obj* o) const {
   const boolObj* oo=check_bool(o,"bool <> with a non bool");
   return (value != oo->value ? theTrue : theFalse);
 }
@@ -661,47 +659,47 @@ public:
     virtual string print() const override {return "float";}
 };
 
-shared_ptr<obj> theIntType=make_shared<intType>();
-shared_ptr<obj> theStrType=make_shared<strType>();
-shared_ptr<obj> theFloatType=make_shared<floatType>();
+obj* theIntType=new intType();
+obj* theStrType=new strType();
+obj* theFloatType=new floatType();
 
 // --- gli array e i dizionari
 
 class arrayObj: public obj {
-	vector<shared_ptr<obj>> a;
+	vector<obj*> a;
 public:
   arrayObj(){}
   explicit arrayObj(const int& sz){resize(sz);}
-  virtual shared_ptr<obj> slice(const obj* idx) override {
+  virtual obj* slice(const obj* idx) override {
 	    const intObj* pos=dynamic_cast<const intObj*>(idx);
 	    if (pos!=nullptr) 
 	      return a[pos->value];
 	    throw domain_error("slicing an array with a non integer index");
 	  };
-  virtual void storeslice(shared_ptr<obj> idx,shared_ptr<obj> value) override {
-	    const intObj* pos=dynamic_cast<intObj*>(idx.get());
+  virtual void storeslice(obj* idx,obj* value) override {
+	    const intObj* pos=dynamic_cast<intObj*>(idx);
 	    if (pos!=nullptr) {
 		  a[pos->value]=value;
 		} else {
 	      throw domain_error("storing in an array with a non integer index");
 	    }
 	  };
-  virtual shared_ptr<obj> append(shared_ptr<obj> v){a.push_back(v);return v;};
-  virtual shared_ptr<obj> remove(int pos){shared_ptr<obj> v=a[pos];a.erase(a.begin()+pos);return v;};
-  virtual shared_ptr<obj> insert(int pos,shared_ptr<obj> v){a.insert(a.begin()+pos,v);return v;};
+  virtual obj* append(obj* v){a.push_back(v);return v;};
+  virtual obj* remove(int pos){obj* v=a[pos];a.erase(a.begin()+pos);return v;};
+  virtual obj* insert(int pos,obj* v){a.insert(a.begin()+pos,v);return v;};
   virtual int len(){return a.size();};
   virtual string print() const override;
   //
-  shared_ptr<obj> sliceidx(int idx){return a[idx];}
-  void storesliceidx(int idx, const shared_ptr<obj>& v){a[idx]=v;}
-  void append(const shared_ptr<obj>& v){a.push_back(v);}
+  obj* sliceidx(int idx){return a[idx];}
+  void storesliceidx(int idx, obj*& v){a[idx]=v;}
+  //void append(const obj*& v){a.push_back(v);}
   void resize(int sz){int oldsz=a.size();a.resize(sz);for(int i=oldsz;i<sz;i++) a[i]=theNil;}
 };
 
 string arrayObj::print() const {
   string res="";
   if (a.size()>0) {
-    for(shared_ptr<obj> o:a){
+    for(obj* o:a){
 	  res+=","+o->print();
     }
     res+="]";
@@ -712,9 +710,9 @@ string arrayObj::print() const {
 }
 
 class dictObj : public obj {
-  unordered_map<string,shared_ptr<obj>> map;
+  unordered_map<string,obj*> map;
 public:
-  virtual shared_ptr<obj> slice(const obj* idx) override {
+  virtual obj* slice(const obj* idx) override {
 	 string key=idx->print();
      //if (map.contains(key)) 
      //  return map[key];
@@ -724,8 +722,8 @@ public:
 	 string err=key+": key not found in dict";
 	 throw out_of_range(err);
   };
-  virtual void storeslice(shared_ptr<obj> idx, shared_ptr<obj> value) override {
-	 const strObj* key=dynamic_cast<strObj*>(idx.get());
+  virtual void storeslice(obj* idx, obj* value) override {
+	 const strObj* key=dynamic_cast<strObj*>(idx);
 	 if (key!=nullptr){
 	   map[key->value]=value;
      } else {
@@ -734,8 +732,8 @@ public:
   };
   virtual string print() const override;
   //
-  shared_ptr<obj> loadkey(const string& key){return map[key];}
-  shared_ptr<obj> storekey(const string& key, shared_ptr<obj> value){map[key]=value;return value;}
+  obj* loadkey(const string& key){return map[key];}
+  obj* storekey(const string& key, obj* value){map[key]=value;return value;}
 };
 
 string dictObj::print() const {
@@ -756,32 +754,32 @@ string dictObj::print() const {
 class contextObj : public obj {
 protected:
   contextObj& superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
-  unordered_map<int,shared_ptr<obj>> objs;              
-  unordered_map<int,shared_ptr<obj>> types;
+  unordered_map<int,obj*> objs;              
+  unordered_map<int,obj*> types;
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
   explicit contextObj(contextObj& sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
-  virtual void add(int intern, shared_ptr<obj> type) {
+  virtual void add(int intern, obj* type) {
 	//if (objs.contains(intern)) throw out_of_range("name already in context");
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()) throw out_of_range("name already in context");
 	objs[intern]=theNil;
 	types[intern]=type;
   }
-  virtual void add(int intern, shared_ptr<obj> type, shared_ptr<obj> value) {
+  virtual void add(int intern, obj* type, obj* value) {
 	//if (objs.contains(intern)) throw out_of_range("name already in context");
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()) throw out_of_range("name already in context");
 	objs[intern]=value;
 	types[intern]=type;
   }
-  virtual shared_ptr<obj> load(int intern) override {
+  virtual obj* load(int intern) override {
     //if (objs.contains(intern)) return objs[intern];
     auto ff=objs.find(intern);
     if (ff!=objs.end()) return ff->second;
     return superlevel.load(intern);
   }
-  virtual void store(int intern, shared_ptr<obj> value) override {
+  virtual void store(int intern, obj* value) override {
 	//if (objs.contains(intern)){
 	//  objs[intern]=value;
 	auto ff=objs.find(intern);
@@ -803,7 +801,7 @@ public:
 // la classe che implementa i builtin: ferma la ricerca perché è sempre l'ultimo livello
 class builtInContainer : public contextObj {
 public:	
-  virtual shared_ptr<obj> load(int intern) override {
+  virtual obj* load(int intern) override {
 	auto ff=objs.find(intern);  
     if (ff!=objs.end()) 
       return ff->second;
@@ -811,7 +809,7 @@ public:
 	cout << err << endl;
 	throw out_of_range(err);
   }
-  virtual void store(int intern, shared_ptr<obj> value) override {
+  virtual void store(int intern, obj* value) override {
 	//if (objs.contains(intern)){
 	//	objs[intern]=value;  
 	auto ff=objs.find(intern);  
@@ -823,7 +821,7 @@ public:
 	  throw out_of_range(err);
 	}
   }
-  int adx(int intern, shared_ptr<obj> type, shared_ptr<obj> value){add(intern,type,value);return 1;} // funzione per caricare le procedure c++ nei builtin
+  int adx(int intern, obj* type, obj* value){add(intern,type,value);return 1;} // funzione per caricare le procedure c++ nei builtin
 };
 builtInContainer theBuiltIn;
 
@@ -913,13 +911,13 @@ sys theSys;
 
 class interp {
 public:
-  vector<shared_ptr<obj>> stack;
+  vector<obj*> stack;
   int sp,pc,currentSourceLine;
-  shared_ptr<contextObj>& context;
+  contextObj*& context;
   pcodeProgram& prg;
   bool stop;
   //
-  explicit interp(shared_ptr<contextObj>& c, pcodeProgram& p):context{c},prg{p}{
+  explicit interp(contextObj*& c, pcodeProgram& p):context{c},prg{p}{
 	sp=-1;pc=0;stop=false;
 	currentSourceLine=0;
 	//prg=nullptr;
@@ -974,7 +972,7 @@ public:
   builtin_##_fn_(){name=#_fn_;} \
   virtual void call(int parmCnt,interp& interpreter) override { getParms(parmCnt,interpreter);		  
 #define BUILTINEND(_fn_) }}; \
-  int add_builtin_##_fn_=theBuiltIn.adx(theStringIntern.add(#_fn_),theNil,make_shared<builtin_##_fn_>());
+  int add_builtin_##_fn_=theBuiltIn.adx(theStringIntern.add(#_fn_),theNil,new builtin_##_fn_());
 
 /*	Esempio di traduzione per le funzioni c++ aggiunte ai builtin
 class hello : public cppFunc {
@@ -989,7 +987,7 @@ int add_hello_builtin=theBuiltIn.adx(theStringIntern.add("hello"),theNil,make_sh
 */
 
 BUILTIN(hello)
-  interpreter.stack.push_back(make_shared<strObj>("hello bult-in!"));
+  interpreter.stack.push_back(new strObj("hello bult-in!"));
 BUILTINEND(hello)
 
 // --- l'oggetto che implementa la procedura
@@ -997,13 +995,13 @@ BUILTINEND(hello)
 class procVars : public contextObj {
 public:	
   explicit procVars(contextObj& ctx):contextObj{ctx}{}
-  virtual shared_ptr<obj> getResult(){return theNil;}
+  virtual obj* getResult(){return theNil;}
 };
 
 class procParm : public contextObj  {
 public:
   vector<int> prmOrder;
-  void add(int intern, shared_ptr<obj> type) override {
+  void add(int intern, obj* type) override {
 	contextObj::add(intern,type);
 	prmOrder.push_back(intern);
   }
@@ -1014,46 +1012,46 @@ public:
 	}
 	return s;
   }
-  void initParms(shared_ptr<procVars>& vars, interp& i, int parmCnt);
+  void initParms(procVars*& vars, interp& i, int parmCnt);
 };
 
 class procObj : public obj {
 protected:
   int name,pc;
-  shared_ptr<contextObj>& ctx;
+  contextObj*& ctx;
   pcodeProgram& prg;
-  shared_ptr<procParm> prm=make_shared<procParm>();
+  procParm* prm=new procParm();
 public:
   procObj(int n, interp& i);
   virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
-  virtual shared_ptr<procVars> mkVars(){return make_shared<procVars>(*ctx);}
+  virtual procVars* mkVars(){return new procVars(*ctx);}
 };
 
 class funcVars: public procVars {
 protected:	
-  shared_ptr<obj>& result_type;
-  shared_ptr<obj> result_value;
+  obj*& result_type;
+  obj* result_value;
 public:	
-  funcVars(contextObj& ctx,shared_ptr<obj>& t):procVars{ctx},result_type{t},result_value{theNil}{}
-  virtual void store_result(shared_ptr<obj> value) override {result_value=value;}
-  virtual shared_ptr<obj> getResult() override {return result_value;}
+  funcVars(contextObj& ctx,obj*& t):procVars{ctx},result_type{t},result_value{theNil}{}
+  virtual void store_result(obj* value) override {result_value=value;}
+  virtual obj* getResult() override {return result_value;}
 };
 
 class funcObj: public procObj {
 protected:
-  shared_ptr<obj>& result_type;
+  obj*& result_type;
 public:  
-  funcObj(int n, interp& i, shared_ptr<obj>& t):procObj(n,i),result_type{t}{}
+  funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{}
   virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
-  virtual shared_ptr<procVars> mkVars()override {return make_shared<funcVars>(*ctx,result_type);}
+  virtual procVars* mkVars()override {return new funcVars(*ctx,result_type);}
 };
 
 procObj::procObj(int n, interp& i):ctx{i.context},prg{i.prg}{
   name=n;
   //prg=&i.prg; // tiene un puntatore al codice
   // ora può creare il blocco dei parametri, così viene creata una volta la struttura che poi servirà a processare i parametri dallo stack  
-  shared_ptr<contextObj> c=i.context;
+  contextObj* c=i.context;
   i.context=prm;
   i.pc++;                   // si sposta dall'istruzione PROC, trova la lista dei parametri che termina con ENDPARM
   i.run();                  // eseguendo il codice della lista dei parametri riempie il contesto con nomi e tipi
@@ -1069,9 +1067,9 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   // salva lo stato dell'interprete
   int retPc=interpreter.pc;                                 // il program counter attuale
   const pcodeProgram& retPrg=interpreter.prg;               // il programma che sta eseguendo l'interprete
-  const shared_ptr<contextObj> retCtx=interpreter.context;  // il contesto attuale dell'interprete
+  contextObj* retCtx=interpreter.context;  // il contesto attuale dell'interprete
   // setta l'interprete allo stato della procedura
-  shared_ptr<procVars> vars=mkVars();                        // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura 
+  procVars* vars=mkVars();                        // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura 
   // ^--- func/proc shared_ptr<contextObj> vars=make_shared<contextObj>(*ctx); // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura
   prm->initParms(vars,interpreter,parmCnt);                  // crea le variabili dalla lista dei parametri
   // ora ha tolto dallo stack i parametri e sono state create delle variabili locali inizalizzate con i valori passati DA FARE: valori di default
@@ -1091,7 +1089,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   interpreter.stop=false;
 }
 
-void procParm::initParms(shared_ptr<procVars>& vars, interp& i, int parmCnt){
+void procParm::initParms(procVars*& vars, interp& i, int parmCnt){
   int sp=i.sp-parmCnt+1;
   int pnp=(int)prmOrder.size();
   if (pnp<parmCnt) throw domain_error("too many parameters calling ... ");
@@ -1108,15 +1106,16 @@ void procParm::initParms(shared_ptr<procVars>& vars, interp& i, int parmCnt){
 // --- riprendo i pcode
 
 void pcodePlus::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->plus(obj2);
   interpreter.stack.pop_back();
+  //cout << interpreter.sp << " " << interpreter.stack.size() << ">";
 }
 
 void pcodeMinus::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->minus(obj2);
   interpreter.stack.pop_back();
 }
@@ -1126,71 +1125,71 @@ void pcodeUMinus::exec(interp& interpreter) const {
 }
 
 void pcodeMult::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->mult(obj2);
   interpreter.stack.pop_back();
 }
 
 void pcodeDiv::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->div(obj2);
   interpreter.stack.pop_back();
 }
 
 void pcodeMod::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->mod(obj2);
   interpreter.stack.pop_back();
 }
 
 void pcodeIDiv::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->idiv(obj2);
   interpreter.stack.pop_back();
 }
 
 void pcodeEq::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->eq(obj2);
   interpreter.stack.pop_back();
 }
 
 void pcodeLt::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->lt(obj2);
   interpreter.stack.pop_back();
 }
 
 void pcodeLe::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->le(obj2);
   interpreter.stack.pop_back();
 }
 
 void pcodeGe::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->ge(obj2);
   interpreter.stack.pop_back();
 }
 
 void pcodeGt::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->gt(obj2);
   interpreter.stack.pop_back();
 }
 
 void pcodeNe::exec(interp& interpreter) const {
-  const obj* obj2=interpreter.stack[interpreter.sp--].get();
-  const obj* obj1=interpreter.stack[interpreter.sp].get();
+  const obj* obj2=interpreter.stack[interpreter.sp--];
+  const obj* obj1=interpreter.stack[interpreter.sp];
   interpreter.stack[interpreter.sp]=obj1->ne(obj2);
   interpreter.stack.pop_back();
 }
@@ -1217,16 +1216,16 @@ void pcodeFalse::exec(interp& interpreter) const {
 
 void pcodeIntConst::exec(interp& interpreter) const {
   interpreter.sp++;
-  interpreter.stack.push_back(make_shared<intObj>(value));
+  interpreter.stack.push_back(new intObj(value));
 }
 
 void pcodeStrConst::exec(interp& interpreter) const {
   interpreter.sp++;
-  interpreter.stack.push_back(make_shared<strObj>(value));
+  interpreter.stack.push_back(new strObj(value));
 }
 
 void pcodeArray::exec(interp& interpreter) const {
-  shared_ptr<arrayObj> a=make_shared<arrayObj>(value);
+  arrayObj* a=new arrayObj(value);
   int sp=interpreter.sp-value+1;
   for(int i=0;i<value;i++){
 	a->storesliceidx(i,interpreter.stack[sp+i]);
@@ -1242,7 +1241,7 @@ void pcodeArray::exec(interp& interpreter) const {
 }
 
 void pcodeDict::exec(interp& interpreter) const {
-  shared_ptr<dictObj> d=make_shared<dictObj>();
+  dictObj* d=new dictObj();
   int sp=interpreter.sp-value*2+1;
   for(int i=0;i<value;i++){
 	d->storekey(interpreter.stack[sp+i*2]->print(),interpreter.stack[sp+i*2+1]);
@@ -1273,8 +1272,8 @@ void pcodeLoad::exec(interp& interpreter) const {
 }
 
 void pcodeSlice::exec(interp& interpreter) const {
-  const obj* idx=interpreter.stack[interpreter.sp--].get();
-  obj* cnt=interpreter.stack[interpreter.sp].get();
+  const obj* idx=interpreter.stack[interpreter.sp--];
+  obj* cnt=interpreter.stack[interpreter.sp];
   //cout << "cnt:" << cnt->print() << " idx:" << idx->print() << endl;
   interpreter.stack[interpreter.sp]=cnt->slice(idx);
   interpreter.stack.pop_back();
@@ -1292,7 +1291,7 @@ void pcodeGoto::exec(interp& interpreter) const {
 
 void pcodeCall::exec(interp& interpreter) const {
   //cout << "call stack:" << interpreter.sp << " " << interpreter.stack.size() << endl;
-  interpreter.stack[interpreter.sp-value].get()->call(value,interpreter);
+  interpreter.stack[interpreter.sp-value]->call(value,interpreter);
 }
 
 void pcodeParm::exec(interp& interpreter) const {
@@ -1317,17 +1316,17 @@ void pcodeEndFunc::exec(interp& interpreter) const {
 }
 
 void pcodeIfFalse::exec(interp& interpreter) const {
-  const obj* v=interpreter.stack[interpreter.sp].get();
-  if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("if with a non boolean expression");
+  const obj* v=interpreter.stack[interpreter.sp];
+  if (v!=theTrue && v!= theFalse) throw out_of_range("if with a non boolean expression");
   interpreter.sp--;
   interpreter.stack.pop_back();
-  if (v==theFalse.get()) interpreter.pc=interpreter.prg.getLabelPos(value);
+  if (v==theFalse) interpreter.pc=interpreter.prg.getLabelPos(value);
 }
 
 void pcodeIfAnd::exec(interp& interpreter) const {
-  const obj* v=interpreter.stack[interpreter.sp].get();
-  if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("and with a non boolean expression");
-  if (v==theFalse.get())
+  const obj* v=interpreter.stack[interpreter.sp];
+  if (v!=theTrue && v!= theFalse) throw out_of_range("and with a non boolean expression");
+  if (v==theFalse)
     interpreter.pc=interpreter.prg.getLabelPos(value);
   else {
     interpreter.sp--;
@@ -1336,9 +1335,9 @@ void pcodeIfAnd::exec(interp& interpreter) const {
 }
 
 void pcodeIfOr::exec(interp& interpreter) const {
-  const obj* v=interpreter.stack[interpreter.sp].get();
-  if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("or with a non boolean expression");
-  if (v==theTrue.get())
+  const obj* v=interpreter.stack[interpreter.sp];
+  if (v!=theTrue && v!= theFalse) throw out_of_range("or with a non boolean expression");
+  if (v==theTrue)
     interpreter.pc=interpreter.prg.getLabelPos(value);
   else {
   	interpreter.sp--;
@@ -1347,15 +1346,15 @@ void pcodeIfOr::exec(interp& interpreter) const {
 }
 
 void pcodeNot::exec(interp& interpreter) const {
-  const obj* v=interpreter.stack[interpreter.sp].get();
-  if (v!=theTrue.get() && v!= theFalse.get()) throw out_of_range("not with a non boolean expression");
-  interpreter.stack[interpreter.sp]=(v==theTrue.get()?theFalse:theTrue);
+  const obj* v=interpreter.stack[interpreter.sp];
+  if (v!=theTrue && v!= theFalse) throw out_of_range("not with a non boolean expression");
+  interpreter.stack[interpreter.sp]=(v==theTrue?theFalse:theTrue);
 }
 
 void pcodePrint::exec(interp& interpreter) const {
   int i;
   for(i=1;i<=value;i++){
-    shared_ptr<obj> o=interpreter.stack[interpreter.sp-value+i];
+    obj* o=interpreter.stack[interpreter.sp-value+i];
 	cout << o->print();
   }
   cout << endl;
@@ -1394,7 +1393,7 @@ void pcodeNotImpl::exec(interp& interpreter) const {
   throw domain_error("pcode not implemented");
 }
 
-void makeProcOrFunc(interp& interpreter, int value, const shared_ptr<obj>& p, shared_ptr<obj> type){
+void makeProcOrFunc(interp& interpreter, int value, obj*& p, obj* type){
   int pc;
   //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter.pc <<endl;
   // --- aggiunge la procedura/funzione al contesto attuale
@@ -1411,7 +1410,7 @@ void makeProcOrFunc(interp& interpreter, int value, const shared_ptr<obj>& p, sh
 }
 
 void pcodeProc::exec(interp& interpreter) const {
-  shared_ptr<obj> p(new procObj(value,interpreter));
+  obj* p=new procObj(value,interpreter);
   makeProcOrFunc(interpreter,value,p,theNil);
   /*
   int pc=interpreter.pc;
@@ -1431,10 +1430,10 @@ void pcodeProc::exec(interp& interpreter) const {
 }
 
 void pcodeFunc::exec(interp& interpreter) const {
-  shared_ptr<obj> t=interpreter.stack[interpreter.sp--];
+  obj* t=interpreter.stack[interpreter.sp--];
   interpreter.stack.pop_back();	
   //cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
-  shared_ptr<obj> f(new funcObj(value,interpreter,t));
+  obj* f=new funcObj(value,interpreter,t);
   makeProcOrFunc(interpreter,value,f,t);
 }
 
@@ -1448,7 +1447,7 @@ void pcodeStoreResult::exec(interp& interpreter) const {
 
 void test_cc(){
   pcodeProgram prg;	
-  shared_ptr<contextObj> ctx=make_shared<contextObj>();
+  contextObj* ctx=new contextObj();
   interp intp(ctx,prg);
   //intp.prg=&prg;
   theStringIntern.add("i");
@@ -1475,12 +1474,12 @@ void test_cc(){
   prg.add(new pcodePrint(1));
   prg.add(new pcodePCodeEnd(9));
   
-  shared_ptr<intObj> c_1(new intObj(1));
-  shared_ptr<intObj> c_1000000(new intObj(1000000));
+  intObj* c_1(new intObj(1));
+  intObj* c_1000000(new intObj(1000000));
   
   // esecuzione
   prg[0].exec(intp);                                      // int type
-  shared_ptr<obj> i;                 //prg.get(1)->exec(intp); // var i
+  obj* i;                              //prg.get(1)->exec(intp); // var i
   intp.stack.pop_back();intp.sp--;     //prg.get(2)->exec(intp); // pop
   prg[3].exec(intp);                                      // int const 0
   i=intp.stack[intp.sp];               //prg.get(4)->exec(intp); // store i
@@ -1512,7 +1511,7 @@ void test(const string& fn){
   // prova reale ...
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
-  shared_ptr<contextObj> ctx=make_shared<contextObj>();
+  contextObj* ctx=new contextObj();
   interp intp(ctx,prg);
   if (r) intp.run();
 }
@@ -1533,8 +1532,8 @@ int bench_cc(){
 
 int main(){
   //bench("primo.pcd");
-  //test("terzo.pcd");
+  test("terzo.pcd");
   //test("fib.pcd");
-  bench_cc();
+  //bench_cc();
   //test_cc();
 }
