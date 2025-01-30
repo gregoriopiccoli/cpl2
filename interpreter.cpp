@@ -192,9 +192,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class obj;
+
 class pcodeIntConst: public ipcode {
+  obj* theValue;	
 public:
-  explicit pcodeIntConst(int v):ipcode(v){code=P_INT_CONST;}
+  explicit pcodeIntConst(int v);
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -491,8 +494,10 @@ public:
   virtual obj* gt(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
-  const intObj* check_int(const obj* o,string msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
+
+pcodeIntConst::pcodeIntConst(int v):ipcode(v){code=P_INT_CONST;theValue=new intObj(v);}
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
@@ -537,7 +542,7 @@ public:
   virtual obj* gt(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
-   const strObj* check_str(const obj* o,string msg) const {const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+   const strObj* check_str(const obj* o,const char* msg) const {const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 obj* strObj::plus(const obj* o) const {
@@ -553,7 +558,7 @@ public:
   virtual obj* eq(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
-  const boolObj* check_bool(const obj* o,string msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const boolObj* check_bool(const obj* o,const char*  msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 // i singleton degli oggetti che non richiedono tante copie ...
@@ -1216,7 +1221,8 @@ void pcodeFalse::exec(interp& interpreter) const {
 
 void pcodeIntConst::exec(interp& interpreter) const {
   interpreter.sp++;
-  interpreter.stack.push_back(new intObj(value));
+  //interpreter.stack.push_back(new intObj(value));
+  interpreter.stack.push_back(theValue);
 }
 
 void pcodeStrConst::exec(interp& interpreter) const {
@@ -1531,8 +1537,8 @@ int bench_cc(){
 }
 
 int main(){
-  //bench("primo.pcd");
-  test("terzo.pcd");
+  bench("primo.pcd");
+  //test("terzo.pcd");
   //test("fib.pcd");
   //bench_cc();
   //test_cc();
