@@ -427,11 +427,15 @@ pcode* makePCode(int c,const char* s){
   return new pcodeNotImpl(c,s);
 }
 
+// --- il garbage collector 
+
+#include "gc.cpp"
+
 // --- gli oggetti dell'esecuzione dell'interprete
 
 //static int theObjCounter=0;
 
-class obj {
+class obj : public GCObj {
 public:
   //obj() {theObjCounter++;}
   virtual ~obj(){}; //{theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
@@ -909,6 +913,7 @@ public:
   //shared_ptr<boolObj> True{new boolObj(true)};
   //shared_ptr<boolObj> False{new boolObj(false)};
   //shared_ptr<obj> Nil{new nilObj()};
+  sys(){theNil->lock();theTrue->lock();theFalse->lock();}
 };
 sys theSys;
 
@@ -1177,6 +1182,7 @@ void pcodeLe::exec(interp& interpreter) const {
   interpreter.stack[interpreter.sp]=obj1->le(obj2);
   interpreter.stack.pop_back();
 }
+
 
 void pcodeGe::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--];
@@ -1455,7 +1461,6 @@ void test_cc(){
   pcodeProgram prg;	
   contextObj* ctx=new contextObj();
   interp intp(ctx,prg);
-  //intp.prg=&prg;
   theStringIntern.add("i");
   //
   prg.add(new pcodeIntType());     // 0: INT_TYPE
