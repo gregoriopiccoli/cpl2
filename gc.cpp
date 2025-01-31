@@ -125,7 +125,7 @@ inline void GC::sweep(int gen){
       //cout << "deleted " << ptr << endl;
     }
   }
-  status();
+  //status();
 }
 
 inline void GC::status(){

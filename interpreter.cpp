@@ -843,6 +843,7 @@ public:
   }
   int adx(int intern, obj* type, obj* value){add(intern,type,value);return 1;} // funzione per caricare le procedure c++ nei builtin
 };
+
 lockgc_ptr<builtInContainer> theBuiltIn{new builtInContainer};
 
 // il costruttore di un contesto che non specifica qual è il suo contesto di base riceve builtin come punto finale della ricerca
@@ -987,21 +988,21 @@ public:
 };
 
 #define BUILTIN(_fn_) class builtin_##_fn_ : public cppFunc { public: \
-  builtin_##_fn_(){name=#_fn_;} \
+  builtin_##_fn_(){name=#_fn_;lock();} \
   virtual void call(int parmCnt,interp& interpreter) override { getParms(parmCnt,interpreter);		  
 #define BUILTINEND(_fn_) }}; \
   int add_builtin_##_fn_=theBuiltIn->adx(theStringIntern.add(#_fn_),theNil,new builtin_##_fn_());
 
-/*	Esempio di traduzione per le funzioni c++ aggiunte ai builtin
-class hello : public cppFunc {
+/*	Esempio di traduzione per le funzioni c++ aggiunte ai builtin 
+class hello2 : public cppFunc {
 public:	
-  hello(){name="hello";}
+  hello2(){name="hello2";lock();}
   virtual void call(int parmCnt,interp& interpreter) override {
-	getParms(parmCnt);  
-	i.stack.push_back(make_shared<strObj>("hello bult-in!"));
+	getParms(parmCnt,interpreter);  
+	interpreter.stack.push_back(new strObj("hello bult-in!"));
   }
 };
-int add_hello_builtin=theBuiltIn.adx(theStringIntern.add("hello"),theNil,make_shared<builtin_hello>());
+int add_hello_builtin=theBuiltIn->adx(theStringIntern.add("hello2"),theNil,new hello2());
 */
 
 BUILTIN(hello)
@@ -1535,9 +1536,6 @@ void test(const string& fn){
   contextObj* cctx=ctx;
   interp intp(cctx,prg);
   if (r) intp.run();
-  //
-  cout << "fine test\n" ;
-  stdGC().status();  
 }
 
 int bench(string fn){
@@ -1555,8 +1553,8 @@ int bench_cc(){
 }
 
 int main(){
-  //bench("primo.pcd");
-  test("primo.pcd");
+  bench("primo.pcd");
+  //test("primo.pcd");
   //test("terzo.pcd");
   //test("fib.pcd");
   //bench_cc();
@@ -1571,8 +1569,5 @@ int main(){
   theFloatType=0;
   theBuiltIn=0;
   stdGC().status();
-
-  //ctx=0;
-  //prg.clear();
   
 }
