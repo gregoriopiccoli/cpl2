@@ -200,12 +200,15 @@ class pcodeIntConst: public ipcode {
   lockgc_ptr<obj> theValue;	
 public:
   explicit pcodeIntConst(int v);
+  ~pcodeIntConst(){theValue=0;}
   virtual void exec(interp& interpreter) const override;
 };
 
 class pcodeStrConst: public spcode {
+  lockgc_ptr<obj> theValue;	
 public:
-  explicit pcodeStrConst(const string& v):spcode(v){code=P_STR_CONST;}
+  explicit pcodeStrConst(const string& v);
+  ~pcodeStrConst(){theValue=0;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -547,6 +550,8 @@ public:
    const strObj* check_str(const obj* o,const char* msg) const {const strObj* oo=dynamic_cast<const strObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
+pcodeStrConst::pcodeStrConst(const string& v):spcode(v),theValue{new strObj(v)}{code=P_STR_CONST;}
+
 obj* strObj::plus(const obj* o) const {
   const strObj* oo=check_str(o,"str + with a non str");
   return new strObj(value + oo->value);
@@ -674,8 +679,9 @@ lockgc_ptr<obj> theFloatType{new floatType()};
 
 class arrayObj: public obj {
 	vector<obj*> a;
+	gc_array_<obj>* a_gc;
 public:
-  arrayObj(){}
+  arrayObj():a_gc{new gc_array_<obj>(a)}{}
   explicit arrayObj(const int& sz){resize(sz);}
   virtual obj* slice(const obj* idx) override {
 	    const intObj* pos=dynamic_cast<const intObj*>(idx);
@@ -718,7 +724,9 @@ string arrayObj::print() const {
 
 class dictObj : public obj {
   unordered_map<string,obj*> map;
+  gc_dict_<string,obj>* map_gc;
 public:
+  dictObj():map_gc{new gc_dict_<string,obj>(map)}{}
   virtual obj* slice(const obj* idx) override {
 	 string key=idx->print();
      //if (map.contains(key)) 
@@ -730,12 +738,16 @@ public:
 	 throw out_of_range(err);
   };
   virtual void storeslice(obj* idx, obj* value) override {
+	 string key=idx->print(); 
+	 map[key]=value;
+	 /*
 	 const strObj* key=dynamic_cast<strObj*>(idx);
 	 if (key!=nullptr){
 	   map[key->value]=value;
      } else {
        throw domain_error("storing in a dictionary with a non string key");
      }
+     */
   };
   virtual string print() const override;
   //
@@ -763,9 +775,10 @@ protected:
   contextObj& superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
   unordered_map<int,obj*> objs;              
   unordered_map<int,obj*> types;
+  gc_dict_<int,obj>* o_gc,*t_gc; 
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
-  explicit contextObj(contextObj& sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
+  explicit contextObj(contextObj& sl):superlevel{sl},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
   virtual void add(int intern, obj* type) {
 	//if (objs.contains(intern)) throw out_of_range("name already in context");
 	auto ff=objs.find(intern);
@@ -833,7 +846,7 @@ public:
 lockgc_ptr<builtInContainer> theBuiltIn{new builtInContainer};
 
 // il costruttore di un contesto che non specifica qual è il suo contesto di base riceve builtin come punto finale della ricerca
-contextObj::contextObj():superlevel{*theBuiltIn}{}
+contextObj::contextObj():superlevel{*theBuiltIn},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{};
 
 // --- contenitore che cerca in locale e nel modulo
 class procContextObj : public contextObj {
@@ -854,7 +867,8 @@ public:
   }
   const pcode& get(int i){return *prg[i];}
   int getLabelPos(int l){return labelPos[l];}
-  virtual ~pcodeProgram(){for(auto p:prg) delete p;}
+  void clear(){for(auto p:prg) delete p;prg.clear();labelPos.clear();}
+  virtual ~pcodeProgram(){clear();}
   int loadPcd(string fn);
   void putLabelPos(int id){
 	if ((int)labelPos.size()<=id) labelPos.resize(id+1);
@@ -911,14 +925,6 @@ public:
 };
 sys theSys;
 
-template <class T> class gc_array_ : public GCObject {
-  vector<T*>& data;
-public:	
-  gc_array_(vector<T*>& d):data{d}{}
-  virtual int childCnt() override {return data.size();}
-  virtual T* getChild(int p) override {return data[p];}
-};
-
 //#define PRINT_PCODE_EXECUTION
 
 class interp {
@@ -928,9 +934,9 @@ public:
   contextObj*& context;
   pcodeProgram& prg;
   bool stop;
-  gc_array_<obj>* stkobs;
+  gc_array_<obj>* stack_gc;
   //
-  explicit interp(contextObj*& c, pcodeProgram& p):context{c},prg{p},stkobs{new gc_array_<obj>(stack)}{
+  explicit interp(contextObj*& c, pcodeProgram& p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{
 	sp=-1;pc=0;stop=false;
 	currentSourceLine=0;
 	stack.reserve(20);
@@ -1234,7 +1240,8 @@ void pcodeIntConst::exec(interp& interpreter) const {
 
 void pcodeStrConst::exec(interp& interpreter) const {
   interpreter.sp++;
-  interpreter.stack.push_back(new strObj(value));
+  //interpreter.stack.push_back(new strObj(value));
+  interpreter.stack.push_back(theValue);
 }
 
 void pcodeArray::exec(interp& interpreter) const {
@@ -1528,6 +1535,9 @@ void test(const string& fn){
   contextObj* cctx=ctx;
   interp intp(cctx,prg);
   if (r) intp.run();
+  //
+  cout << "fine test\n" ;
+  stdGC().status();  
 }
 
 int bench(string fn){
@@ -1545,9 +1555,24 @@ int bench_cc(){
 }
 
 int main(){
-  bench("primo.pcd");
+  //bench("primo.pcd");
+  test("primo.pcd");
   //test("terzo.pcd");
   //test("fib.pcd");
   //bench_cc();
   //test_cc();
+    
+  stdGC().status();
+  theNil=0;
+  theTrue=0;
+  theFalse=0;
+  theIntType=0;
+  theStrType=0;
+  theFloatType=0;
+  theBuiltIn=0;
+  stdGC().status();
+
+  //ctx=0;
+  //prg.clear();
+  
 }

@@ -5,20 +5,22 @@ using namespace std;
 
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
 class GCObject {
-  int generation;
+protected:	
   bool marked;
   int locked;
   //
   virtual int childCnt(){return 0;}
   virtual GCObject* getChild(int p){return nullptr;}
-  virtual void mark(){if (!marked) {marked=true;for(int i=0;i<childCnt();i++){auto c=getChild(i);if(c) c->mark();}};}
-  virtual void expand(int gen){if (generation<gen) generation=gen; for(int i=0;i<childCnt();i++){auto c=getChild(i);if(c && c->generation<generation) c->expand(generation);}}
   virtual void reclaim(){delete this;}
 public:
   GCObject();
   virtual ~GCObject(){ /* cout << "reclaimed " << this << endl;*/};
   int lock(){return ++locked;};
   int unlock(){assert(locked>0);return --locked;};
+  //
+  int generation;
+  virtual void mark(){if (!marked) {marked=true;for(int i=0;i<childCnt();i++){auto c=getChild(i);if(c) c->mark();}};}
+  virtual void expand(int gen){if (generation<gen) generation=gen; for(int i=0;i<childCnt();i++){auto c=getChild(i);if(c && c->generation<generation) c->expand(generation);}}
   friend class GC;
 };
 
@@ -111,7 +113,7 @@ inline void GC::sweep(int gen){
       // oggetto marcato, si deve far salire di generazione
       if (shiftGen && (*it)->generation<=gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
         (*it)->generation++;
-        //if (debug) cout << (*it) << " generation " << (*it)->generation << endl;
+        //cout << (*it) << " generation " << (*it)->generation << endl;
       }
       ++it;
     } else {
@@ -123,6 +125,7 @@ inline void GC::sweep(int gen){
       //cout << "deleted " << ptr << endl;
     }
   }
+  status();
 }
 
 inline void GC::status(){
@@ -182,6 +185,34 @@ public:
   T* operator->(){return (T*)ptr;}
   T* operator=(T* p){if(ptr) ptr->unlock();ptr=p;if(p) p->lock();return p;}
   lockgc_ptr& operator=(const lockgc_ptr& p){if(ptr) ptr->unlock();ptr=p.ptr;if (ptr) ptr->lock(); return *this;}
-  operator T* const &() const {return (T*const&)ptr;}
-  //operator T* const () const {return ptr;}
+  operator T* const &() const {return ptr;}
+  //operator T*(){return ptr;}
+};
+
+template <class T> class gc_array_ : public GCObject {
+  vector<T*>& data;
+public:	
+  gc_array_(vector<T*>& d):data{d}{}
+  virtual int childCnt() override {return data.size();}
+  virtual T* getChild(int p) override {return data[p];}
+};
+
+template <class T1,class T2> class gc_dict_ : public GCObject {
+  unordered_map<T1,T2*>& data;
+public:	
+  gc_dict_(unordered_map<T1,T2*>& d):data{d}{}
+  virtual void mark(){
+	if (!marked) {
+	  marked=true;
+	  for(auto&[k,o]:data) 
+	    o->mark();
+	 };
+  }
+  virtual void expand(int gen){
+	if (generation<gen) generation=gen; 
+	for(auto& [k,o]:data){
+	  if(o->generation<generation) 
+	    o->expand(generation);
+	 }
+  }
 };
