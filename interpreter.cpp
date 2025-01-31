@@ -23,6 +23,8 @@ FATTO:
 
 using namespace std;
 
+#include "gc.cpp"
+
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
 
 class StringIntern {
@@ -195,7 +197,7 @@ public:
 class obj;
 
 class pcodeIntConst: public ipcode {
-  obj* theValue;	
+  lockgc_ptr<obj> theValue;	
 public:
   explicit pcodeIntConst(int v);
   virtual void exec(interp& interpreter) const override;
@@ -431,10 +433,10 @@ pcode* makePCode(int c,const char* s){
 
 //static int theObjCounter=0;
 
-class obj {
+class obj : public GCObject {
 public:
   //obj() {theObjCounter++;}
-  virtual ~obj(){}; //{theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
+  //virtual ~obj(){}; //{theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
   virtual string print() const {throw domain_error("print not implemented");}
   virtual obj* load(int intern) {throw domain_error("load not implemented");}
   virtual obj* slice(const obj* idx) {throw domain_error("slice not implemented");}
@@ -497,7 +499,7 @@ public:
   const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
-pcodeIntConst::pcodeIntConst(int v):ipcode(v){code=P_INT_CONST;theValue=new intObj(v);}
+pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
@@ -562,12 +564,12 @@ public:
 };
 
 // i singleton degli oggetti che non richiedono tante copie ...
-obj* theTrue(new boolObj(true));
-obj* theFalse(new boolObj(false));
-obj* theNil(new nilObj());
+lockgc_ptr<obj> theTrue{new boolObj(true)};
+lockgc_ptr<obj> theFalse(new boolObj(false));
+lockgc_ptr<obj> theNil(new nilObj());
 
 obj* nilObj::eq(const obj* o) const {
-	return (o==theNil?theTrue:theFalse);
+  return (o==theNil?theTrue:theFalse);
 }
 
 obj* intObj::eq(const obj* o) const {
@@ -664,9 +666,9 @@ public:
     virtual string print() const override {return "float";}
 };
 
-obj* theIntType=new intType();
-obj* theStrType=new strType();
-obj* theFloatType=new floatType();
+lockgc_ptr<obj> theIntType{new intType()};
+lockgc_ptr<obj> theStrType{new strType()};
+lockgc_ptr<obj> theFloatType{new floatType()};
 
 // --- gli array e i dizionari
 
@@ -704,7 +706,7 @@ public:
 string arrayObj::print() const {
   string res="";
   if (a.size()>0) {
-    for(obj* o:a){
+    for(const obj* o:a){
 	  res+=","+o->print();
     }
     res+="]";
@@ -828,10 +830,10 @@ public:
   }
   int adx(int intern, obj* type, obj* value){add(intern,type,value);return 1;} // funzione per caricare le procedure c++ nei builtin
 };
-builtInContainer theBuiltIn;
+lockgc_ptr<builtInContainer> theBuiltIn{new builtInContainer};
 
 // il costruttore di un contesto che non specifica qual è il suo contesto di base riceve builtin come punto finale della ricerca
-contextObj::contextObj():superlevel{theBuiltIn}{}
+contextObj::contextObj():superlevel{*theBuiltIn}{}
 
 // --- contenitore che cerca in locale e nel modulo
 class procContextObj : public contextObj {
@@ -906,11 +908,16 @@ public:
   // i moduli caricati
   unordered_map<string,pcodeProgram*> modules;
   // dei valori che esistono sempre
-  //shared_ptr<boolObj> True{new boolObj(true)};
-  //shared_ptr<boolObj> False{new boolObj(false)};
-  //shared_ptr<obj> Nil{new nilObj()};
 };
 sys theSys;
+
+template <class T> class gc_array_ : public GCObject {
+  vector<T*>& data;
+public:	
+  gc_array_(vector<T*>& d):data{d}{}
+  virtual int childCnt() override {return data.size();}
+  virtual T* getChild(int p) override {return data[p];}
+};
 
 //#define PRINT_PCODE_EXECUTION
 
@@ -921,11 +928,11 @@ public:
   contextObj*& context;
   pcodeProgram& prg;
   bool stop;
+  gc_array_<obj>* stkobs;
   //
-  explicit interp(contextObj*& c, pcodeProgram& p):context{c},prg{p}{
+  explicit interp(contextObj*& c, pcodeProgram& p):context{c},prg{p},stkobs{new gc_array_<obj>(stack)}{
 	sp=-1;pc=0;stop=false;
 	currentSourceLine=0;
-	//prg=nullptr;
 	stack.reserve(20);
   }
   void run() {
@@ -977,7 +984,7 @@ public:
   builtin_##_fn_(){name=#_fn_;} \
   virtual void call(int parmCnt,interp& interpreter) override { getParms(parmCnt,interpreter);		  
 #define BUILTINEND(_fn_) }}; \
-  int add_builtin_##_fn_=theBuiltIn.adx(theStringIntern.add(#_fn_),theNil,new builtin_##_fn_());
+  int add_builtin_##_fn_=theBuiltIn->adx(theStringIntern.add(#_fn_),theNil,new builtin_##_fn_());
 
 /*	Esempio di traduzione per le funzioni c++ aggiunte ai builtin
 class hello : public cppFunc {
@@ -1101,7 +1108,7 @@ void procParm::initParms(procVars*& vars, interp& i, int parmCnt){
   for(int j=0;j<pnp;j++){
 	int p=prmOrder[j];  
 	//cout << "parm:" << theStringIntern.get(p) << " type:" << types[p]->print() << " value:" << (j<parmCnt?i.stack[sp+j]->print():"nil") << endl;
-	vars->add(p,types[p],(j<parmCnt?i.stack[sp+j]:theNil));
+	vars->add(p,types[p],(j<parmCnt?i.stack[sp+j]:static_cast<obj*>(theNil)));
   }
   // sistema lo stack togliendo i valori dei parametri passati alla funzione 
   for(int j=0;j<parmCnt;j++)
@@ -1360,7 +1367,7 @@ void pcodeNot::exec(interp& interpreter) const {
 void pcodePrint::exec(interp& interpreter) const {
   int i;
   for(i=1;i<=value;i++){
-    obj* o=interpreter.stack[interpreter.sp-value+i];
+    const obj* o=interpreter.stack[interpreter.sp-value+i];
 	cout << o->print();
   }
   cout << endl;
@@ -1517,8 +1524,9 @@ void test(const string& fn){
   // prova reale ...
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
-  contextObj* ctx=new contextObj();
-  interp intp(ctx,prg);
+  lockgc_ptr<contextObj> ctx{new contextObj()};
+  contextObj* cctx=ctx;
+  interp intp(cctx,prg);
   if (r) intp.run();
 }
 
