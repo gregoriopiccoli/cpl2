@@ -200,7 +200,7 @@ class pcodeIntConst: public ipcode {
   lockgc_ptr<obj> theValue;	
 public:
   explicit pcodeIntConst(int v);
-  ~pcodeIntConst() override {theValue=0;}
+  ~pcodeIntConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -208,7 +208,7 @@ class pcodeStrConst: public spcode {
   lockgc_ptr<obj> theValue;	
 public:
   explicit pcodeStrConst(const string& v);
-  ~pcodeStrConst() override {theValue=0;}
+  ~pcodeStrConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -1573,13 +1573,13 @@ int main(){
   //test_cc();
     
   stdGC().status();
-  theNil=0;
-  theTrue=0;
-  theFalse=0;
-  theIntType=0;
-  theStrType=0;
-  theFloatType=0;
-  theBuiltIn=0;
+  theNil=nullptr;
+  theTrue=nullptr;
+  theFalse=nullptr;
+  theIntType=nullptr;
+  theStrType=nullptr;
+  theFloatType=nullptr;
+  theBuiltIn=nullptr;
   cout << "intcache.size:" << intcache.size() << endl;
   for (auto o:intcache) o->unlock();
   stdGC().status();

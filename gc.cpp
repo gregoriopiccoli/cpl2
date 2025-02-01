@@ -164,7 +164,7 @@ class GCAuto: public GCObject {
 
 // puntatore SMART che implementa da solo la ricerca dei figli
 template <class T> class gc_ptr {
-  GCObject* ptr=0; // questo deve essere un oggetto che deriva da GCObject
+  GCObject* ptr=nullptr; // questo deve essere un oggetto che deriva da GCObject
 public:
   explicit gc_ptr(GCAuto* parent){parent->put(static_cast<gc_ptr<GCObject>*>(this));}
   T* operator->(){return (T*)ptr;}
@@ -184,9 +184,9 @@ inline GCObject* GCAuto::getChild(int p){
 // puntatore da usare nel programma (non nei dati) che tiene lockato l'oggetto che referenzia.
 // quando viene distrutto l'oggetto può essere reclamato.
 template <class T> class lockgc_ptr {
-  T* ptr=0; // questo deve essere un oggetto che deriva da GCObject
+  T* ptr; // questo deve essere un oggetto che deriva da GCObject
 public:
-  lockgc_ptr(){ptr=0;};
+  lockgc_ptr(){ptr=nullptr;};
   explicit lockgc_ptr(T* p){ptr=p;if(p) p->lock();};
   virtual ~lockgc_ptr(){if(ptr) ptr->unlock();}
   T* operator->(){return (T*)ptr;}
