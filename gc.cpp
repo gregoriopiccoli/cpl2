@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#define GC_OBJSLIM 5000 //10000
+#define GC_OBJSLIM 10000 //10000
 #define GC_GEN     5     //2
 
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
@@ -31,8 +31,8 @@ public:
 
 class GC {
   // insieme di tutti gli oggetti da gestire
-  unordered_set <GCObject*> objs;
-  //vector<GCObject*> objs;
+  //unordered_set <GCObject*> objs;
+  vector<GCObject*> objs;
   int maxgen;
   int objlimit=GC_OBJSLIM,added=0;
   long cnt=0,maxlive=0,maxsize=0;
@@ -46,7 +46,7 @@ public:
       int sz=0,locked=0;
       for(const auto& it:objs){
         if (it->locked>0) locked++;
-        delete it;
+        //delete it;
       }
       objs.clear();
       cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << " maxsize:" << maxsize << endl;
@@ -59,8 +59,8 @@ public:
           added=0;
           //cout << " autogc(" << g << ") " << objs.size() << endl;
       }
-      objs.insert(o); // aggiunge l'oggetto agli oggetti noti
-      //objs.push_back(o); // aggiunge l'oggetto agli oggetti noti
+      //objs.insert(o); // aggiunge l'oggetto agli oggetti noti
+      objs.push_back(o); // aggiunge l'oggetto agli oggetti noti
       added++; // conteggia gli oggetti aggiunti per far scattare il GC
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
@@ -117,7 +117,7 @@ inline void GC::sweep(int gen){
   bool shiftGen=gen<maxgen;
   if (objs.size()>maxsize) maxsize=objs.size();
   long m=0;
-  /**/
+  /*
   for (auto it=objs.begin();it!=objs.end();){
     if ((*it)->marked){
       // oggetto marcato, si deve far salire di generazione
@@ -136,8 +136,8 @@ inline void GC::sweep(int gen){
       //cout << "deleted " << ptr << endl;
     }
   }
+  */
   /**/
-  /*
   vector<GCObject*> nnn;
   for(auto& o:objs) {
 	if (o->marked){
@@ -153,7 +153,7 @@ inline void GC::sweep(int gen){
 	} 
   } 
   objs=nnn;
-  */ 
+  /**/ 
   if (m>maxlive) maxlive=m;
   //status();
 }
@@ -222,11 +222,13 @@ public:
 template <class T> class gc_array_ : public GCObject {
   vector<T*>& data;
 public:	
-  explicit gc_array_(vector<T*>& d):data{d}{}
+  explicit gc_array_(vector<T*>& d):data{d}{lock();}
+  virtual ~gc_array_(){unlock();}
   virtual int childCnt() override {return data.size();}
   virtual T* getChild(int p) override {return data[p];}
 };
 
+/*
 template <class T1,class T2> class gc_dict_ : public GCObject {
 protected:	
   unordered_map<T1,T2*>& data;
@@ -248,3 +250,4 @@ public:
   explicit gc_dict_(unordered_map<T1,T2*>& d):data{d}{}
 
 };
+*/

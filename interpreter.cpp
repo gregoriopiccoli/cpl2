@@ -473,9 +473,6 @@ public:
   virtual obj* _not() {throw domain_error("not not implemented");}
   virtual obj* is(const obj*) {throw domain_error("is not implemented");}
   //
-  // --- prova andata male ... riciclare porta via tanto tempo
-  //virtual void tryRecycle(const shared_ptr<obj>& r) const {};
-  //virtual void fix(int i){};
 };
 
 class nilObj: public obj {
@@ -502,29 +499,30 @@ public:
   virtual obj* gt(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
-  //virtual void reclaim() override;
+  virtual void reclaim() override;
   //
   const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
-/*
+
 vector<intObj*> intcache;
 
 void intObj::reclaim(){
   lock();
   intcache.push_back(this);
+  //cout << intcache.size() << endl;
 }
-*/
+
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  //if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;v->unlock();return v;}
+  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;v->unlock();return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
-  //if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value-oo->value;v->unlock();return v;}
+  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value-oo->value;v->unlock();return v;}
   return new intObj(value-oo->value);
 }
 
@@ -970,6 +968,7 @@ public:
 	currentSourceLine=0;
 	stack.reserve(20);
   }
+  //
   void run() {
 	stop=false;  
 	while(!stop){
@@ -1599,8 +1598,8 @@ int main(){
   theStrType=nullptr;
   theFloatType=nullptr;
   theBuiltIn=nullptr;
-  //cout << "intcache.size:" << intcache.size() << endl;
-  //for (auto o:intcache) o->unlock();
+  cout << "intcache.size:" << intcache.size() << endl;
+  for (auto o:intcache) o->unlock();
   stdGC().status();
   
 }
