@@ -63,7 +63,7 @@ public:
   virtual void exec(interp& interpreter) const {throw domain_error("not an executable pcode");};
   int getCode() const {return code;}
   virtual int getIntValue(){return 0;}
-  virtual string print(){return pcodetxt[code];}
+  virtual string print() const {return pcodetxt[code];}
 };
 
 class ipcode: public pcode {
@@ -72,7 +72,7 @@ protected:
 public:
   explicit ipcode(int i):value{i}{}
   virtual int getIntValue() override {return value;}
-  virtual string print() override {return string(pcodetxt[code])+" "+to_string(value);}
+  virtual string print() const override {return string(pcodetxt[code])+" "+to_string(value);}
 };
 
 class interningpcode: public pcode {
@@ -81,7 +81,7 @@ protected:
 public:
   explicit interningpcode(const string& s):value{theStringIntern.add(s)}{}
   virtual int getIntValue() override {return value;}
-  virtual string print() override {return string(pcodetxt[code])+" "+theStringIntern.get(value);}
+  virtual string print() const override {return string(pcodetxt[code])+" "+theStringIntern.get(value);}
 };
 
 class spcode: public pcode {
@@ -89,7 +89,7 @@ protected:
   string value;
 public:
   explicit spcode(const string& s):value{s}{}
-  virtual string print() override {return string(pcodetxt[code])+" "+value;}
+  virtual string print() const override {return string(pcodetxt[code])+" "+value;}
 };
 
 class pcodePlus: public pcode {
@@ -200,7 +200,7 @@ class pcodeIntConst: public ipcode {
   lockgc_ptr<obj> theValue;	
 public:
   explicit pcodeIntConst(int v);
-  ~pcodeIntConst(){theValue=0;}
+  ~pcodeIntConst() override {theValue=0;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -208,7 +208,7 @@ class pcodeStrConst: public spcode {
   lockgc_ptr<obj> theValue;	
 public:
   explicit pcodeStrConst(const string& v);
-  ~pcodeStrConst(){theValue=0;}
+  ~pcodeStrConst() override {theValue=0;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -499,13 +499,23 @@ public:
   virtual obj* gt(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
+  virtual void reclaim() override;
+  //
   const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
+
+vector<intObj*> intcache;
+
+void intObj::reclaim(){
+  lock();
+  intcache.push_back(this);
+}
 
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
+  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;v->unlock();return v;}
   return new intObj(value+oo->value);
 }
 
@@ -682,7 +692,7 @@ class arrayObj: public obj {
 	gc_array_<obj>* a_gc;
 public:
   arrayObj():a_gc{new gc_array_<obj>(a)}{}
-  explicit arrayObj(const int& sz){resize(sz);}
+  explicit arrayObj(const int& sz):a_gc{new gc_array_<obj>(a)}{resize(sz);}
   virtual obj* slice(const obj* idx) override {
 	    const intObj* pos=dynamic_cast<const intObj*>(idx);
 	    if (pos!=nullptr) 
@@ -947,7 +957,7 @@ public:
 	while(!stop){
 #ifdef PRINT_PCODE_EXECUTION
 	  //int instr=prg->get(pc)->getCode();
-	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " " << prg->get(pc)->print() << endl;
+	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " " << prg[pc].print() << endl;
 	  //cout << "pc:" << pc << " sp:" << sp << " " << prg->get(pc)->getCode() << " " << prg->get(pc)->print() << endl;
 #endif
 //#define TESTSWITCH
@@ -1495,9 +1505,11 @@ void test_cc(){
   prg.add(new pcodePrint(1));
   prg.add(new pcodePCodeEnd(9));
   
-  intObj* c_1(new intObj(1));
-  intObj* c_1000000(new intObj(1000000));
-  
+  //intObj* c_1(new intObj(1));
+  //intObj* c_1000000(new intObj(1000000));
+  lockgc_ptr<intObj> c_1(new intObj(1));
+  lockgc_ptr<intObj> c_1000000(new intObj(1000000));
+    
   // esecuzione
   prg[0].exec(intp);                                      // int type
   obj* i;                              //prg.get(1)->exec(intp); // var i
@@ -1568,6 +1580,8 @@ int main(){
   theStrType=0;
   theFloatType=0;
   theBuiltIn=0;
+  cout << "intcache.size:" << intcache.size() << endl;
+  for (auto o:intcache) o->unlock();
   stdGC().status();
   
 }
