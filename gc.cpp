@@ -5,7 +5,7 @@
 using namespace std;
 
 #define GC_OBJSLIM 1000 //10000
-#define GC_GEN 10       //2
+#define GC_GEN     10   //2
 
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
 class GCObject {
@@ -138,7 +138,7 @@ inline void GC::sweep(int gen){
 
 inline void GC::status(){
   cout << "objs " << objs.size() << " object x generation:";
-  int gen_cnt[maxgen+1],i,locked=0;
+  int gen_cnt[GC_GEN+1],i,locked=0;
   for(i=0;i<=maxgen;i++) gen_cnt[i]=0;
   for (const GCObject* const& it : objs){
     gen_cnt[it->generation]++;

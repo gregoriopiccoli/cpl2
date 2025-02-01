@@ -440,6 +440,9 @@ class obj : public GCObject {
 public:
   //obj() {theObjCounter++;}
   //virtual ~obj(){}; //{theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
+  virtual void mark() override {marked=true;}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;}
+  //  
   virtual string print() const {throw domain_error("print not implemented");}
   virtual obj* load(int intern) {throw domain_error("load not implemented");}
   virtual obj* slice(const obj* idx) {throw domain_error("slice not implemented");}
@@ -689,10 +692,16 @@ lockgc_ptr<obj> theFloatType{new floatType()};
 
 class arrayObj: public obj {
 	vector<obj*> a;
-	gc_array_<obj>* a_gc;
+	//gc_array_<obj>* a_gc;
 public:
-  arrayObj():a_gc{new gc_array_<obj>(a)}{}
-  explicit arrayObj(const int& sz):a_gc{new gc_array_<obj>(a)}{resize(sz);}
+  //arrayObj():a_gc{new gc_array_<obj>(a)}{}
+  //explicit arrayObj(const int& sz):a_gc{new gc_array_<obj>(a)}{resize(sz);}
+  arrayObj(){}
+  explicit arrayObj(const int& sz){resize(sz);}
+  //
+  virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) o->expand(gen);}
+  //
   virtual obj* slice(const obj* idx) override {
 	    const intObj* pos=dynamic_cast<const intObj*>(idx);
 	    if (pos!=nullptr) 
@@ -785,10 +794,15 @@ protected:
   contextObj& superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
   unordered_map<int,obj*> objs;              
   unordered_map<int,obj*> types;
-  gc_dict_<int,obj>* o_gc,*t_gc; 
+  //gc_dict_<int,obj>* o_gc,*t_gc; 
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
-  explicit contextObj(contextObj& sl):superlevel{sl},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
+  //explicit contextObj(contextObj& sl):superlevel{sl},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
+  explicit contextObj(contextObj& sl):superlevel{sl}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
+  //
+  virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:objs) o->mark();for(const auto& [k,o]:types) o->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:objs) o->expand(gen);for(const auto& [k,o]:types) o->expand(gen);}
+  //
   virtual void add(int intern, obj* type) {
 	//if (objs.contains(intern)) throw out_of_range("name already in context");
 	auto ff=objs.find(intern);
@@ -857,7 +871,8 @@ public:
 lockgc_ptr<builtInContainer> theBuiltIn{new builtInContainer};
 
 // il costruttore di un contesto che non specifica qual è il suo contesto di base riceve builtin come punto finale della ricerca
-contextObj::contextObj():superlevel{*theBuiltIn},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{};
+//contextObj::contextObj():superlevel{*theBuiltIn},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{};
+contextObj::contextObj():superlevel{*theBuiltIn}{};
 
 // --- contenitore che cerca in locale e nel modulo
 class procContextObj : public contextObj {
