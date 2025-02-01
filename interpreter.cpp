@@ -502,28 +502,29 @@ public:
   virtual obj* gt(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
-  virtual void reclaim() override;
+  //virtual void reclaim() override;
   //
   const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
-
+/*
 vector<intObj*> intcache;
 
 void intObj::reclaim(){
   lock();
   intcache.push_back(this);
 }
-
+*/
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;v->unlock();return v;}
+  //if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;v->unlock();return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
+  //if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value-oo->value;v->unlock();return v;}
   return new intObj(value-oo->value);
 }
 
@@ -743,9 +744,11 @@ string arrayObj::print() const {
 
 class dictObj : public obj {
   unordered_map<string,obj*> map;
-  gc_dict_<string,obj>* map_gc;
 public:
-  dictObj():map_gc{new gc_dict_<string,obj>(map)}{}
+  //
+  virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:map) o->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:map) o->expand(gen);}  
+  //
   virtual obj* slice(const obj* idx) override {
 	 string key=idx->print();
      //if (map.contains(key)) 
@@ -1064,9 +1067,14 @@ protected:
   int name,pc;
   contextObj*& ctx;
   pcodeProgram& prg;
-  procParm* prm=new procParm();
+  procParm* prm;
 public:
   procObj(int n, interp& i);
+  ~procObj(){prm->unlock();}
+  //
+  virtual void mark() override {if (!marked) {prm->mark();ctx->mark();} obj::mark();}
+  virtual void expand(int gen) override {prm->expand(gen);ctx->expand(gen);obj::expand(gen);}  
+  //
   virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
   virtual procVars* mkVars(){return new procVars(*ctx);}
@@ -1078,6 +1086,10 @@ protected:
   obj* result_value;
 public:	
   funcVars(contextObj& ctx,obj*& t):procVars{ctx},result_type{t},result_value{theNil}{}
+  //
+  virtual void mark() override {if (!marked) {result_value->mark();} procVars::mark();}
+  virtual void expand(int gen) override {result_value->expand(gen);procVars::expand(gen);}  
+  //
   virtual void store_result(obj* value) override {result_value=value;}
   virtual obj* getResult() override {return result_value;}
 };
@@ -1086,12 +1098,13 @@ class funcObj: public procObj {
 protected:
   obj*& result_type;
 public:  
-  funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{}
+  funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{result_type->lock();}
   virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual procVars* mkVars()override {return new funcVars(*ctx,result_type);}
 };
 
 procObj::procObj(int n, interp& i):ctx{i.context},prg{i.prg}{
+  prm=new procParm();
   name=n;
   //prg=&i.prg; // tiene un puntatore al codice
   // ora può creare il blocco dei parametri, così viene creata una volta la struttura che poi servirà a processare i parametri dallo stack  
@@ -1114,6 +1127,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   contextObj* retCtx=interpreter.context;  // il contesto attuale dell'interprete
   // setta l'interprete allo stato della procedura
   procVars* vars=mkVars();                        // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura 
+  vars->lock();
   // ^--- func/proc shared_ptr<contextObj> vars=make_shared<contextObj>(*ctx); // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura
   prm->initParms(vars,interpreter,parmCnt);                  // crea le variabili dalla lista dei parametri
   // ora ha tolto dallo stack i parametri e sono state create delle variabili locali inizalizzate con i valori passati DA FARE: valori di default
@@ -1131,6 +1145,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   interpreter.prg=retPrg;
   interpreter.context=retCtx;
   interpreter.stop=false;
+  vars->unlock();
 }
 
 void procParm::initParms(procVars*& vars, interp& i, int parmCnt){
@@ -1458,30 +1473,18 @@ void makeProcOrFunc(interp& interpreter, int value, obj*& p, obj* type){
 
 void pcodeProc::exec(interp& interpreter) const {
   obj* p=new procObj(value,interpreter);
+  p->lock();
   makeProcOrFunc(interpreter,value,p,theNil);
-  /*
-  int pc=interpreter.pc;
-  //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter.pc <<endl;
-  // --- aggiunge la procedura al contesto attuale
-  shared_ptr<obj> p(new procObj(value,interpreter));
-  interpreter.context->add(value,theNil,p);
-  // --- salta il codice della procedura
-  pc=interpreter.pc;
-  //cout << "cerca fine proc " << pc << endl;
-  int c=interpreter.prg->get(pc++)->getCode();
-  while (c!=P_ENDPROC)
-	c=interpreter.prg->get(pc++)->getCode();
-  interpreter.pc=pc-1;
-  //cout << "trovato fine " << pc-1 << endl;
-  */
+  p->unlock();
 }
 
 void pcodeFunc::exec(interp& interpreter) const {
   obj* t=interpreter.stack[interpreter.sp--];
-  interpreter.stack.pop_back();	
+  interpreter.stack.pop_back();t->lock();
   //cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
-  obj* f=new funcObj(value,interpreter,t);
+  obj* f=new funcObj(value,interpreter,t);f->lock();
   makeProcOrFunc(interpreter,value,f,t);
+  t->unlock();f->unlock();
 }
 
 void pcodeStoreResult::exec(interp& interpreter) const {
@@ -1580,10 +1583,11 @@ int bench_cc(){
 }
 
 int main(){
-  bench("primo.pcd");
+  //bench("primo.pcd");
   //test("primo.pcd");
   //test("terzo.pcd");
-  //test("fib.pcd");
+  test("fib.pcd");
+  //bench("fib.pcd");
   //bench_cc();
   //test_cc();
     
@@ -1595,8 +1599,8 @@ int main(){
   theStrType=nullptr;
   theFloatType=nullptr;
   theBuiltIn=nullptr;
-  cout << "intcache.size:" << intcache.size() << endl;
-  for (auto o:intcache) o->unlock();
+  //cout << "intcache.size:" << intcache.size() << endl;
+  //for (auto o:intcache) o->unlock();
   stdGC().status();
   
 }
