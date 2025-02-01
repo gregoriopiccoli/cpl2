@@ -440,6 +440,9 @@ class obj : public GCObject {
 public:
   //obj() {theObjCounter++;}
   //virtual ~obj(){}; //{theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
+  virtual void mark() override {marked=true;}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;}
+  //  
   virtual string print() const {throw domain_error("print not implemented");}
   virtual obj* load(int intern) {throw domain_error("load not implemented");}
   virtual obj* slice(const obj* idx) {throw domain_error("slice not implemented");}
@@ -470,9 +473,6 @@ public:
   virtual obj* _not() {throw domain_error("not not implemented");}
   virtual obj* is(const obj*) {throw domain_error("is not implemented");}
   //
-  // --- prova andata male ... riciclare porta via tanto tempo
-  //virtual void tryRecycle(const shared_ptr<obj>& r) const {};
-  //virtual void fix(int i){};
 };
 
 class nilObj: public obj {
@@ -509,6 +509,7 @@ vector<intObj*> intcache;
 void intObj::reclaim(){
   lock();
   intcache.push_back(this);
+  //cout << intcache.size() << endl;
 }
 
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
@@ -521,6 +522,7 @@ obj* intObj::plus(const obj* o) const {
 
 obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
+  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value-oo->value;v->unlock();return v;}
   return new intObj(value-oo->value);
 }
 
@@ -689,10 +691,16 @@ lockgc_ptr<obj> theFloatType{new floatType()};
 
 class arrayObj: public obj {
 	vector<obj*> a;
-	gc_array_<obj>* a_gc;
+	//gc_array_<obj>* a_gc;
 public:
-  arrayObj():a_gc{new gc_array_<obj>(a)}{}
-  explicit arrayObj(const int& sz):a_gc{new gc_array_<obj>(a)}{resize(sz);}
+  //arrayObj():a_gc{new gc_array_<obj>(a)}{}
+  //explicit arrayObj(const int& sz):a_gc{new gc_array_<obj>(a)}{resize(sz);}
+  arrayObj(){}
+  explicit arrayObj(const int& sz){resize(sz);}
+  //
+  virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) o->expand(gen);}
+  //
   virtual obj* slice(const obj* idx) override {
 	    const intObj* pos=dynamic_cast<const intObj*>(idx);
 	    if (pos!=nullptr) 
@@ -734,9 +742,11 @@ string arrayObj::print() const {
 
 class dictObj : public obj {
   unordered_map<string,obj*> map;
-  gc_dict_<string,obj>* map_gc;
 public:
-  dictObj():map_gc{new gc_dict_<string,obj>(map)}{}
+  //
+  virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:map) o->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:map) o->expand(gen);}  
+  //
   virtual obj* slice(const obj* idx) override {
 	 string key=idx->print();
      //if (map.contains(key)) 
@@ -785,10 +795,15 @@ protected:
   contextObj& superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
   unordered_map<int,obj*> objs;              
   unordered_map<int,obj*> types;
-  gc_dict_<int,obj>* o_gc,*t_gc; 
+  //gc_dict_<int,obj>* o_gc,*t_gc; 
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
-  explicit contextObj(contextObj& sl):superlevel{sl},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
+  //explicit contextObj(contextObj& sl):superlevel{sl},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
+  explicit contextObj(contextObj& sl):superlevel{sl}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
+  //
+  virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:objs) o->mark();for(const auto& [k,o]:types) o->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:objs) o->expand(gen);for(const auto& [k,o]:types) o->expand(gen);}
+  //
   virtual void add(int intern, obj* type) {
 	//if (objs.contains(intern)) throw out_of_range("name already in context");
 	auto ff=objs.find(intern);
@@ -857,7 +872,8 @@ public:
 lockgc_ptr<builtInContainer> theBuiltIn{new builtInContainer};
 
 // il costruttore di un contesto che non specifica qual è il suo contesto di base riceve builtin come punto finale della ricerca
-contextObj::contextObj():superlevel{*theBuiltIn},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{};
+//contextObj::contextObj():superlevel{*theBuiltIn},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{};
+contextObj::contextObj():superlevel{*theBuiltIn}{};
 
 // --- contenitore che cerca in locale e nel modulo
 class procContextObj : public contextObj {
@@ -952,6 +968,7 @@ public:
 	currentSourceLine=0;
 	stack.reserve(20);
   }
+  //
   void run() {
 	stop=false;  
 	while(!stop){
@@ -1049,9 +1066,14 @@ protected:
   int name,pc;
   contextObj*& ctx;
   pcodeProgram& prg;
-  procParm* prm=new procParm();
+  procParm* prm;
 public:
   procObj(int n, interp& i);
+  ~procObj(){prm->unlock();}
+  //
+  virtual void mark() override {if (!marked) {prm->mark();ctx->mark();} obj::mark();}
+  virtual void expand(int gen) override {prm->expand(gen);ctx->expand(gen);obj::expand(gen);}  
+  //
   virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
   virtual procVars* mkVars(){return new procVars(*ctx);}
@@ -1063,6 +1085,10 @@ protected:
   obj* result_value;
 public:	
   funcVars(contextObj& ctx,obj*& t):procVars{ctx},result_type{t},result_value{theNil}{}
+  //
+  virtual void mark() override {if (!marked) {result_value->mark();} procVars::mark();}
+  virtual void expand(int gen) override {result_value->expand(gen);procVars::expand(gen);}  
+  //
   virtual void store_result(obj* value) override {result_value=value;}
   virtual obj* getResult() override {return result_value;}
 };
@@ -1071,12 +1097,13 @@ class funcObj: public procObj {
 protected:
   obj*& result_type;
 public:  
-  funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{}
+  funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{result_type->lock();}
   virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual procVars* mkVars()override {return new funcVars(*ctx,result_type);}
 };
 
 procObj::procObj(int n, interp& i):ctx{i.context},prg{i.prg}{
+  prm=new procParm();
   name=n;
   //prg=&i.prg; // tiene un puntatore al codice
   // ora può creare il blocco dei parametri, così viene creata una volta la struttura che poi servirà a processare i parametri dallo stack  
@@ -1099,6 +1126,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   contextObj* retCtx=interpreter.context;  // il contesto attuale dell'interprete
   // setta l'interprete allo stato della procedura
   procVars* vars=mkVars();                        // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura 
+  vars->lock();
   // ^--- func/proc shared_ptr<contextObj> vars=make_shared<contextObj>(*ctx); // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura
   prm->initParms(vars,interpreter,parmCnt);                  // crea le variabili dalla lista dei parametri
   // ora ha tolto dallo stack i parametri e sono state create delle variabili locali inizalizzate con i valori passati DA FARE: valori di default
@@ -1116,6 +1144,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   interpreter.prg=retPrg;
   interpreter.context=retCtx;
   interpreter.stop=false;
+  vars->unlock();
 }
 
 void procParm::initParms(procVars*& vars, interp& i, int parmCnt){
@@ -1443,30 +1472,18 @@ void makeProcOrFunc(interp& interpreter, int value, obj*& p, obj* type){
 
 void pcodeProc::exec(interp& interpreter) const {
   obj* p=new procObj(value,interpreter);
+  p->lock();
   makeProcOrFunc(interpreter,value,p,theNil);
-  /*
-  int pc=interpreter.pc;
-  //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter.pc <<endl;
-  // --- aggiunge la procedura al contesto attuale
-  shared_ptr<obj> p(new procObj(value,interpreter));
-  interpreter.context->add(value,theNil,p);
-  // --- salta il codice della procedura
-  pc=interpreter.pc;
-  //cout << "cerca fine proc " << pc << endl;
-  int c=interpreter.prg->get(pc++)->getCode();
-  while (c!=P_ENDPROC)
-	c=interpreter.prg->get(pc++)->getCode();
-  interpreter.pc=pc-1;
-  //cout << "trovato fine " << pc-1 << endl;
-  */
+  p->unlock();
 }
 
 void pcodeFunc::exec(interp& interpreter) const {
   obj* t=interpreter.stack[interpreter.sp--];
-  interpreter.stack.pop_back();	
+  interpreter.stack.pop_back();t->lock();
   //cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
-  obj* f=new funcObj(value,interpreter,t);
+  obj* f=new funcObj(value,interpreter,t);f->lock();
   makeProcOrFunc(interpreter,value,f,t);
+  t->unlock();f->unlock();
 }
 
 void pcodeStoreResult::exec(interp& interpreter) const {
@@ -1565,10 +1582,11 @@ int bench_cc(){
 }
 
 int main(){
-  bench("primo.pcd");
+  //bench("primo.pcd");
   //test("primo.pcd");
   //test("terzo.pcd");
-  //test("fib.pcd");
+  test("fib.pcd");
+  //bench("fib.pcd");
   //bench_cc();
   //test_cc();
     

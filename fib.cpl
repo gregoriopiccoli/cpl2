@@ -14,7 +14,8 @@ func int fib(int n)
   end
 end
 
-? fib(0)
+? '---------'
+--? fib(0)
 --? fib(1)
 --? fib(2)
 --? fib(3)

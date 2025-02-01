@@ -4,8 +4,8 @@
 
 using namespace std;
 
-#define GC_OBJSLIM 1000 //10000
-#define GC_GEN 10       //2
+#define GC_OBJSLIM 10000 //10000
+#define GC_GEN     5     //2
 
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
 class GCObject {
@@ -31,10 +31,11 @@ public:
 
 class GC {
   // insieme di tutti gli oggetti da gestire
-  unordered_set <GCObject*> objs;
+  //unordered_set <GCObject*> objs;
+  vector<GCObject*> objs;
   int maxgen;
   int objlimit=GC_OBJSLIM,added=0;
-  long cnt=0,maxlive=0;
+  long cnt=0,maxlive=0,maxsize=0;
   //
   void mark(int gen); // marca tutti gli oggetti raggiungibili della generazione specificata,
                       // quelli di generazioni successive sono considerati raggiunti
@@ -45,10 +46,10 @@ public:
       int sz=0,locked=0;
       for(const auto& it:objs){
         if (it->locked>0) locked++;
-        delete it;
+        //delete it;
       }
       objs.clear();
-      cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << endl;
+      cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << " maxsize:" << maxsize << endl;
     }
   void add(GCObject* o){ // aggiunge un oggetto agli oggetti che gestisce, se è il caso chiama la garbage collection
       if (added>objlimit) {
@@ -58,12 +59,13 @@ public:
           added=0;
           //cout << " autogc(" << g << ") " << objs.size() << endl;
       }
-      objs.insert(o); // aggiunge l'oggetto agli oggetti noti
+      //objs.insert(o); // aggiunge l'oggetto agli oggetti noti
+      objs.push_back(o); // aggiunge l'oggetto agli oggetti noti
       added++; // conteggia gli oggetti aggiunti per far scattare il GC
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
       }
-  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);}
+  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);objlimit=maxlive+GC_OBJSLIM;}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
   void status();
@@ -113,7 +115,9 @@ inline void GC::sweep(int gen){
   // tutti gli oggetti di generazione superiore a "gen" o raggiungibili sono stati marcati
   // quelli non marcati sono da reclamare
   bool shiftGen=gen<maxgen;
+  if (objs.size()>maxsize) maxsize=objs.size();
   long m=0;
+  /*
   for (auto it=objs.begin();it!=objs.end();){
     if ((*it)->marked){
       // oggetto marcato, si deve far salire di generazione
@@ -132,13 +136,31 @@ inline void GC::sweep(int gen){
       //cout << "deleted " << ptr << endl;
     }
   }
+  */
+  /**/
+  vector<GCObject*> nnn;
+  for(auto& o:objs) {
+	if (o->marked){
+      if (shiftGen && o->generation<=gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
+        o->generation++;
+        //cout << (*it) << " generation " << (*it)->generation << endl;
+      }
+      nnn.push_back(o);
+      m++;
+	} else {
+      //delete ptr;
+      o->reclaim();
+	} 
+  } 
+  objs=nnn;
+  /**/ 
   if (m>maxlive) maxlive=m;
   //status();
 }
 
 inline void GC::status(){
   cout << "objs " << objs.size() << " object x generation:";
-  int gen_cnt[maxgen+1],i,locked=0;
+  int gen_cnt[GC_GEN+1],i,locked=0;
   for(i=0;i<=maxgen;i++) gen_cnt[i]=0;
   for (const GCObject* const& it : objs){
     gen_cnt[it->generation]++;
@@ -200,11 +222,13 @@ public:
 template <class T> class gc_array_ : public GCObject {
   vector<T*>& data;
 public:	
-  explicit gc_array_(vector<T*>& d):data{d}{}
+  explicit gc_array_(vector<T*>& d):data{d}{lock();}
+  virtual ~gc_array_(){unlock();}
   virtual int childCnt() override {return data.size();}
   virtual T* getChild(int p) override {return data[p];}
 };
 
+/*
 template <class T1,class T2> class gc_dict_ : public GCObject {
 protected:	
   unordered_map<T1,T2*>& data;
@@ -226,3 +250,4 @@ public:
   explicit gc_dict_(unordered_map<T1,T2*>& d):data{d}{}
 
 };
+*/
