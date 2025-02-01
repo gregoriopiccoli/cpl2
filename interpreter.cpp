@@ -1202,6 +1202,7 @@ void pcodeLe::exec(interp& interpreter) const {
   interpreter.stack.pop_back();
 }
 
+
 void pcodeGe::exec(interp& interpreter) const {
   const obj* obj2=interpreter.stack[interpreter.sp--];
   const obj* obj1=interpreter.stack[interpreter.sp];
@@ -1480,7 +1481,6 @@ void test_cc(){
   pcodeProgram prg;	
   contextObj* ctx=new contextObj();
   interp intp(ctx,prg);
-  //intp.prg=&prg;
   theStringIntern.add("i");
   //
   prg.add(new pcodeIntType());     // 0: INT_TYPE
