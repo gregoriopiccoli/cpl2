@@ -1,11 +1,18 @@
+/*
+DA FARE:
+migliorare esplorazione quando si cambia generazione, ora ricerca sempre ...
+supportare più di 2 generazioni (ora scandice 0,1 o max)  
+*/
 
 #include <cassert>
 #include <unordered_set>
 
 using namespace std;
 
-#define GC_OBJSLIM 10000 //10000
-#define GC_GEN     5     //2
+#define GC_OBJSLIM 2000 //10000
+#define GC_GEN     8     //2
+
+int gc_ending=0;
 
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
 class GCObject {
@@ -19,9 +26,9 @@ protected:
 public:
   GCObject();
   virtual ~GCObject(){ /* cout << "reclaimed " << this << endl;*/};
-  int lock(){return ++locked;};
-  int unlock(){assert(locked>0);return --locked;};
-  int lockCnt(){return locked;}
+  virtual int lock(){return ++locked;};
+  virtual int unlock(){ if (locked==0 && !gc_ending) {cout << print() << endl; assert(locked>0);} return --locked;};
+  virtual int lockCnt(){return locked;}
   //
   int generation;
   virtual void mark(){if (!marked) {marked=true;for(int i=0;i<childCnt();i++){auto c=getChild(i);if(c) c->mark();}};}
@@ -37,6 +44,8 @@ public:
   }
   //
   friend class GC;
+  //
+  virtual string print() const {return "untyped obj";}
 };
 
 class GC {
@@ -53,23 +62,27 @@ class GC {
 public:
   explicit GC(int m){maxgen=m;}
   virtual ~GC(){ // distrugge il GC, elimina tutti gli oggetti ancora vivi così viene chiamato il loro distruttore
+	  //cout << "distrugge il GC, elimina tutti gli oggetti ancora vivi per chiamare il distruttore\n";
+	  gc_ending=1;
       int sz=0,locked=0;
       for(const auto& it:objs){
-        if (it->locked>0) 
-          locked++;
-        //else   
-          delete it;
-      }
+        if (it->locked>0) {
+			locked++;
+			//cout << "locked on closing:" << it->print() << endl;
+		}
+        delete it;
+	  }
       objs.clear();
       cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << " maxsize:" << maxsize << endl;
     }
   void add(GCObject* o){ // aggiunge un oggetto agli oggetti che gestisce, se è il caso chiama la garbage collection
       if (added>objlimit) {
-          int g=rand()%100==0?maxgen:(rand()%10==0?1:0); // ogni 10 collect(1), ogni 100 collect maxgen
-          //cout << objs.size();
+          //int g=rand()%100==0?maxgen:(rand()%10==0?1:0); // ogni 10 collect(1), ogni 100 collect maxgen
+          int g=0; while (rand()%2==1 && g<maxgen) g++;
+          //cout << objs.size() << " collecting gen: " << g;
           collect(g);
           added=0;
-          //cout << " autogc(" << g << ") " << objs.size() << endl;
+          //cout << " after: " << objs.size() << endl;
       }
       //objs.insert(o); // aggiunge l'oggetto agli oggetti noti
       objs.push_back(o); // aggiunge l'oggetto agli oggetti noti
@@ -77,7 +90,8 @@ public:
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
       }
-  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);objlimit=maxlive+GC_OBJSLIM;}
+  //void collect(int gen=0){if(gen>maxgen) gen=maxgen;cout << "mark\n";mark(gen);cout<<"sweep\n";sweep(gen);cout << "collected\n";}
+  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
   void status();
@@ -89,7 +103,15 @@ public:
     };
     int old=maxgen; maxgen=gen;return old; // ritorna il vecchio numero di generazioni
   }
+  void printLocked(){
+	for(auto& o:objs) 
+	  if (o->locked>0)
+	    cout << o->print() << endl;
+  }
 };
+
+
+inline GC& stdGC(){return GC::getGC();}
 
 inline GCObject::GCObject(){
   generation=0;
@@ -105,19 +127,24 @@ inline void GC::mark(int gen){
 
   // esegue prima la marcatura usando l'informazione delle generazioni: tutti gli oggetti di generazioni più alte di quella da reclamare marcano i loro figli con la loro generazione
   // in questo modo gli oggetti che sono vivi da molto tempo vengono esplorati raramente dal "mark" ricorsivo
+  //if (gc_ending) cout << "inizio expand\n";
   for(const auto& it:objs){
+	//if (gc_ending && it->generation>gen) {cout << it->print() << " gen:" << it->generation << endl;}
     if (it->generation>gen)       // se l'oggetto è maggiore della generazione da reclamare
       it->expand(it->generation); // porta alla sua generazione tutti i suoi discendenti; equivale alla marcatura, ma molto più persistente
   }
+  //if (gc_ending) cout << "fine expand\n";
   // smarca gli oggetti che potrebbero essere rilasciati
   for(const auto& it : objs){
     it->marked=(it->generation>gen); // marca come non raggiunti tutti gli oggetti di generazione minore di "gen"
   }
+  //if (gc_ending) cout << "fine mark per gen\n";
   // percorre tutti gli oggetti che appaiono raggiungibili
   for (const auto& it : objs){
       if (it->locked /*&& !it->marked*/)  // se l'oggetto è parte degli oggetti raggiungibili da programma ed è di una generazione che può essere reclamata
         it->mark();                   // lo marca e marca tutti gli oggetti raggiungibili da questo oggetto
   }
+  //if (gc_ending) cout << "fine mark per lock\n";
   // ora tutti gli oggetti di generazione minore o uguale a "gen" (quella da reclamare) sono stati marcati se sono ancora raggiungibili
   // tutti gli oggetti di generazione maggiore a "gen" sono stati marcati
   // tutti gli oggetti collegati a oggetti di generazioni più vecchie sono stati allineati alla generazione del padre
@@ -183,8 +210,6 @@ inline void GC::status(){
   cout << " locked:" << locked << endl;
 }
 
-inline GC& stdGC(){return GC::getGC();}
-
 //// Sistema per automatizzare la ricerca dei figli (DA FARE: commentare)
 
 template <class T> class gc_ptr;
@@ -233,11 +258,18 @@ public:
 
 template <class T> class gc_array_ : public GCObject {
   vector<T*>& data;
+  bool stop;
 public:	
-  explicit gc_array_(vector<T*>& d):data{d}{lock();}
-  virtual ~gc_array_() override {unlock();}
-  virtual int childCnt() override {return data.size();}
+  explicit gc_array_(vector<T*>& d):data{d}{lock();stop=false;}
+  virtual int childCnt() override {return (stop?0:data.size());}
+  virtual int unlock() override {
+    locked--;
+    stop=(locked==0);
+    //cout << "gc array locked:"<< locked << " stop:" << stop << endl; 
+    return locked;
+  }
   virtual T* getChild(int p) override {return data[p];}
+  virtual string print() const override {return "array locker";}
 };
 
 /*

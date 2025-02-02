@@ -443,7 +443,7 @@ public:
   virtual void mark() override {marked=true;}
   virtual void expand(int gen) override {if (generation<gen) generation=gen;}
   //  
-  virtual string print() const {throw domain_error("print not implemented");}
+  virtual string print() const override {throw domain_error("print not implemented");}
   virtual obj* load(int intern) {throw domain_error("load not implemented");}
   virtual obj* slice(const obj* idx) {throw domain_error("slice not implemented");}
   virtual void store(int intern, obj* value) {throw domain_error("store not implemented");}
@@ -504,11 +504,20 @@ public:
   const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
-vector<intObj*> intcache;
+class intCache {
+  vector<intObj*> ints;
+public:
+  ~intCache(){for(auto o:ints) delete o;}  
+  void add(intObj* i){ints.push_back(i);}
+  intObj* get(){intObj* r=ints.back();ints.pop_back();return r;}
+  int size(){return ints.size();}
+};
+	
+intCache theIntCache;
 
 bool intObj::reclaim(){
   generation=0;
-  intcache.push_back(this);
+  theIntCache.add(this);
   //cout << intcache.size() << endl;
   return false;
 }
@@ -517,13 +526,13 @@ pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
-  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value-oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
   return new intObj(value-oo->value);
 }
 
@@ -700,7 +709,7 @@ public:
   explicit arrayObj(const int& sz){resize(sz);}
   //
   virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) o->expand(gen);}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) {if (o->generation<gen) o->expand(gen);}}
   //
   virtual obj* slice(const obj* idx) override {
 	    const intObj* pos=dynamic_cast<const intObj*>(idx);
@@ -746,7 +755,7 @@ class dictObj : public obj {
 public:
   //
   virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:map) o->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:map) o->expand(gen);}  
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:map) {if (o->generation<gen) o->expand(gen);}}  
   //
   virtual obj* slice(const obj* idx) override {
 	 string key=idx->print();
@@ -793,52 +802,49 @@ string dictObj::print() const {
 
 class contextObj : public obj {
 protected:
-  contextObj& superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
+  contextObj* superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
   unordered_map<int,obj*> objs;              
   unordered_map<int,obj*> types;
-  //gc_dict_<int,obj>* o_gc,*t_gc; 
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
-  //explicit contextObj(contextObj& sl):superlevel{sl},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
-  explicit contextObj(contextObj& sl):superlevel{sl}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
+  explicit contextObj(contextObj* sl):superlevel{sl}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
   //
-  virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:objs) o->mark();for(const auto& [k,o]:types) o->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:objs) o->expand(gen);for(const auto& [k,o]:types) o->expand(gen);}
+  virtual void mark() override {if (!marked) {marked=true;for(auto const& [k,o]:objs) o->mark();for(auto const& [k,o]:types) o->mark();}}
+  virtual void expand(int gen) override {
+	if (generation<gen) generation=gen;
+	for(auto const& [k,o]:objs) {if (o->generation<gen) o->expand(gen);} 
+	for(auto const& [k,o]:types) {if (o->generation<gen) o->expand(gen);}
+  }
   //
   virtual void add(int intern, obj* type) {
-	//if (objs.contains(intern)) throw out_of_range("name already in context");
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()) throw out_of_range("name already in context");
 	objs[intern]=theNil;
 	types[intern]=type;
   }
   virtual void add(int intern, obj* type, obj* value) {
-	//if (objs.contains(intern)) throw out_of_range("name already in context");
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()) throw out_of_range("name already in context");
 	objs[intern]=value;
 	types[intern]=type;
   }
   virtual obj* load(int intern) override {
-    //if (objs.contains(intern)) return objs[intern];
     auto ff=objs.find(intern);
     if (ff!=objs.end()) return ff->second;
-    return superlevel.load(intern);
+    return superlevel->load(intern);
   }
   virtual void store(int intern, obj* value) override {
-	//if (objs.contains(intern)){
-	//  objs[intern]=value;
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()){
 	  ff->second=value;	
 	} else {
-	  superlevel.store(intern,value);
+	  superlevel->store(intern,value);
     }
   }
   virtual string print() const override {
-	string s="";
-	for(auto [k,t]:types){
-		s+=","+t->print()+" "+theStringIntern.get(k);
+	string s="container ";
+	for(auto const& [k,t]:types){
+		s+=","+t->print()+" "+theStringIntern.get(k);+" ("+objs.at(k)->print()+")";
 	}
 	return s;
   }
@@ -856,8 +862,6 @@ public:
 	throw out_of_range(err);
   }
   virtual void store(int intern, obj* value) override {
-	//if (objs.contains(intern)){
-	//	objs[intern]=value;  
 	auto ff=objs.find(intern);  
 	if (ff!=objs.end()){
 	  ff->second=value;
@@ -874,7 +878,7 @@ lockgc_ptr<builtInContainer> theBuiltIn{new builtInContainer};
 
 // il costruttore di un contesto che non specifica qual è il suo contesto di base riceve builtin come punto finale della ricerca
 //contextObj::contextObj():superlevel{*theBuiltIn},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{};
-contextObj::contextObj():superlevel{*theBuiltIn}{};
+contextObj::contextObj():superlevel{theBuiltIn}{};
 
 // --- contenitore che cerca in locale e nel modulo
 class procContextObj : public contextObj {
@@ -959,16 +963,17 @@ class interp {
 public:
   vector<obj*> stack;
   int sp,pc,currentSourceLine;
-  contextObj*& context;
+  contextObj* context;
   pcodeProgram& prg;
   bool stop;
   gc_array_<obj>* stack_gc;
   //
-  explicit interp(contextObj*& c, pcodeProgram& p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{
+  explicit interp(contextObj* c, pcodeProgram& p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{
 	sp=-1;pc=0;stop=false;
 	currentSourceLine=0;
 	stack.reserve(20);
   }
+  ~interp(){stack_gc->unlock();};
   //
   void run() {
 	stop=false;  
@@ -1016,7 +1021,7 @@ public:
 };
 
 #define BUILTIN(_fn_) class builtin_##_fn_ : public cppFunc { public: \
-  builtin_##_fn_(){name=#_fn_;lock();} \
+  builtin_##_fn_(){name=#_fn_;/*lock();*/} \
   virtual void call(int parmCnt,interp& interpreter) override { getParms(parmCnt,interpreter);		  
 #define BUILTINEND(_fn_) }}; \
   int add_builtin_##_fn_=theBuiltIn->adx(theStringIntern.add(#_fn_),theNil,new builtin_##_fn_());
@@ -1041,7 +1046,7 @@ BUILTINEND(hello)
 
 class procVars : public contextObj {
 public:	
-  explicit procVars(contextObj& ctx):contextObj{ctx}{}
+  explicit procVars(contextObj* ctx):contextObj{ctx}{}
   virtual obj* getResult(){return theNil;}
 };
 
@@ -1065,7 +1070,7 @@ public:
 class procObj : public obj {
 protected:
   int name,pc;
-  contextObj*& ctx;
+  contextObj* ctx;
   pcodeProgram& prg;
   procParm* prm;
 public:
@@ -1076,22 +1081,30 @@ public:
   procObj(procObj&) = delete;
   //
   virtual void mark() override {if (!marked) {prm->mark();ctx->mark();} obj::mark();}
-  virtual void expand(int gen) override {prm->expand(gen);ctx->expand(gen);obj::expand(gen);}  
+  virtual void expand(int gen) override {
+	if (prm->generation<gen) prm->expand(gen); 
+	if (ctx->generation<gen) ctx->expand(gen);
+	obj::expand(gen);
+  }  
   //
   virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
-  virtual procVars* mkVars(){return new procVars(*ctx);}
+  virtual procVars* mkVars(){return new procVars(ctx);}
 };
 
 class funcVars: public procVars {
 protected:	
-  obj*& result_type;
+  obj* result_type;
   obj* result_value;
 public:	
-  funcVars(contextObj& ctx,obj*& t):procVars{ctx},result_type{t},result_value{theNil}{}
+  funcVars(contextObj* ctx,obj* t):procVars{ctx},result_type{t},result_value{theNil}{}
   //
-  virtual void mark() override {if (!marked) {result_value->mark();} procVars::mark();}
-  virtual void expand(int gen) override {result_value->expand(gen);procVars::expand(gen);}  
+  virtual void mark() override {if (!marked) {result_value->mark();result_type->mark();} procVars::mark();}
+  virtual void expand(int gen) override {
+	if (result_value->generation<gen) result_value->expand(gen);
+	if (result_type->generation<gen) result_type->expand(gen);
+	procVars::expand(gen);
+  }  
   //
   virtual void store_result(obj* value) override {result_value=value;}
   virtual obj* getResult() override {return result_value;}
@@ -1099,11 +1112,11 @@ public:
 
 class funcObj: public procObj {
 protected:
-  obj*& result_type;
+  obj* result_type;
 public:  
-  funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{result_type->lock();}
+  funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{/*result_type->lock();*/}
   virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
-  virtual procVars* mkVars()override {return new funcVars(*ctx,result_type);}
+  virtual procVars* mkVars()override {return new funcVars(ctx,result_type);}
 };
 
 procObj::procObj(int n, interp& i):ctx{i.context},prg{i.prg}{
@@ -1568,7 +1581,6 @@ void test(const string& fn){
   interp intp(cctx,prg);
   if (r) intp.run();
   assert(intp.sp==-1);
-  stdGC().status(); 
 }
 
 int bench(string fn){
@@ -1586,15 +1598,24 @@ int bench_cc(){
 }
 
 int main(){
-  //bench("primo.pcd");
+  bench("primo.pcd");
   //test("primo.pcd");
   //test("terzo.pcd");
-  test("fib.pcd");
+  //test("fib.pcd");
   //bench("fib.pcd");
-  //bench_cc();
+  bench_cc();
   //test_cc();
-    
+  
+  /*  
+  cout << "--- status on exit ---\n";  
   stdGC().status();
+  //cout << "--- collect 0 ---\n";  
+  //stdGC().collect(0);
+  //stdGC().status();
+  cout << "--- collect all ---\n";  
+  stdGC().collectall();
+  stdGC().status();
+  cout << " -- removing system objects ---\n";   
   theNil=nullptr;
   theTrue=nullptr;
   theFalse=nullptr;
@@ -1602,9 +1623,12 @@ int main(){
   theStrType=nullptr;
   theFloatType=nullptr;
   theBuiltIn=nullptr;
-  //stdGC().collectall();
+  cout << " -- status after destruction of system objects ---\n";   
+  stdGC().collectall();
+  stdGC().status();
   cout << "intcache.size:" << intcache.size() << endl;
   for (auto o:intcache) delete o;
-  stdGC().status();
-  
+  cout << "--- final status ---\n";
+  stdGC().printLocked();
+  */
 }
