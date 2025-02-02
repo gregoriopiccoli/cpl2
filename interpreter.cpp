@@ -700,7 +700,7 @@ public:
   explicit arrayObj(const int& sz){resize(sz);}
   //
   virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) o->expand(gen);}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) {if (o->generation<gen) o->expand(gen);}}
   //
   virtual obj* slice(const obj* idx) override {
 	    const intObj* pos=dynamic_cast<const intObj*>(idx);
@@ -746,7 +746,7 @@ class dictObj : public obj {
 public:
   //
   virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:map) o->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:map) o->expand(gen);}  
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:map) {if (o->generation<gen) o->expand(gen);}}  
   //
   virtual obj* slice(const obj* idx) override {
 	 string key=idx->print();
@@ -800,8 +800,12 @@ public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
   explicit contextObj(contextObj& sl):superlevel{sl}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
   //
-  virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:objs) o->mark();for(const auto& [k,o]:types) o->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:objs) o->expand(gen);for(const auto& [k,o]:types) o->expand(gen);}
+  virtual void mark() override {if (!marked) {marked=true;for(auto const& [k,o]:objs) o->mark();for(auto const& [k,o]:types) o->mark();}}
+  virtual void expand(int gen) override {
+	if (generation<gen) generation=gen;
+	for(auto const& [k,o]:objs) {if (o->generation<gen) o->expand(gen);} 
+	for(auto const& [k,o]:types) {if (o->generation<gen) o->expand(gen);}
+  }
   //
   virtual void add(int intern, obj* type) {
 	auto ff=objs.find(intern);
@@ -830,8 +834,8 @@ public:
   }
   virtual string print() const override {
 	string s="container ";
-	for(auto [k,t]:types){
-		s+=","+t->print()+" "+theStringIntern.get(k);
+	for(auto const& [k,t]:types){
+		s+=","+t->print()+" "+theStringIntern.get(k);+" ("+objs.at(k)->print()+")";
 	}
 	return s;
   }
@@ -1068,7 +1072,11 @@ public:
   procObj(procObj&) = delete;
   //
   virtual void mark() override {if (!marked) {prm->mark();ctx->mark();} obj::mark();}
-  virtual void expand(int gen) override {prm->expand(gen);ctx->expand(gen);obj::expand(gen);}  
+  virtual void expand(int gen) override {
+	if (prm->generation<gen) prm->expand(gen); 
+	if (ctx->generation<gen) ctx->expand(gen);
+	obj::expand(gen);
+  }  
   //
   virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
@@ -1083,7 +1091,10 @@ public:
   funcVars(contextObj& ctx,obj*& t):procVars{ctx},result_type{t},result_value{theNil}{}
   //
   virtual void mark() override {if (!marked) {result_value->mark();} procVars::mark();}
-  virtual void expand(int gen) override {result_value->expand(gen);procVars::expand(gen);}  
+  virtual void expand(int gen) override {
+	if (result_value->generation<gen) result_value->expand(gen);
+	procVars::expand(gen);
+  }  
   //
   virtual void store_result(obj* value) override {result_value=value;}
   virtual obj* getResult() override {return result_value;}
@@ -1560,6 +1571,7 @@ void test(const string& fn){
   interp intp(cctx,prg);
   if (r) intp.run();
   assert(intp.sp==-1);
+  cout << ctx->print() << " lock:" << ctx->lockCnt() << endl;
 }
 
 int bench(string fn){
@@ -1585,7 +1597,17 @@ int main(){
   //bench_cc();
   //test_cc();
     
+  //ending=1;  
   cout << "--- status on exit ---\n";  
+  stdGC().status();
+  cout << "--- collect 0 ---\n";  
+  stdGC().collect(0);
+  stdGC().status();
+  cout << "--- collect 1 ---\n";  
+  stdGC().collect(1);
+  stdGC().status();
+  cout << "--- collect 2 ---\n";  
+  stdGC().collect(2);
   stdGC().status();
   cout << "--- collect all ---\n";  
   stdGC().collectall();
