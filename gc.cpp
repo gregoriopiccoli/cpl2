@@ -12,6 +12,8 @@ using namespace std;
 #define GC_OBJSLIM 2000 //10000
 #define GC_GEN     8     //2
 
+//#define GC_USING_USET
+
 int gc_ending=0;
 
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
@@ -31,7 +33,15 @@ public:
   virtual int lockCnt(){return locked;}
   //
   int generation;
-  virtual void mark(){if (!marked) {marked=true;for(int i=0;i<childCnt();i++){auto c=getChild(i);if(c) c->mark();}};}
+  virtual void mark(){
+	if (!marked) {
+	  marked=true;
+	  for(int i=0;i<childCnt();i++){
+		auto c=getChild(i);
+		if(c) c->mark();
+	  }
+	 }
+  }
   virtual void expand(int gen){
 	if (generation<gen) 
 	  generation=gen;
@@ -50,8 +60,11 @@ public:
 
 class GC {
   // insieme di tutti gli oggetti da gestire
-  //unordered_set <GCObject*> objs;
+#ifdef GC_USING_USET  
+  unordered_set <GCObject*> objs;
+#else  
   vector<GCObject*> objs;
+#endif  
   int maxgen;
   int objlimit=GC_OBJSLIM,added=0;
   unsigned long cnt=0,maxlive=0,maxsize=0;
@@ -84,8 +97,11 @@ public:
           added=0;
           //cout << " after: " << objs.size() << endl;
       }
-      //objs.insert(o); // aggiunge l'oggetto agli oggetti noti
+#ifdef GC_USING_USET  
+      objs.insert(o); // aggiunge l'oggetto agli oggetti noti
+#else      
       objs.push_back(o); // aggiunge l'oggetto agli oggetti noti
+#endif      
       added++; // conteggia gli oggetti aggiunti per far scattare il GC
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
@@ -104,7 +120,7 @@ public:
     int old=maxgen; maxgen=gen;return old; // ritorna il vecchio numero di generazioni
   }
   void printLocked(){
-	for(auto& o:objs) 
+	for(const auto& o:objs) 
 	  if (o->locked>0)
 	    cout << o->print() << endl;
   }
@@ -156,7 +172,7 @@ inline void GC::sweep(int gen){
   bool shiftGen=gen<maxgen;
   if (objs.size()>maxsize) maxsize=objs.size();
   unsigned long m=0;
-  /*
+#ifdef GC_USING_USET  
   for (auto it=objs.begin();it!=objs.end();){
     if ((*it)->marked){
       // oggetto marcato, si deve far salire di generazione
@@ -170,13 +186,11 @@ inline void GC::sweep(int gen){
       // oggetto non marcato, si deve rilasciare
       GCObject* ptr=(*it);
       it=objs.erase(it);
-      //delete ptr;
       ptr->reclaim();
       //cout << "deleted " << ptr << endl;
     }
   }
-  */
-  /**/
+#else
   vector<GCObject*> nnn;
   for(auto& o:objs) {
 	if (o->marked){
@@ -187,14 +201,12 @@ inline void GC::sweep(int gen){
       nnn.push_back(o);
       m++;
 	} else {
-      //delete ptr;
       o->reclaim();
 	} 
   } 
   objs=nnn;
-  /**/ 
+#endif 
   if (m>maxlive) maxlive=m;
-  //status();
 }
 
 inline void GC::status(){

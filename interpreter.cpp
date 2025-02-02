@@ -7,6 +7,7 @@ DA FARE:
   Float e operazioni miste tra int e float
    
 FATTO: 
+  Fatto il Garbage Collector! 
   Provato a riciclare gli interi ... ci si mette più tempo! Dovrò provare con la garbage collection.
   Nil è meglio con nullptr o con uno specifico oggetto nil? per ora provo con un oggetto specifico così non è mai un puntatore non inizializzato ...
   Devo fare che le stringhe abbiano le loro operazioni ... prima prova di classe C++!
@@ -202,6 +203,7 @@ public:
   explicit pcodeIntConst(int v);
   ~pcodeIntConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
+  //obj* getIntConst(){return theValue;}
 };
 
 class pcodeStrConst: public spcode {
@@ -600,7 +602,10 @@ lockgc_ptr<obj> theTrue{new boolObj(true)};
 lockgc_ptr<obj> theFalse(new boolObj(false));
 lockgc_ptr<obj> theNil(new nilObj());
 
-const boolObj* boolObj::check_bool(const obj* o,const char*  msg) const {if (o!=theTrue && o!=theFalse) throw domain_error(msg);return (boolObj*)o;}
+const boolObj* boolObj::check_bool(const obj* o,const char*  msg) const {
+  if (o!=theTrue && o!=theFalse) throw domain_error(msg);
+  return static_cast<const boolObj*>(o);
+}
 
 const obj* obj::getBaseType() const {return theNil;}
 
@@ -707,7 +712,11 @@ lockgc_ptr<obj> theStrType{new strType()};
 lockgc_ptr<obj> theFloatType{new floatType()};
 
 const obj* intObj::getBaseType() const {return theIntType;}
-const intObj* intObj::check_int(const obj* o,const char* msg) const {if (o->getBaseType()!=theIntType) throw domain_error(msg);return (intObj*)o;}
+
+const intObj* intObj::check_int(const obj* o,const char* msg) const {
+  if (o->getBaseType()!=theIntType) throw domain_error(msg);
+  return static_cast<const intObj*>(o);
+}
 
 // --- gli array e i dizionari
 
@@ -983,19 +992,19 @@ public:
 #endif
 //#define TESTSWITCH
 #ifdef TESTSWITCH
-      pcode* ppp=prg->get(pc);
-      switch (ppp->getCode()){
+      const pcode& ppp=prg[pc];
+      switch (ppp.getCode()){
 	    case P_INT_CONST:
           sp++;
-          stack.push_back(make_shared<intObj>(ppp->getIntValue()));
+          stack.push_back(((pcodeIntConst&)ppp).getIntConst());
 		  break;
 	    case P_PLUS:  
-          stack[sp-1]=stack[sp-1].get()->plus(stack[sp].get());
+          stack[sp-1]=stack[sp-1]->plus(stack[sp]);
           sp--;
           stack.pop_back();
           break;
 	    default:
-		  ppp->exec(*this);
+		  ppp.exec(*this);
 	  }
 #else      
 	  prg[pc].exec(*this);
@@ -1542,7 +1551,10 @@ void test_cc(){
     
   // esecuzione
   prg[0].exec(intp);                                      // int type
-  obj* i;                              //prg.get(1)->exec(intp); // var i
+  
+  //obj* i;                              //prg.get(1)->exec(intp); // var i
+  lockgc_ptr<obj> i;                   // ATTENZIONE: solo così sono sicuro di tenere i valori dal GC!
+   
   intp.stack.pop_back();intp.sp--;     //prg.get(2)->exec(intp); // pop
   prg[3].exec(intp);                                      // int const 0
   i=intp.stack[intp.sp];               //prg.get(4)->exec(intp); // store i
@@ -1550,7 +1562,11 @@ void test_cc(){
   label3:                                                     // label 3
   intp.stack.push_back(i);intp.sp++;   //prg.get(7)->exec(intp); // load i
   intp.stack.push_back(c_1000000); intp.sp++; //prg.get(8)->exec(intp);  // int const 1000000
-  prg[9].exec(intp);                                      // lt
+  
+  //prg[9].exec(intp);                                      // lt
+  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->lt(intp.stack[intp.sp]);
+  intp.stack.pop_back();
+  intp.sp--;
   
   //if false 4
   bool t=intp.stack[intp.sp--]==theFalse;
@@ -1559,7 +1575,11 @@ void test_cc(){
   
   intp.stack.push_back(i);intp.sp++;  //prg.get(11)->exec(intp); // load i
   intp.stack.push_back(c_1);intp.sp++;//prg.get(12)->exec(intp); // int const 1
-  prg[13].exec(intp);                                     // plus
+  
+  //prg[13].exec(intp);                                     // plus
+  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->plus(intp.stack[intp.sp]);
+  intp.stack.pop_back();
+  intp.sp--;
   
   i=intp.stack[intp.sp];              //prg.get(14)->exec(intp); // store i;
   
