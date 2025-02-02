@@ -473,6 +473,7 @@ public:
   virtual obj* _not() {throw domain_error("not not implemented");}
   virtual obj* is(const obj*) {throw domain_error("is not implemented");}
   //
+  virtual const obj* getBaseType() const;
 };
 
 class nilObj: public obj {
@@ -499,9 +500,12 @@ public:
   virtual obj* gt(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
+  virtual const obj* getBaseType() const override;
+  //
   virtual bool reclaim() override;
   //
-  const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  //const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const intObj* check_int(const obj* o,const char* msg) const;
 };
 
 class intCache {
@@ -587,13 +591,18 @@ public:
   virtual obj* eq(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
-  const boolObj* check_bool(const obj* o,const char*  msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  //const boolObj* check_bool(const obj* o,const char*  msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const boolObj* check_bool(const obj* o,const char*  msg) const;
 };
 
 // i singleton degli oggetti che non richiedono tante copie ...
 lockgc_ptr<obj> theTrue{new boolObj(true)};
 lockgc_ptr<obj> theFalse(new boolObj(false));
 lockgc_ptr<obj> theNil(new nilObj());
+
+const boolObj* boolObj::check_bool(const obj* o,const char*  msg) const {if (o!=theTrue && o!=theFalse) throw domain_error(msg);return (boolObj*)o;}
+
+const obj* obj::getBaseType() const {return theNil;}
 
 obj* nilObj::eq(const obj* o) const {
   return (o==theNil?theTrue:theFalse);
@@ -697,14 +706,14 @@ lockgc_ptr<obj> theIntType{new intType()};
 lockgc_ptr<obj> theStrType{new strType()};
 lockgc_ptr<obj> theFloatType{new floatType()};
 
+const obj* intObj::getBaseType() const {return theIntType;}
+const intObj* intObj::check_int(const obj* o,const char* msg) const {if (o->getBaseType()!=theIntType) throw domain_error(msg);return (intObj*)o;}
+
 // --- gli array e i dizionari
 
 class arrayObj: public obj {
 	vector<obj*> a;
-	//gc_array_<obj>* a_gc;
 public:
-  //arrayObj():a_gc{new gc_array_<obj>(a)}{}
-  //explicit arrayObj(const int& sz):a_gc{new gc_array_<obj>(a)}{resize(sz);}
   arrayObj(){}
   explicit arrayObj(const int& sz){resize(sz);}
   //
@@ -759,8 +768,6 @@ public:
   //
   virtual obj* slice(const obj* idx) override {
 	 string key=idx->print();
-     //if (map.contains(key)) 
-     //  return map[key];
      auto ff=map.find(key);
      if (ff!=map.end())
        return ff->second;
@@ -770,14 +777,6 @@ public:
   virtual void storeslice(obj* idx, obj* value) override {
 	 string key=idx->print(); 
 	 map[key]=value;
-	 /*
-	 const strObj* key=dynamic_cast<strObj*>(idx);
-	 if (key!=nullptr){
-	   map[key->value]=value;
-     } else {
-       throw domain_error("storing in a dictionary with a non string key");
-     }
-     */
   };
   virtual string print() const override;
   //
@@ -877,7 +876,6 @@ public:
 lockgc_ptr<builtInContainer> theBuiltIn{new builtInContainer};
 
 // il costruttore di un contesto che non specifica qual è il suo contesto di base riceve builtin come punto finale della ricerca
-//contextObj::contextObj():superlevel{*theBuiltIn},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{};
 contextObj::contextObj():superlevel{theBuiltIn}{};
 
 // --- contenitore che cerca in locale e nel modulo
@@ -1612,9 +1610,9 @@ int main(){
   //bench("primo.pcd");
   //test("primo.pcd");
   //test("terzo.pcd");
-  //test("fib.pcd");
+  test("fib.pcd");
   //bench("fib.pcd");
-  bench_cc();
+  //bench_cc();
   //test_cc();
   
   
