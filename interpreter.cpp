@@ -443,7 +443,7 @@ public:
   virtual void mark() override {marked=true;}
   virtual void expand(int gen) override {if (generation<gen) generation=gen;}
   //  
-  virtual string print() const {throw domain_error("print not implemented");}
+  virtual string print() const override {throw domain_error("print not implemented");}
   virtual obj* load(int intern) {throw domain_error("load not implemented");}
   virtual obj* slice(const obj* idx) {throw domain_error("slice not implemented");}
   virtual void store(int intern, obj* value) {throw domain_error("store not implemented");}
@@ -796,38 +796,31 @@ protected:
   contextObj& superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
   unordered_map<int,obj*> objs;              
   unordered_map<int,obj*> types;
-  //gc_dict_<int,obj>* o_gc,*t_gc; 
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
-  //explicit contextObj(contextObj& sl):superlevel{sl},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
   explicit contextObj(contextObj& sl):superlevel{sl}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
   //
   virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:objs) o->mark();for(const auto& [k,o]:types) o->mark();}}
   virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:objs) o->expand(gen);for(const auto& [k,o]:types) o->expand(gen);}
   //
   virtual void add(int intern, obj* type) {
-	//if (objs.contains(intern)) throw out_of_range("name already in context");
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()) throw out_of_range("name already in context");
 	objs[intern]=theNil;
 	types[intern]=type;
   }
   virtual void add(int intern, obj* type, obj* value) {
-	//if (objs.contains(intern)) throw out_of_range("name already in context");
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()) throw out_of_range("name already in context");
 	objs[intern]=value;
 	types[intern]=type;
   }
   virtual obj* load(int intern) override {
-    //if (objs.contains(intern)) return objs[intern];
     auto ff=objs.find(intern);
     if (ff!=objs.end()) return ff->second;
     return superlevel.load(intern);
   }
   virtual void store(int intern, obj* value) override {
-	//if (objs.contains(intern)){
-	//  objs[intern]=value;
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()){
 	  ff->second=value;	
@@ -836,7 +829,7 @@ public:
     }
   }
   virtual string print() const override {
-	string s="";
+	string s="container ";
 	for(auto [k,t]:types){
 		s+=","+t->print()+" "+theStringIntern.get(k);
 	}
@@ -856,8 +849,6 @@ public:
 	throw out_of_range(err);
   }
   virtual void store(int intern, obj* value) override {
-	//if (objs.contains(intern)){
-	//	objs[intern]=value;  
 	auto ff=objs.find(intern);  
 	if (ff!=objs.end()){
 	  ff->second=value;
@@ -969,6 +960,7 @@ public:
 	currentSourceLine=0;
 	stack.reserve(20);
   }
+  ~interp(){stack_gc->unlock();};
   //
   void run() {
 	stop=false;  
@@ -1016,7 +1008,7 @@ public:
 };
 
 #define BUILTIN(_fn_) class builtin_##_fn_ : public cppFunc { public: \
-  builtin_##_fn_(){name=#_fn_;lock();} \
+  builtin_##_fn_(){name=#_fn_;/*lock();*/} \
   virtual void call(int parmCnt,interp& interpreter) override { getParms(parmCnt,interpreter);		  
 #define BUILTINEND(_fn_) }}; \
   int add_builtin_##_fn_=theBuiltIn->adx(theStringIntern.add(#_fn_),theNil,new builtin_##_fn_());
@@ -1568,7 +1560,6 @@ void test(const string& fn){
   interp intp(cctx,prg);
   if (r) intp.run();
   assert(intp.sp==-1);
-  stdGC().status(); 
 }
 
 int bench(string fn){
@@ -1594,7 +1585,12 @@ int main(){
   //bench_cc();
   //test_cc();
     
+  cout << "--- status on exit ---\n";  
   stdGC().status();
+  cout << "--- collect all ---\n";  
+  stdGC().collectall();
+  stdGC().status();
+  cout << " -- removing system objects ---\n";   
   theNil=nullptr;
   theTrue=nullptr;
   theFalse=nullptr;
@@ -1602,9 +1598,12 @@ int main(){
   theStrType=nullptr;
   theFloatType=nullptr;
   theBuiltIn=nullptr;
-  //stdGC().collectall();
+  cout << " -- status after destruction of system objects ---\n";   
+  stdGC().status();
+  stdGC().collectall();
   cout << "intcache.size:" << intcache.size() << endl;
   for (auto o:intcache) delete o;
+  cout << "--- final status ---\n";
   stdGC().status();
   
 }

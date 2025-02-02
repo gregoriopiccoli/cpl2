@@ -1,11 +1,16 @@
+/*
+DA FARE:
+migliorare esplorazione quando si cambia generazione, ora ricerca sempre ...
+supportare più di 2 generazioni (ora scandice 0,1 o max)  
+*/
 
 #include <cassert>
 #include <unordered_set>
 
 using namespace std;
 
-#define GC_OBJSLIM 10000 //10000
-#define GC_GEN     5     //2
+#define GC_OBJSLIM 2000 //10000
+#define GC_GEN     2     //2
 
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
 class GCObject {
@@ -20,7 +25,7 @@ public:
   GCObject();
   virtual ~GCObject(){ /* cout << "reclaimed " << this << endl;*/};
   int lock(){return ++locked;};
-  int unlock(){assert(locked>0);return --locked;};
+  int unlock(){ if (locked==0) cout << print() << endl; assert(locked>0);return --locked;};
   int lockCnt(){return locked;}
   //
   int generation;
@@ -37,6 +42,8 @@ public:
   }
   //
   friend class GC;
+  //
+  virtual string print() const {return "untyped obj";}
 };
 
 class GC {
@@ -55,11 +62,12 @@ public:
   virtual ~GC(){ // distrugge il GC, elimina tutti gli oggetti ancora vivi così viene chiamato il loro distruttore
       int sz=0,locked=0;
       for(const auto& it:objs){
-        if (it->locked>0) 
-          locked++;
-        //else   
-          delete it;
-      }
+        if (it->locked>0) {
+			locked++;
+			cout << "locked on closing:" << it->print() << endl;
+		}
+        delete it;
+	  }
       objs.clear();
       cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << " maxsize:" << maxsize << endl;
     }
@@ -77,7 +85,7 @@ public:
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
       }
-  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);objlimit=maxlive+GC_OBJSLIM;}
+  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
   void status();
@@ -235,9 +243,10 @@ template <class T> class gc_array_ : public GCObject {
   vector<T*>& data;
 public:	
   explicit gc_array_(vector<T*>& d):data{d}{lock();}
-  virtual ~gc_array_() override {unlock();}
+  //virtual ~gc_array_() override {unlock();}
   virtual int childCnt() override {return data.size();}
   virtual T* getChild(int p) override {return data[p];}
+  virtual string print() const override {return "array locker";}
 };
 
 /*
