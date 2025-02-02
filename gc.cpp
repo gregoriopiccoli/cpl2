@@ -67,7 +67,7 @@ class GC {
 #endif  
   int maxgen;
   int objlimit=GC_OBJSLIM,added=0;
-  unsigned long cnt=0,maxlive=0,maxsize=0;
+  unsigned long cnt=0,maxlive=0,maxsize=0,gcexecutions=0;
   //
   void mark(int gen); // marca tutti gli oggetti raggiungibili della generazione specificata,
                       // quelli di generazioni successive sono considerati raggiunti
@@ -86,7 +86,7 @@ public:
         delete it;
 	  }
       objs.clear();
-      cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << " maxsize:" << maxsize << endl;
+      cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << " maxsize:" << maxsize << " gcexec:" << gcexecutions << endl;
     }
   void add(GCObject* o){ // aggiunge un oggetto agli oggetti che gestisce, se è il caso chiama la garbage collection
       if (added>objlimit) {
@@ -107,7 +107,7 @@ public:
       //if (debug) cout << "inserted " << o << endl;
       }
   //void collect(int gen=0){if(gen>maxgen) gen=maxgen;cout << "mark\n";mark(gen);cout<<"sweep\n";sweep(gen);cout << "collected\n";}
-  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);}
+  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);gcexecutions++;}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
   void status();
@@ -120,7 +120,7 @@ public:
     int old=maxgen; maxgen=gen;return old; // ritorna il vecchio numero di generazioni
   }
   void printLocked(){
-	for(const auto& o:objs) 
+	for(const GCObject* const& o:objs) 
 	  if (o->locked>0)
 	    cout << o->print() << endl;
   }

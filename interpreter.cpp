@@ -2,13 +2,15 @@
 Dove possibile usare sempre referenze!
 
 DA FARE: 
+  GC parallelo?
+  fare referenza a tipo di base anche per le stringhe e i float
   Blocco dei parametri da fare una volta sola, FATTO ora però devo fare i blocchi di codice di inizializzazione FATTO e poi devo usarlo!
   La print di una procedura/funzione dovrebbe descriverla completamente
   Float e operazioni miste tra int e float
    
 FATTO: 
   Fatto il Garbage Collector! 
-  Provato a riciclare gli interi ... ci si mette più tempo! Dovrò provare con la garbage collection.
+  Provato a riciclare gli interi ... ci si mette più tempo! Dovrò provare con la garbage collection. OTTIMO!
   Nil è meglio con nullptr o con uno specifico oggetto nil? per ora provo con un oggetto specifico così non è mai un puntatore non inizializzato ...
   Devo fare che le stringhe abbiano le loro operazioni ... prima prova di classe C++!
   fare trucco della compare per tipo e mettere le operazioni di confronto sulla compare
@@ -203,7 +205,7 @@ public:
   explicit pcodeIntConst(int v);
   ~pcodeIntConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
-  //obj* getIntConst(){return theValue;}
+  //obj* getIntConst() const {return theValue;}
 };
 
 class pcodeStrConst: public spcode {
@@ -996,7 +998,7 @@ public:
       switch (ppp.getCode()){
 	    case P_INT_CONST:
           sp++;
-          stack.push_back(((pcodeIntConst&)ppp).getIntConst());
+          stack.push_back(reinterpret_cast<const pcodeIntConst&>(ppp).getIntConst());
 		  break;
 	    case P_PLUS:  
           stack[sp-1]=stack[sp-1]->plus(stack[sp]);
@@ -1630,8 +1632,8 @@ int main(){
   //bench("primo.pcd");
   //test("primo.pcd");
   //test("terzo.pcd");
-  test("fib.pcd");
-  //bench("fib.pcd");
+  //test("fib.pcd");
+  bench("fib.pcd");
   //bench_cc();
   //test_cc();
   
