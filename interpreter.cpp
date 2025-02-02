@@ -21,7 +21,7 @@ FATTO:
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <deque>
+//#include <deque>
 //#include <memory>
 
 using namespace std;

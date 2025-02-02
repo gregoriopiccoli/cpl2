@@ -5,7 +5,6 @@ supportare più di 2 generazioni (ora scandice 0,1 o max)
 */
 
 #include <cassert>
-#include <unordered_set>
 
 using namespace std;
 
@@ -13,6 +12,10 @@ using namespace std;
 #define GC_GEN     8     //2
 
 //#define GC_USING_USET
+
+#ifdef GC_USING_USET
+#include <unordered_set>
+#endif
 
 int gc_ending=0;
 
