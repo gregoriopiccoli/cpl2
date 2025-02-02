@@ -843,8 +843,8 @@ public:
   }
   virtual string print() const override {
 	string s="container ";
-	for(auto const& [k,t]:types){
-		s+=","+t->print()+" "+theStringIntern.get(k);+" ("+objs.at(k)->print()+")";
+	for(auto& [k,t]:types){
+		s+=","+t->print()+" "+theStringIntern.get(k)+" ("+objs.at(k)->print()+")";
 	}
 	return s;
   }
@@ -1075,7 +1075,7 @@ protected:
   procParm* prm;
 public:
   procObj(int n, interp& i);
-  ~procObj() override {prm->unlock();}
+  ~procObj() override {/*prm->unlock();*/}
   //
   procObj*& operator=(procObj*&) = delete;
   procObj(procObj&) = delete;
@@ -1496,7 +1496,7 @@ void pcodeFunc::exec(interp& interpreter) const {
   obj* t=interpreter.stack[interpreter.sp--];
   interpreter.stack.pop_back();t->lock();
   //cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
-  obj* f=new funcObj(value,interpreter,t);f->lock();
+  obj* f=new funcObj(value,interpreter,t);//f->lock();
   makeProcOrFunc(interpreter,value,f,t);
   t->unlock();
 }
@@ -1597,25 +1597,8 @@ int bench_cc(){
   return 0;
 }
 
-int main(){
-  bench("primo.pcd");
-  //test("primo.pcd");
-  //test("terzo.pcd");
-  //test("fib.pcd");
-  //bench("fib.pcd");
-  bench_cc();
-  //test_cc();
-  
-  /*  
-  cout << "--- status on exit ---\n";  
-  stdGC().status();
-  //cout << "--- collect 0 ---\n";  
-  //stdGC().collect(0);
-  //stdGC().status();
-  cout << "--- collect all ---\n";  
-  stdGC().collectall();
-  stdGC().status();
-  cout << " -- removing system objects ---\n";   
+void releaseSysObjs(){
+  //cout << "--- removing system objects ---\n";   
   theNil=nullptr;
   theTrue=nullptr;
   theFalse=nullptr;
@@ -1623,12 +1606,31 @@ int main(){
   theStrType=nullptr;
   theFloatType=nullptr;
   theBuiltIn=nullptr;
-  cout << " -- status after destruction of system objects ---\n";   
+}
+
+int main(){
+  //bench("primo.pcd");
+  //test("primo.pcd");
+  //test("terzo.pcd");
+  //test("fib.pcd");
+  //bench("fib.pcd");
+  bench_cc();
+  //test_cc();
+  
+  
+  cout << "--- status on exit ---\n";  
+  //stdGC().status();
+  //cout << "--- collect 0 ---\n";  
+  //stdGC().collect(0);
+  //stdGC().status();
+  //cout << "--- collect all ---\n";  
+  releaseSysObjs();
   stdGC().collectall();
   stdGC().status();
-  cout << "intcache.size:" << intcache.size() << endl;
-  for (auto o:intcache) delete o;
-  cout << "--- final status ---\n";
+  //cout << "--- status after destruction of system objects ---\n";   
+  //stdGC().collectall();
+  //stdGC().status();
+  cout << "--- final status,locked objs ---\n";
   stdGC().printLocked();
-  */
+  cout << "--- end ---\n";
 }

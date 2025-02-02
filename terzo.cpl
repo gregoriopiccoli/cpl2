@@ -27,3 +27,7 @@ ee()
 func int doppio(int x)
   result:=x+x
 end
+
+? 'doppio(1)=',doppio(1)
+? 'doppio(10)=',doppio(10)
+? 'doppio(100)=',doppio(100)
