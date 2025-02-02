@@ -12,6 +12,8 @@ using namespace std;
 #define GC_OBJSLIM 2000 //10000
 #define GC_GEN     8     //2
 
+int gc_ending=0;
+
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
 class GCObject {
 protected:	
@@ -25,7 +27,7 @@ public:
   GCObject();
   virtual ~GCObject(){ /* cout << "reclaimed " << this << endl;*/};
   virtual int lock(){return ++locked;};
-  virtual int unlock(){ if (locked==0) cout << print() << endl; assert(locked>0);return --locked;};
+  virtual int unlock(){ if (locked==0 && !gc_ending) {cout << print() << endl; assert(locked>0);} return --locked;};
   virtual int lockCnt(){return locked;}
   //
   int generation;
@@ -60,12 +62,13 @@ class GC {
 public:
   explicit GC(int m){maxgen=m;}
   virtual ~GC(){ // distrugge il GC, elimina tutti gli oggetti ancora vivi così viene chiamato il loro distruttore
-	  cout << "distrugge il GC, elimina tutti gli oggetti ancora vivi cosi viene chiamato il loro distruttore\n";
+	  //cout << "distrugge il GC, elimina tutti gli oggetti ancora vivi per chiamare il distruttore\n";
+	  gc_ending=1;
       int sz=0,locked=0;
       for(const auto& it:objs){
         if (it->locked>0) {
 			locked++;
-			cout << "locked on closing:" << it->print() << endl;
+			//cout << "locked on closing:" << it->print() << endl;
 		}
         delete it;
 	  }
@@ -100,6 +103,11 @@ public:
     };
     int old=maxgen; maxgen=gen;return old; // ritorna il vecchio numero di generazioni
   }
+  void printLocked(){
+	for(auto& o:objs) 
+	  if (o->locked>0)
+	    cout << o->print() << endl;
+  }
 };
 
 
@@ -113,32 +121,30 @@ inline GCObject::GCObject(){
   //cout << "created " << this << endl;
 }
 
-int ending=1;
-
 inline void GC::mark(int gen){
   // bisogna allineare alla generazione più alta tutti i figli e marcare tutti gli oggetti da conservare
   // gli oggetti da conservare sono di generazione più alta di "gen" e quelli che sono raggiungibili dal programma
 
   // esegue prima la marcatura usando l'informazione delle generazioni: tutti gli oggetti di generazioni più alte di quella da reclamare marcano i loro figli con la loro generazione
   // in questo modo gli oggetti che sono vivi da molto tempo vengono esplorati raramente dal "mark" ricorsivo
-  if (ending) cout << "inizio expand\n";
+  //if (gc_ending) cout << "inizio expand\n";
   for(const auto& it:objs){
-	if (ending && it->generation>gen) {cout << it->print() << " gen:" << it->generation << endl;}
+	//if (gc_ending && it->generation>gen) {cout << it->print() << " gen:" << it->generation << endl;}
     if (it->generation>gen)       // se l'oggetto è maggiore della generazione da reclamare
       it->expand(it->generation); // porta alla sua generazione tutti i suoi discendenti; equivale alla marcatura, ma molto più persistente
   }
-  if (ending) cout << "fine expand\n";
+  //if (gc_ending) cout << "fine expand\n";
   // smarca gli oggetti che potrebbero essere rilasciati
   for(const auto& it : objs){
     it->marked=(it->generation>gen); // marca come non raggiunti tutti gli oggetti di generazione minore di "gen"
   }
-  if (ending) cout << "fine mark per gen\n";
+  //if (gc_ending) cout << "fine mark per gen\n";
   // percorre tutti gli oggetti che appaiono raggiungibili
   for (const auto& it : objs){
       if (it->locked /*&& !it->marked*/)  // se l'oggetto è parte degli oggetti raggiungibili da programma ed è di una generazione che può essere reclamata
         it->mark();                   // lo marca e marca tutti gli oggetti raggiungibili da questo oggetto
   }
-  if (ending) cout << "fine mark per lock\n";
+  //if (gc_ending) cout << "fine mark per lock\n";
   // ora tutti gli oggetti di generazione minore o uguale a "gen" (quella da reclamare) sono stati marcati se sono ancora raggiungibili
   // tutti gli oggetti di generazione maggiore a "gen" sono stati marcati
   // tutti gli oggetti collegati a oggetti di generazioni più vecchie sono stati allineati alla generazione del padre
