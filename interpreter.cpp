@@ -499,30 +499,32 @@ public:
   virtual obj* gt(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
-  virtual void reclaim() override;
+  virtual bool reclaim() override;
   //
   const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
 };
 
 vector<intObj*> intcache;
 
-void intObj::reclaim(){
-  lock();
+bool intObj::reclaim(){
+  //lock();
   intcache.push_back(this);
   //cout << intcache.size() << endl;
+  return false;
+  //delete this;
 }
 
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;v->unlock();return v;}
+  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;/*v->unlock();*/return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
-  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value-oo->value;v->unlock();return v;}
+  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value-oo->value;/*v->unlock();*/return v;}
   return new intObj(value-oo->value);
 }
 
@@ -1069,7 +1071,10 @@ protected:
   procParm* prm;
 public:
   procObj(int n, interp& i);
-  ~procObj(){prm->unlock();}
+  ~procObj() override {prm->unlock();}
+  //
+  procObj*& operator=(procObj*&) = delete;
+  procObj(procObj&) = delete;
   //
   virtual void mark() override {if (!marked) {prm->mark();ctx->mark();} obj::mark();}
   virtual void expand(int gen) override {prm->expand(gen);ctx->expand(gen);obj::expand(gen);}  
@@ -1472,9 +1477,7 @@ void makeProcOrFunc(interp& interpreter, int value, obj*& p, obj* type){
 
 void pcodeProc::exec(interp& interpreter) const {
   obj* p=new procObj(value,interpreter);
-  p->lock();
   makeProcOrFunc(interpreter,value,p,theNil);
-  p->unlock();
 }
 
 void pcodeFunc::exec(interp& interpreter) const {
@@ -1483,7 +1486,7 @@ void pcodeFunc::exec(interp& interpreter) const {
   //cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
   obj* f=new funcObj(value,interpreter,t);f->lock();
   makeProcOrFunc(interpreter,value,f,t);
-  t->unlock();f->unlock();
+  t->unlock();
 }
 
 void pcodeStoreResult::exec(interp& interpreter) const {
@@ -1565,6 +1568,8 @@ void test(const string& fn){
   contextObj* cctx=ctx;
   interp intp(cctx,prg);
   if (r) intp.run();
+  assert(intp.sp==-1);
+  stdGC().status(); 
 }
 
 int bench(string fn){
@@ -1583,9 +1588,9 @@ int bench_cc(){
 
 int main(){
   //bench("primo.pcd");
-  //test("primo.pcd");
+  test("primo.pcd");
   //test("terzo.pcd");
-  test("fib.pcd");
+  //test("fib.pcd");
   //bench("fib.pcd");
   //bench_cc();
   //test_cc();
@@ -1599,7 +1604,7 @@ int main(){
   theFloatType=nullptr;
   theBuiltIn=nullptr;
   cout << "intcache.size:" << intcache.size() << endl;
-  for (auto o:intcache) o->unlock();
+  for (auto o:intcache) delete o;
   stdGC().status();
   
 }

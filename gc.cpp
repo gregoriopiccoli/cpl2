@@ -15,16 +15,26 @@ protected:
   //
   virtual int childCnt(){return 0;}
   virtual GCObject* getChild(int p){return nullptr;}
-  virtual void reclaim(){delete this;}
+  virtual bool reclaim(){delete this;return true;}
 public:
   GCObject();
   virtual ~GCObject(){ /* cout << "reclaimed " << this << endl;*/};
   int lock(){return ++locked;};
   int unlock(){assert(locked>0);return --locked;};
+  int lockCnt(){return locked;}
   //
   int generation;
   virtual void mark(){if (!marked) {marked=true;for(int i=0;i<childCnt();i++){auto c=getChild(i);if(c) c->mark();}};}
-  virtual void expand(int gen){if (generation<gen) generation=gen; for(int i=0;i<childCnt();i++){auto c=getChild(i);if(c && c->generation<generation) c->expand(generation);}}
+  virtual void expand(int gen){
+	if (generation<gen) 
+	  generation=gen;
+	int end=childCnt();   
+	for(int i=0;i<end;i++){
+	  auto c=getChild(i);
+	  if(c && c->generation<generation) 
+	    c->expand(generation);
+	}
+  }
   //
   friend class GC;
 };
@@ -35,7 +45,7 @@ class GC {
   vector<GCObject*> objs;
   int maxgen;
   int objlimit=GC_OBJSLIM,added=0;
-  long cnt=0,maxlive=0,maxsize=0;
+  unsigned long cnt=0,maxlive=0,maxsize=0;
   //
   void mark(int gen); // marca tutti gli oggetti raggiungibili della generazione specificata,
                       // quelli di generazioni successive sono considerati raggiunti
@@ -45,8 +55,10 @@ public:
   virtual ~GC(){ // distrugge il GC, elimina tutti gli oggetti ancora vivi così viene chiamato il loro distruttore
       int sz=0,locked=0;
       for(const auto& it:objs){
-        if (it->locked>0) locked++;
-        //delete it;
+        if (it->locked>0) 
+          locked++;
+        //else   
+          delete it;
       }
       objs.clear();
       cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << " maxsize:" << maxsize << endl;
@@ -116,7 +128,7 @@ inline void GC::sweep(int gen){
   // quelli non marcati sono da reclamare
   bool shiftGen=gen<maxgen;
   if (objs.size()>maxsize) maxsize=objs.size();
-  long m=0;
+  unsigned long m=0;
   /*
   for (auto it=objs.begin();it!=objs.end();){
     if ((*it)->marked){
@@ -211,7 +223,7 @@ template <class T> class lockgc_ptr {
 public:
   lockgc_ptr(){ptr=nullptr;};
   explicit lockgc_ptr(T* p){ptr=p;if(p) p->lock();};
-  virtual ~lockgc_ptr(){if(ptr) ptr->unlock();}
+  virtual ~lockgc_ptr(){if(ptr) ptr->unlock();ptr=nullptr;}
   T* operator->(){return (T*)ptr;}
   T* operator=(T* p){if(ptr) ptr->unlock();ptr=p;if(p) p->lock();return p;}
   lockgc_ptr& operator=(const lockgc_ptr& p){if(ptr) ptr->unlock();ptr=p.ptr;if (ptr) ptr->lock(); return *this;}
@@ -223,7 +235,7 @@ template <class T> class gc_array_ : public GCObject {
   vector<T*>& data;
 public:	
   explicit gc_array_(vector<T*>& d):data{d}{lock();}
-  virtual ~gc_array_(){unlock();}
+  virtual ~gc_array_() override {unlock();}
   virtual int childCnt() override {return data.size();}
   virtual T* getChild(int p) override {return data[p];}
 };
