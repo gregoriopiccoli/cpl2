@@ -507,24 +507,23 @@ public:
 vector<intObj*> intcache;
 
 bool intObj::reclaim(){
-  //lock();
+  generation=0;
   intcache.push_back(this);
   //cout << intcache.size() << endl;
   return false;
-  //delete this;
 }
 
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;/*v->unlock();*/return v;}
+  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value+oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
-  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value-oo->value;/*v->unlock();*/return v;}
+  if (intcache.size()>0) {intObj* v=intcache.back();intcache.pop_back();v->value=value-oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
   return new intObj(value-oo->value);
 }
 
@@ -1588,9 +1587,9 @@ int bench_cc(){
 
 int main(){
   //bench("primo.pcd");
-  test("primo.pcd");
+  //test("primo.pcd");
   //test("terzo.pcd");
-  //test("fib.pcd");
+  test("fib.pcd");
   //bench("fib.pcd");
   //bench_cc();
   //test_cc();
@@ -1603,6 +1602,7 @@ int main(){
   theStrType=nullptr;
   theFloatType=nullptr;
   theBuiltIn=nullptr;
+  //stdGC().collectall();
   cout << "intcache.size:" << intcache.size() << endl;
   for (auto o:intcache) delete o;
   stdGC().status();
