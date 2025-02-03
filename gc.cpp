@@ -10,7 +10,7 @@ using namespace std;
 
 #define GC_OBJSLIM  5000 //10000  // Ogni quanti nuovi oggetti esegue una collect
 #define GC_GEN      4    //2      // Il numero di generazioni
-#define GC_GENSCALE 8    //8      // la proporzione prima di salire alla collect del livello superiore    
+#define GC_GENSCALE 4    //8      // la proporzione prima di salire alla collect del livello superiore    
 
 //#define GC_USING_USET
 
@@ -111,7 +111,7 @@ public:
       //if (debug) cout << "inserted " << o << endl;
       }
   void addRecycled(GCObject* o){objs.push_back(o);}    
-  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);gcexecutions++;}
+  void collect(int gen=0){if(gen>maxgen) gen=maxgen;/*long n=objs.size();*/mark(gen);sweep(gen);gcexecutions++;/*long nn=n-objs.size();cout << "recuperati:" << nn << " gen:" << gen << endl;*/}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
   void status();
@@ -180,8 +180,10 @@ inline void GC::sweep(int gen){
   for (auto it=objs.begin();it!=objs.end();){
     if ((*it)->marked){
       // oggetto marcato, si deve far salire di generazione
-      if (shiftGen && (*it)->generation<=gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
-        (*it)->generation++;
+      //if (shiftGen && (*it)->generation<=gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
+      //  (*it)->generation++;
+      if ((*it)->generation<gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
+        (*it)->generation=gen;
         //cout << (*it) << " generation " << (*it)->generation << endl;
       }
       ++it;

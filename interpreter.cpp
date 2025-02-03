@@ -1635,8 +1635,8 @@ int main(){
   //bench("primo.pcd");
   //test("primo.pcd");
   //test("terzo.pcd");
-  test("fib.pcd");
-  //bench("fib.pcd");
+  //test("fib.pcd");
+  bench("fib.pcd");
   //bench_cc();
   //test_cc();
   
