@@ -10,7 +10,7 @@ using namespace std;
 
 #define GC_OBJSLIM  5000 //10000  // Ogni quanti nuovi oggetti esegue una collect
 #define GC_GEN      4    //2      // Il numero di generazioni
-#define GC_GENSCALE 8    //8      // la proporzione prima di salire alla collect del livello superiore    
+#define GC_GENSCALE 4    //8      // la proporzione prima di salire alla collect del livello superiore    
 
 //#define GC_USING_USET
 
@@ -50,9 +50,9 @@ public:
 	if (generation<gen) 
 	  generation=gen;
 	int end=childCnt();   
-	for(int i=0;i<end;i++){
+	for(int i=0;i<end;i++){ // ciclo su tutti i miei figli per portarli al mio livello
 	  auto c=getChild(i);
-	  if(c && c->generation<generation) 
+	  if(c && c->generation<generation) // se il figlio è di generazione minore della mia lo elevo alla mia generazione
 	    c->expand(generation);
 	}
   }
@@ -110,8 +110,8 @@ public:
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
       }
-  void addRecycled(GCObject* o){objs.push_back(o);}    
-  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);gcexecutions++;}
+  void addRecycled(GCObject* o){o->lock();add(o);o->unlock(); /* alternativa ... objs.push_back(o); */}    
+  void collect(int gen=0){if(gen>maxgen) gen=maxgen;/*long n=objs.size();*/mark(gen);sweep(gen);gcexecutions++;/*long nn=n-objs.size();cout << "recuperati:" << nn << " gen:" << gen << endl;*/}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
   void status();
@@ -161,7 +161,7 @@ inline void GC::mark(int gen){
   //if (gc_ending) cout << "fine mark per gen\n";
   // percorre tutti gli oggetti che appaiono raggiungibili
   for (const auto& it : objs){
-      if (it->locked /*&& !it->marked*/)  // se l'oggetto è parte degli oggetti raggiungibili da programma ed è di una generazione che può essere reclamata
+      if (it->locked && !it->marked)  // se l'oggetto è parte degli oggetti raggiungibili da programma ed è di una generazione che può essere reclamata
         it->mark();                   // lo marca e marca tutti gli oggetti raggiungibili da questo oggetto
   }
   //if (gc_ending) cout << "fine mark per lock\n";
@@ -180,8 +180,10 @@ inline void GC::sweep(int gen){
   for (auto it=objs.begin();it!=objs.end();){
     if ((*it)->marked){
       // oggetto marcato, si deve far salire di generazione
-      if (shiftGen && (*it)->generation<=gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
-        (*it)->generation++;
+      //if (shiftGen && (*it)->generation<=gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
+      //  (*it)->generation++;
+      if ((*it)->generation<gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
+        (*it)->generation=gen;
         //cout << (*it) << " generation " << (*it)->generation << endl;
       }
       ++it;

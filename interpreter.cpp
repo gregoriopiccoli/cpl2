@@ -524,8 +524,9 @@ public:
 };
 	
 intCache theIntCache;
+int intrecycle=0;
 
-void showIntCache(){cout << "intCache size:" << theIntCache.size() << endl;}
+void showIntCache(){cout << "intCache size:" << theIntCache.size() << " recycled:" << intrecycle << endl;}
 
 bool intObj::reclaim(){
   generation=0;
@@ -538,13 +539,13 @@ pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;stdGC().addRecycled(v);return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;stdGC().addRecycled(v);intrecycle++;return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;stdGC().addRecycled(v);return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;stdGC().addRecycled(v);intrecycle++;return v;}
   return new intObj(value-oo->value);
 }
 
