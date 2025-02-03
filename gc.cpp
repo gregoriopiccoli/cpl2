@@ -50,9 +50,9 @@ public:
 	if (generation<gen) 
 	  generation=gen;
 	int end=childCnt();   
-	for(int i=0;i<end;i++){
+	for(int i=0;i<end;i++){ // ciclo su tutti i miei figli per portarli al mio livello
 	  auto c=getChild(i);
-	  if(c && c->generation<generation) 
+	  if(c && c->generation<generation) // se il figlio è di generazione minore della mia lo elevo alla mia generazione
 	    c->expand(generation);
 	}
   }
@@ -110,7 +110,7 @@ public:
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
       }
-  void addRecycled(GCObject* o){objs.push_back(o);}    
+  void addRecycled(GCObject* o){o->lock();add(o);o->unlock(); /* alternativa ... objs.push_back(o); */}    
   void collect(int gen=0){if(gen>maxgen) gen=maxgen;/*long n=objs.size();*/mark(gen);sweep(gen);gcexecutions++;/*long nn=n-objs.size();cout << "recuperati:" << nn << " gen:" << gen << endl;*/}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
@@ -161,7 +161,7 @@ inline void GC::mark(int gen){
   //if (gc_ending) cout << "fine mark per gen\n";
   // percorre tutti gli oggetti che appaiono raggiungibili
   for (const auto& it : objs){
-      if (it->locked /*&& !it->marked*/)  // se l'oggetto è parte degli oggetti raggiungibili da programma ed è di una generazione che può essere reclamata
+      if (it->locked && !it->marked)  // se l'oggetto è parte degli oggetti raggiungibili da programma ed è di una generazione che può essere reclamata
         it->mark();                   // lo marca e marca tutti gli oggetti raggiungibili da questo oggetto
   }
   //if (gc_ending) cout << "fine mark per lock\n";
