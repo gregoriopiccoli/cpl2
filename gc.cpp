@@ -8,8 +8,9 @@ supportare più di 2 generazioni (ora scandice 0,1 o max)
 
 using namespace std;
 
-#define GC_OBJSLIM 10000 //10000
-#define GC_GEN     2     //2
+#define GC_OBJSLIM  5000 //10000  // Ogni quanti nuovi oggetti esegue una collect
+#define GC_GEN      4    //2      // Il numero di generazioni
+#define GC_GENSCALE 8    //8      // la proporzione prima di salire alla collect del livello superiore    
 
 //#define GC_USING_USET
 
@@ -94,7 +95,7 @@ public:
   void add(GCObject* o){ // aggiunge un oggetto agli oggetti che gestisce, se è il caso chiama la garbage collection
       if (added>objlimit) {
           //int g=rand()%100==0?maxgen:(rand()%10==0?1:0); // ogni 10 collect(1), ogni 100 collect maxgen
-          int g=0; while (rand()%2==1 && g<maxgen) g++;
+          int g=0; while (rand()%GC_GENSCALE==0 && g<maxgen) g++;
           //cout << objs.size() << " collecting gen: " << g;
           collect(g);
           added=0;
@@ -210,6 +211,7 @@ inline void GC::sweep(int gen){
   objs=nnn;
 #endif 
   if (m>maxlive) maxlive=m;
+  //status();showIntCache();
 }
 
 inline void GC::status(){
