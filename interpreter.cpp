@@ -1597,8 +1597,7 @@ void test(const string& fn){
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
   lockgc_ptr<contextObj> ctx{new contextObj()};
-  contextObj* cctx=ctx;
-  interp intp(cctx,prg);
+  interp intp(ctx,prg);
   if (r) intp.run();
   assert(intp.sp==-1);
 }
@@ -1639,7 +1638,7 @@ int main(){
   
   
   cout << "--- status on exit ---\n";  
-  //stdGC().status();
+  stdGC().status();
   //cout << "--- collect 0 ---\n";  
   //stdGC().collect(0);
   //stdGC().status();

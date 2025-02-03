@@ -8,8 +8,8 @@ supportare più di 2 generazioni (ora scandice 0,1 o max)
 
 using namespace std;
 
-#define GC_OBJSLIM 2000 //10000
-#define GC_GEN     8     //2
+#define GC_OBJSLIM 10000 //10000
+#define GC_GEN     2     //2
 
 //#define GC_USING_USET
 
