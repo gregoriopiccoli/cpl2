@@ -538,13 +538,13 @@ pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;stdGC().addRecycled(v);return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;stdGC().addRecycled(v);return v;}
   return new intObj(value-oo->value);
 }
 
@@ -1633,9 +1633,9 @@ void releaseSysObjs(){
 
 int main(){
   //bench("primo.pcd");
-  test("primo.pcd");
+  //test("primo.pcd");
   //test("terzo.pcd");
-  //test("fib.pcd");
+  test("fib.pcd");
   //bench("fib.pcd");
   //bench_cc();
   //test_cc();

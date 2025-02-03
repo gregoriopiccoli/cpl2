@@ -110,7 +110,7 @@ public:
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
       }
-  //void collect(int gen=0){if(gen>maxgen) gen=maxgen;cout << "mark\n";mark(gen);cout<<"sweep\n";sweep(gen);cout << "collected\n";}
+  void addRecycled(GCObject* o){objs.push_back(o);}    
   void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);gcexecutions++;}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
