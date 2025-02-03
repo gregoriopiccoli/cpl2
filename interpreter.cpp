@@ -26,6 +26,8 @@ FATTO:
 
 using namespace std;
 
+void showIntCache();
+
 #include "gc.cpp"
 
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
@@ -522,6 +524,8 @@ public:
 };
 	
 intCache theIntCache;
+
+void showIntCache(){cout << "intCache size:" << theIntCache.size() << endl;}
 
 bool intObj::reclaim(){
   generation=0;
@@ -1629,10 +1633,10 @@ void releaseSysObjs(){
 
 int main(){
   //bench("primo.pcd");
-  //test("primo.pcd");
+  test("primo.pcd");
   //test("terzo.pcd");
   //test("fib.pcd");
-  bench("fib.pcd");
+  //bench("fib.pcd");
   //bench_cc();
   //test_cc();
   
