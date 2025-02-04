@@ -19,6 +19,7 @@ using namespace std;
 #endif
 
 int gc_ending=0;
+long objectscnt=0;
 
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
 class GCObject {
@@ -90,7 +91,7 @@ public:
         delete it;
 	  }
       objs.clear();
-      cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << " maxsize:" << maxsize << " gcexec:" << gcexecutions << endl;
+      cout << "--- GC objs:" << sz << " lckd:" << locked << " tot:" << cnt << " created:" << objectscnt << "\n       maxlive:" << maxlive << " maxsize:" << maxsize << " gcexec:" << gcexecutions << endl;
     }
   void add(GCObject* o){ // aggiunge un oggetto agli oggetti che gestisce, se è il caso chiama la garbage collection
       if (added>objlimit) {
@@ -110,7 +111,7 @@ public:
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
       }
-  void addRecycled(GCObject* o){o->lock();add(o);o->unlock(); /* alternativa ... objs.push_back(o); */}    
+  void addRecycled(GCObject* o){add(o); /* alternativa ... objs.push_back(o); */}    
   void collect(int gen=0){if(gen>maxgen) gen=maxgen;/*long n=objs.size();*/mark(gen);sweep(gen);gcexecutions++;/*long nn=n-objs.size();cout << "recuperati:" << nn << " gen:" << gen << endl;*/}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
@@ -139,6 +140,7 @@ inline GCObject::GCObject(){
   locked=0;
   GC::getGC().add(this);
   //cout << "created " << this << endl;
+  objectscnt++;
 }
 
 inline void GC::mark(int gen){
