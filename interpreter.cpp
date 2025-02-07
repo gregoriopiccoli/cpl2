@@ -2,12 +2,15 @@
 Dove possibile usare sempre referenze!
 
 DA FARE: 
+  GC parallelo?
+  fare referenza a tipo di base anche per le stringhe e i float
   Blocco dei parametri da fare una volta sola, FATTO ora però devo fare i blocchi di codice di inizializzazione FATTO e poi devo usarlo!
   La print di una procedura/funzione dovrebbe descriverla completamente
   Float e operazioni miste tra int e float
    
 FATTO: 
-  Provato a riciclare gli interi ... ci si mette più tempo! Dovrò provare con la garbage collection.
+  Fatto il Garbage Collector! 
+  Provato a riciclare gli interi ... ci si mette più tempo! Dovrò provare con la garbage collection. OTTIMO!
   Nil è meglio con nullptr o con uno specifico oggetto nil? per ora provo con un oggetto specifico così non è mai un puntatore non inizializzato ...
   Devo fare che le stringhe abbiano le loro operazioni ... prima prova di classe C++!
   fare trucco della compare per tipo e mettere le operazioni di confronto sulla compare
@@ -18,10 +21,12 @@ FATTO:
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <deque>
+//#include <deque>
 //#include <memory>
 
 using namespace std;
+
+void showIntCache();
 
 #include "gc.cpp"
 
@@ -202,6 +207,7 @@ public:
   explicit pcodeIntConst(int v);
   ~pcodeIntConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
+  //obj* getIntConst() const {return theValue;}
 };
 
 class pcodeStrConst: public spcode {
@@ -473,6 +479,7 @@ public:
   virtual obj* _not() {throw domain_error("not not implemented");}
   virtual obj* is(const obj*) {throw domain_error("is not implemented");}
   //
+  virtual const obj* getBaseType() const;
 };
 
 class nilObj: public obj {
@@ -499,9 +506,12 @@ public:
   virtual obj* gt(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
+  virtual const obj* getBaseType() const override;
+  //
   virtual bool reclaim() override;
   //
-  const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  //const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const intObj* check_int(const obj* o,const char* msg) const;
 };
 
 class intCache {
@@ -514,6 +524,9 @@ public:
 };
 	
 intCache theIntCache;
+int intrecycle=0;
+
+void showIntCache(){cout << "intCache size:" << theIntCache.size() << " recycled:" << intrecycle << endl;}
 
 bool intObj::reclaim(){
   generation=0;
@@ -526,13 +539,13 @@ pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT
 
 obj* intObj::plus(const obj* o) const {
   const intObj* oo=check_int(o,"integer + with a non integer");
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;stdGC().addRecycled(v);intrecycle++;return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;v->lock();stdGC().add(v);v->unlock();return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;stdGC().addRecycled(v);intrecycle++;return v;}
   return new intObj(value-oo->value);
 }
 
@@ -587,13 +600,21 @@ public:
   virtual obj* eq(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
   //
-  const boolObj* check_bool(const obj* o,const char*  msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  //const boolObj* check_bool(const obj* o,const char*  msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
+  const boolObj* check_bool(const obj* o,const char*  msg) const;
 };
 
 // i singleton degli oggetti che non richiedono tante copie ...
 lockgc_ptr<obj> theTrue{new boolObj(true)};
 lockgc_ptr<obj> theFalse(new boolObj(false));
 lockgc_ptr<obj> theNil(new nilObj());
+
+const boolObj* boolObj::check_bool(const obj* o,const char*  msg) const {
+  if (o!=theTrue && o!=theFalse) throw domain_error(msg);
+  return static_cast<const boolObj*>(o);
+}
+
+const obj* obj::getBaseType() const {return theNil;}
 
 obj* nilObj::eq(const obj* o) const {
   return (o==theNil?theTrue:theFalse);
@@ -697,14 +718,18 @@ lockgc_ptr<obj> theIntType{new intType()};
 lockgc_ptr<obj> theStrType{new strType()};
 lockgc_ptr<obj> theFloatType{new floatType()};
 
+const obj* intObj::getBaseType() const {return theIntType;}
+
+const intObj* intObj::check_int(const obj* o,const char* msg) const {
+  if (o->getBaseType()!=theIntType) throw domain_error(msg);
+  return static_cast<const intObj*>(o);
+}
+
 // --- gli array e i dizionari
 
 class arrayObj: public obj {
 	vector<obj*> a;
-	//gc_array_<obj>* a_gc;
 public:
-  //arrayObj():a_gc{new gc_array_<obj>(a)}{}
-  //explicit arrayObj(const int& sz):a_gc{new gc_array_<obj>(a)}{resize(sz);}
   arrayObj(){}
   explicit arrayObj(const int& sz){resize(sz);}
   //
@@ -759,8 +784,6 @@ public:
   //
   virtual obj* slice(const obj* idx) override {
 	 string key=idx->print();
-     //if (map.contains(key)) 
-     //  return map[key];
      auto ff=map.find(key);
      if (ff!=map.end())
        return ff->second;
@@ -770,14 +793,6 @@ public:
   virtual void storeslice(obj* idx, obj* value) override {
 	 string key=idx->print(); 
 	 map[key]=value;
-	 /*
-	 const strObj* key=dynamic_cast<strObj*>(idx);
-	 if (key!=nullptr){
-	   map[key->value]=value;
-     } else {
-       throw domain_error("storing in a dictionary with a non string key");
-     }
-     */
   };
   virtual string print() const override;
   //
@@ -843,8 +858,8 @@ public:
   }
   virtual string print() const override {
 	string s="container ";
-	for(auto const& [k,t]:types){
-		s+=","+t->print()+" "+theStringIntern.get(k);+" ("+objs.at(k)->print()+")";
+	for(auto& [k,t]:types){
+		s+=","+t->print()+" "+theStringIntern.get(k)+" ("+objs.at(k)->print()+")";
 	}
 	return s;
   }
@@ -877,7 +892,6 @@ public:
 lockgc_ptr<builtInContainer> theBuiltIn{new builtInContainer};
 
 // il costruttore di un contesto che non specifica qual è il suo contesto di base riceve builtin come punto finale della ricerca
-//contextObj::contextObj():superlevel{*theBuiltIn},o_gc{new gc_dict_<int,obj>(objs)},t_gc{new gc_dict_<int,obj>(types)}{};
 contextObj::contextObj():superlevel{theBuiltIn}{};
 
 // --- contenitore che cerca in locale e nel modulo
@@ -985,19 +999,19 @@ public:
 #endif
 //#define TESTSWITCH
 #ifdef TESTSWITCH
-      pcode* ppp=prg->get(pc);
-      switch (ppp->getCode()){
+      const pcode& ppp=prg[pc];
+      switch (ppp.getCode()){
 	    case P_INT_CONST:
           sp++;
-          stack.push_back(make_shared<intObj>(ppp->getIntValue()));
+          stack.push_back(reinterpret_cast<const pcodeIntConst&>(ppp).getIntConst());
 		  break;
 	    case P_PLUS:  
-          stack[sp-1]=stack[sp-1].get()->plus(stack[sp].get());
+          stack[sp-1]=stack[sp-1]->plus(stack[sp]);
           sp--;
           stack.pop_back();
           break;
 	    default:
-		  ppp->exec(*this);
+		  ppp.exec(*this);
 	  }
 #else      
 	  prg[pc].exec(*this);
@@ -1075,7 +1089,7 @@ protected:
   procParm* prm;
 public:
   procObj(int n, interp& i);
-  ~procObj() override {prm->unlock();}
+  ~procObj() override {/*prm->unlock();*/}
   //
   procObj*& operator=(procObj*&) = delete;
   procObj(procObj&) = delete;
@@ -1496,7 +1510,7 @@ void pcodeFunc::exec(interp& interpreter) const {
   obj* t=interpreter.stack[interpreter.sp--];
   interpreter.stack.pop_back();t->lock();
   //cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
-  obj* f=new funcObj(value,interpreter,t);f->lock();
+  obj* f=new funcObj(value,interpreter,t);//f->lock();
   makeProcOrFunc(interpreter,value,f,t);
   t->unlock();
 }
@@ -1544,7 +1558,10 @@ void test_cc(){
     
   // esecuzione
   prg[0].exec(intp);                                      // int type
-  obj* i;                              //prg.get(1)->exec(intp); // var i
+  
+  //obj* i;                              //prg.get(1)->exec(intp); // var i
+  lockgc_ptr<obj> i;                   // ATTENZIONE: solo così sono sicuro di tenere i valori dal GC!
+   
   intp.stack.pop_back();intp.sp--;     //prg.get(2)->exec(intp); // pop
   prg[3].exec(intp);                                      // int const 0
   i=intp.stack[intp.sp];               //prg.get(4)->exec(intp); // store i
@@ -1552,7 +1569,11 @@ void test_cc(){
   label3:                                                     // label 3
   intp.stack.push_back(i);intp.sp++;   //prg.get(7)->exec(intp); // load i
   intp.stack.push_back(c_1000000); intp.sp++; //prg.get(8)->exec(intp);  // int const 1000000
-  prg[9].exec(intp);                                      // lt
+  
+  //prg[9].exec(intp);                                      // lt
+  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->lt(intp.stack[intp.sp]);
+  intp.stack.pop_back();
+  intp.sp--;
   
   //if false 4
   bool t=intp.stack[intp.sp--]==theFalse;
@@ -1561,7 +1582,11 @@ void test_cc(){
   
   intp.stack.push_back(i);intp.sp++;  //prg.get(11)->exec(intp); // load i
   intp.stack.push_back(c_1);intp.sp++;//prg.get(12)->exec(intp); // int const 1
-  prg[13].exec(intp);                                     // plus
+  
+  //prg[13].exec(intp);                                     // plus
+  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->plus(intp.stack[intp.sp]);
+  intp.stack.pop_back();
+  intp.sp--;
   
   i=intp.stack[intp.sp];              //prg.get(14)->exec(intp); // store i;
   
@@ -1577,8 +1602,7 @@ void test(const string& fn){
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
   lockgc_ptr<contextObj> ctx{new contextObj()};
-  contextObj* cctx=ctx;
-  interp intp(cctx,prg);
+  interp intp(ctx,prg);
   if (r) intp.run();
   assert(intp.sp==-1);
 }
@@ -1597,25 +1621,8 @@ int bench_cc(){
   return 0;
 }
 
-int main(){
-  bench("primo.pcd");
-  //test("primo.pcd");
-  //test("terzo.pcd");
-  //test("fib.pcd");
-  //bench("fib.pcd");
-  bench_cc();
-  //test_cc();
-  
-  /*  
-  cout << "--- status on exit ---\n";  
-  stdGC().status();
-  //cout << "--- collect 0 ---\n";  
-  //stdGC().collect(0);
-  //stdGC().status();
-  cout << "--- collect all ---\n";  
-  stdGC().collectall();
-  stdGC().status();
-  cout << " -- removing system objects ---\n";   
+void releaseSysObjs(){
+  //cout << "--- removing system objects ---\n";   
   theNil=nullptr;
   theTrue=nullptr;
   theFalse=nullptr;
@@ -1623,12 +1630,31 @@ int main(){
   theStrType=nullptr;
   theFloatType=nullptr;
   theBuiltIn=nullptr;
-  cout << " -- status after destruction of system objects ---\n";   
+}
+
+int main(){
+  bench("primo.pcd");
+  //test("primo.pcd");
+  //test("terzo.pcd");
+  //test("fib.pcd");
+  //bench("fib.pcd");
+  //bench_cc();
+  //test_cc();
+  
+  
+  cout << "--- status on exit ---\n";  
+  stdGC().status();
+  //cout << "--- collect 0 ---\n";  
+  //stdGC().collect(0);
+  //stdGC().status();
+  //cout << "--- collect all ---\n";  
+  releaseSysObjs();
   stdGC().collectall();
   stdGC().status();
-  cout << "intcache.size:" << intcache.size() << endl;
-  for (auto o:intcache) delete o;
-  cout << "--- final status ---\n";
+  //cout << "--- status after destruction of system objects ---\n";   
+  //stdGC().collectall();
+  //stdGC().status();
+  cout << "--- final status,locked objs ---\n";
   stdGC().printLocked();
-  */
+  cout << "--- end ---\n";
 }

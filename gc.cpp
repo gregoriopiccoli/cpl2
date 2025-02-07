@@ -5,14 +5,21 @@ supportare più di 2 generazioni (ora scandice 0,1 o max)
 */
 
 #include <cassert>
-#include <unordered_set>
 
 using namespace std;
 
-#define GC_OBJSLIM 2000 //10000
-#define GC_GEN     8     //2
+#define GC_OBJSLIM  5000 //10000  // Ogni quanti nuovi oggetti esegue una collect
+#define GC_GEN      4    //2      // Il numero di generazioni
+#define GC_GENSCALE 4    //8      // la proporzione prima di salire alla collect del livello superiore    
+
+//#define GC_USING_USET
+
+#ifdef GC_USING_USET
+#include <unordered_set>
+#endif
 
 int gc_ending=0;
+long objectscnt=0;
 
 // ogni oggetto da sottoporre a GC deve derivare da questo che implementa il funzionamento di base
 class GCObject {
@@ -31,14 +38,22 @@ public:
   virtual int lockCnt(){return locked;}
   //
   int generation;
-  virtual void mark(){if (!marked) {marked=true;for(int i=0;i<childCnt();i++){auto c=getChild(i);if(c) c->mark();}};}
+  virtual void mark(){
+	if (!marked) {
+	  marked=true;
+	  for(int i=0;i<childCnt();i++){
+		auto c=getChild(i);
+		if(c) c->mark();
+	  }
+	 }
+  }
   virtual void expand(int gen){
 	if (generation<gen) 
 	  generation=gen;
 	int end=childCnt();   
-	for(int i=0;i<end;i++){
+	for(int i=0;i<end;i++){ // ciclo su tutti i miei figli per portarli al mio livello
 	  auto c=getChild(i);
-	  if(c && c->generation<generation) 
+	  if(c && c->generation<generation) // se il figlio è di generazione minore della mia lo elevo alla mia generazione
 	    c->expand(generation);
 	}
   }
@@ -50,11 +65,14 @@ public:
 
 class GC {
   // insieme di tutti gli oggetti da gestire
-  //unordered_set <GCObject*> objs;
+#ifdef GC_USING_USET  
+  unordered_set <GCObject*> objs;
+#else  
   vector<GCObject*> objs;
+#endif  
   int maxgen;
   int objlimit=GC_OBJSLIM,added=0;
-  unsigned long cnt=0,maxlive=0,maxsize=0;
+  unsigned long cnt=0,maxlive=0,maxsize=0,gcexecutions=0;
   //
   void mark(int gen); // marca tutti gli oggetti raggiungibili della generazione specificata,
                       // quelli di generazioni successive sono considerati raggiunti
@@ -73,25 +91,28 @@ public:
         delete it;
 	  }
       objs.clear();
-      cout << "--- closing GC, objs:" << sz << " locked:" << locked << " cnt:" << cnt << " maxlive:" << maxlive << " maxsize:" << maxsize << endl;
+      cout << "--- GC objs:" << sz << " lckd:" << locked << " tot:" << cnt << " created:" << objectscnt << "\n       maxlive:" << maxlive << " maxsize:" << maxsize << " gcexec:" << gcexecutions << endl;
     }
   void add(GCObject* o){ // aggiunge un oggetto agli oggetti che gestisce, se è il caso chiama la garbage collection
       if (added>objlimit) {
           //int g=rand()%100==0?maxgen:(rand()%10==0?1:0); // ogni 10 collect(1), ogni 100 collect maxgen
-          int g=0; while (rand()%2==1 && g<maxgen) g++;
+          int g=0; while (rand()%GC_GENSCALE==0 && g<maxgen) g++;
           //cout << objs.size() << " collecting gen: " << g;
           collect(g);
           added=0;
           //cout << " after: " << objs.size() << endl;
       }
-      //objs.insert(o); // aggiunge l'oggetto agli oggetti noti
+#ifdef GC_USING_USET  
+      objs.insert(o); // aggiunge l'oggetto agli oggetti noti
+#else      
       objs.push_back(o); // aggiunge l'oggetto agli oggetti noti
+#endif      
       added++; // conteggia gli oggetti aggiunti per far scattare il GC
       cnt++;
       //if (debug) cout << "inserted " << o << endl;
       }
-  //void collect(int gen=0){if(gen>maxgen) gen=maxgen;cout << "mark\n";mark(gen);cout<<"sweep\n";sweep(gen);cout << "collected\n";}
-  void collect(int gen=0){if(gen>maxgen) gen=maxgen;mark(gen);sweep(gen);}
+  void addRecycled(GCObject* o){add(o); /* alternativa ... objs.push_back(o); */}    
+  void collect(int gen=0){if(gen>maxgen) gen=maxgen;/*long n=objs.size();*/mark(gen);sweep(gen);gcexecutions++;/*long nn=n-objs.size();cout << "recuperati:" << nn << " gen:" << gen << endl;*/}
   void collectall(){collect(maxgen);}
   static GC& getGC(){static GC theGC(GC_GEN);return theGC;}
   void status();
@@ -104,7 +125,7 @@ public:
     int old=maxgen; maxgen=gen;return old; // ritorna il vecchio numero di generazioni
   }
   void printLocked(){
-	for(auto& o:objs) 
+	for(const GCObject* const& o:objs) 
 	  if (o->locked>0)
 	    cout << o->print() << endl;
   }
@@ -119,6 +140,7 @@ inline GCObject::GCObject(){
   locked=0;
   GC::getGC().add(this);
   //cout << "created " << this << endl;
+  objectscnt++;
 }
 
 inline void GC::mark(int gen){
@@ -141,7 +163,7 @@ inline void GC::mark(int gen){
   //if (gc_ending) cout << "fine mark per gen\n";
   // percorre tutti gli oggetti che appaiono raggiungibili
   for (const auto& it : objs){
-      if (it->locked /*&& !it->marked*/)  // se l'oggetto è parte degli oggetti raggiungibili da programma ed è di una generazione che può essere reclamata
+      if (it->locked && !it->marked)  // se l'oggetto è parte degli oggetti raggiungibili da programma ed è di una generazione che può essere reclamata
         it->mark();                   // lo marca e marca tutti gli oggetti raggiungibili da questo oggetto
   }
   //if (gc_ending) cout << "fine mark per lock\n";
@@ -156,12 +178,14 @@ inline void GC::sweep(int gen){
   bool shiftGen=gen<maxgen;
   if (objs.size()>maxsize) maxsize=objs.size();
   unsigned long m=0;
-  /*
+#ifdef GC_USING_USET  
   for (auto it=objs.begin();it!=objs.end();){
     if ((*it)->marked){
       // oggetto marcato, si deve far salire di generazione
-      if (shiftGen && (*it)->generation<=gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
-        (*it)->generation++;
+      //if (shiftGen && (*it)->generation<=gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
+      //  (*it)->generation++;
+      if ((*it)->generation<gen){ // gli oggetti sopravvissuti che erano sotto "gen" salgono di generazione
+        (*it)->generation=gen;
         //cout << (*it) << " generation " << (*it)->generation << endl;
       }
       ++it;
@@ -170,13 +194,11 @@ inline void GC::sweep(int gen){
       // oggetto non marcato, si deve rilasciare
       GCObject* ptr=(*it);
       it=objs.erase(it);
-      //delete ptr;
       ptr->reclaim();
       //cout << "deleted " << ptr << endl;
     }
   }
-  */
-  /**/
+#else
   vector<GCObject*> nnn;
   for(auto& o:objs) {
 	if (o->marked){
@@ -187,14 +209,13 @@ inline void GC::sweep(int gen){
       nnn.push_back(o);
       m++;
 	} else {
-      //delete ptr;
       o->reclaim();
 	} 
   } 
   objs=nnn;
-  /**/ 
+#endif 
   if (m>maxlive) maxlive=m;
-  //status();
+  //status();showIntCache();
 }
 
 inline void GC::status(){
