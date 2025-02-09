@@ -2,10 +2,13 @@
 Dove possibile usare sempre referenze!
 
 DA FARE: 
+  provare fib in traduzione c++ -- FATTO e cavolo se corre!
+  provare computed goto -- FATTO almeno in parte ed è più veloce! Ho dovuto anche cambiare la getIntValue dei pcode per evitare una chiamata virtuale
   GC parallelo?
+  provare a fare un GC super-semplice mark e sweep, magari è più veloce
   fare referenza a tipo di base anche per le stringhe e i float
   Blocco dei parametri da fare una volta sola, FATTO ora però devo fare i blocchi di codice di inizializzazione FATTO e poi devo usarlo!
-  La print di una procedura/funzione dovrebbe descriverla completamente
+  La print di una procedura/funzione dovrebbe descriverla completamente, ora lo fa per le proc/func cpl ma devo riuscire anche per quelle c++
   Float e operazioni miste tra int e float
    
 FATTO: 
@@ -58,34 +61,36 @@ StringIntern theStringIntern;
 #include "pcodes.c"
 
 class interp;
+class obj;
 
 class pcode {
 protected:
-  int code;
+  int code,value;
 public:
-  pcode():code{0}{}
+  pcode():code{0},value{0}{}
   virtual ~pcode(){}
   virtual void exec(interp& interpreter) const {throw domain_error("not an executable pcode");};
   int getCode() const {return code;}
-  virtual int getIntValue(){return 0;}
+  int getIntValue() const {return value;}
+  virtual obj* getObjValue() const {return nullptr;}
   virtual string print() const {return pcodetxt[code];}
 };
 
 class ipcode: public pcode {
 protected:
-  int value;
+  //int value;
 public:
-  explicit ipcode(int i):value{i}{}
-  virtual int getIntValue() override {return value;}
+  explicit ipcode(int i){value=i;}
+  //virtual int getIntValue() const override {return value;}
   virtual string print() const override {return string(pcodetxt[code])+" "+to_string(value);}
 };
 
 class interningpcode: public pcode {
 protected:
-  int value;
+  //int value;
 public:
-  explicit interningpcode(const string& s):value{theStringIntern.add(s)}{}
-  virtual int getIntValue() override {return value;}
+  explicit interningpcode(const string& s){value=theStringIntern.add(s);}
+  //virtual int getIntValue() const override {return value;}
   virtual string print() const override {return string(pcodetxt[code])+" "+theStringIntern.get(value);}
 };
 
@@ -199,15 +204,13 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
-class obj;
-
 class pcodeIntConst: public ipcode {
   lockgc_ptr<obj> theValue;	
 public:
   explicit pcodeIntConst(int v);
   ~pcodeIntConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
-  //obj* getIntConst() const {return theValue;}
+  virtual obj* getObjValue() const override {return theValue;}
 };
 
 class pcodeStrConst: public spcode {
@@ -216,6 +219,7 @@ public:
   explicit pcodeStrConst(const string& v);
   ~pcodeStrConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
+  virtual obj* getObjValue() const override {return theValue;}
 };
 
 class pcodeArray: public ipcode {
@@ -989,7 +993,33 @@ public:
   }
   ~interp(){stack_gc->unlock();};
   //
+  
+#define TESTSWITCH
+
   void run() {
+#ifdef TESTSWITCH
+    static void* pcodejump[256];
+    static bool initPcodeJumps=true;
+    if (initPcodeJumps){
+      for(int i=0;i<256;i++) pcodejump[i]=&&default_pcode;
+      pcodejump[P_PLUS]=&&p_plus;
+      pcodejump[P_MINUS]=&&p_minus;
+      pcodejump[P_LT]=&&p_lt;
+      pcodejump[P_LE]=&&p_le;
+      pcodejump[P_POP]=&&p_pop;
+      pcodejump[P_LOAD]=&&p_load;
+      pcodejump[P_INT_CONST]=&&p_int_const;
+      pcodejump[P_STORE_RESULT]=&&p_store_result;    
+      pcodejump[P_GOTO]=&&p_goto;
+      pcodejump[P_IF_FALSE]=&&p_if_false;
+      pcodejump[P_CALL]=&&p_call;
+      pcodejump[P_ENDPROC]=&&p_endproc;
+      pcodejump[P_ENDFUNC]=&&p_endfunc;
+      pcodejump[P_ENDPARM]=&&p_endparm;
+      pcodejump[P_LINE]=&&p_line;
+      initPcodeJumps=false;
+    } 
+#endif	  
 	stop=false;  
 	while(!stop){
 #ifdef PRINT_PCODE_EXECUTION
@@ -997,22 +1027,31 @@ public:
 	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " " << prg[pc].print() << endl;
 	  //cout << "pc:" << pc << " sp:" << sp << " " << prg->get(pc)->getCode() << " " << prg->get(pc)->print() << endl;
 #endif
-//#define TESTSWITCH
 #ifdef TESTSWITCH
       const pcode& ppp=prg[pc];
-      switch (ppp.getCode()){
-	    case P_INT_CONST:
-          sp++;
-          stack.push_back(reinterpret_cast<const pcodeIntConst&>(ppp).getIntConst());
-		  break;
-	    case P_PLUS:  
-          stack[sp-1]=stack[sp-1]->plus(stack[sp]);
-          sp--;
-          stack.pop_back();
-          break;
-	    default:
-		  ppp.exec(*this);
-	  }
+      goto *pcodejump[ppp.getCode()];
+      p_plus: stack[sp-1]=stack[sp-1]->plus(stack[sp]);stack.pop_back();sp--;goto endpcode;
+      p_minus:stack[sp-1]=stack[sp-1]->minus(stack[sp]);stack.pop_back();sp--;goto endpcode;
+      p_lt:stack[sp-1]=stack[sp-1]->lt(stack[sp]);stack.pop_back();sp--;goto endpcode;
+      p_le:stack[sp-1]=stack[sp-1]->le(stack[sp]);stack.pop_back();sp--;goto endpcode;
+      p_pop:stack.pop_back();sp--;goto endpcode;
+      p_load:stack.push_back(context->load(ppp.getIntValue()));sp++;goto endpcode;
+      p_int_const: stack.push_back(ppp.getObjValue()); sp++; goto endpcode;
+      p_store_result:context->store_result(stack[sp]);goto endpcode;
+      p_goto:pc=prg.getLabelPos(ppp.getIntValue());goto endpcode;
+      p_if_false:{
+		const obj* v=stack[sp--];stack.pop_back();
+		if (v!=theTrue && v!= theFalse) throw out_of_range("if with a non boolean expression");
+        if (v==theFalse) pc=prg.getLabelPos(ppp.getIntValue());
+	    }
+        goto endpcode;
+      p_call:stack[sp-ppp.getIntValue()]->call(ppp.getIntValue(),*this);goto endpcode;
+      p_endproc:stop=true;goto endpcode;
+      p_endfunc:stop=true;goto endpcode;
+      p_endparm:stop=true;goto endpcode;
+      p_line: currentSourceLine=ppp.getIntValue();goto endpcode;
+      default_pcode: ppp.exec(*this);
+	  endpcode:
 #else      
 	  prg[pc].exec(*this);
 #endif	  
@@ -1596,7 +1635,84 @@ void test_cc(){
   intp.stack.push_back(i);intp.sp++;  //prg[18].exec(intp);              
   prg[19].exec(intp);
 }
-  
+
+static lockgc_ptr<intObj> c_1(new intObj(1));
+static lockgc_ptr<intObj> c_2(new intObj(2));
+ 
+void fib_cc(interp& intp){
+  lockgc_ptr<obj> n;
+  // inizializza il parametro n
+  n=intp.stack[intp.sp];
+  intp.stack.pop_back();
+  intp.sp--;
+  //cout << "dopo n sp:" << intp.sp << " n:" << n->print() << endl;
+  // n<=2
+  intp.stack.push_back(n);intp.sp++;
+  intp.stack.push_back(c_2);intp.sp++;
+  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->le(intp.stack[intp.sp]);
+  intp.stack.pop_back();
+  intp.sp--;
+  // if false 0
+  bool b0=intp.stack[intp.sp--]==theFalse;
+  intp.stack.pop_back();
+  if (b0) goto label0;
+  // result:=1
+  intp.stack.push_back(c_1);intp.sp++;
+  goto label1;  
+  label0:
+  // n-1
+  intp.stack.push_back(n);intp.sp++;
+  intp.stack.push_back(c_1);intp.sp++;
+  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->minus(intp.stack[intp.sp]);
+  intp.stack.pop_back();
+  intp.sp--;  
+  // fib
+  fib_cc(intp);
+  // n-2
+  intp.stack.push_back(n);intp.sp++;
+  intp.stack.push_back(c_2);intp.sp++;
+  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->minus(intp.stack[intp.sp]);
+  intp.stack.pop_back();
+  intp.sp--;  
+  // fib
+  fib_cc(intp);
+  // +
+  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->plus(intp.stack[intp.sp]);
+  intp.stack.pop_back();
+  intp.sp--;    
+  label1:
+  //cout << "fine sp:" << intp.sp << " result:" << intp.stack[intp.sp]->print() << endl;
+  ;;
+} 
+
+void test_fib_cc(){
+  pcodeProgram prg;	
+  contextObj* ctx=new contextObj();
+  interp intp(ctx,prg);
+  //
+  lockgc_ptr<obj> c_34(new intObj(34));  
+  lockgc_ptr<obj> str1(new strObj("fib(34)="));
+  // push str
+  intp.stack.push_back(str1);
+  intp.sp++;  
+  // push int const 34
+  intp.stack.push_back(c_34);
+  intp.sp++;  
+  // call "fib"
+  fib_cc(intp);  
+  //cout << "terminato sp:" << intp.sp << " result:" << intp.stack[intp.sp]->print() << endl;;
+  // print 1
+  pcodePrint pp(2);
+  pp.exec(intp);
+}  
+
+int bench_fib_cc(){
+  ankerl::nanobench::Bench().run("fib(34) in cc", [&] {
+	test_fib_cc();
+  });
+  return 0;
+}
+
 void test(const string& fn){
   // prova reale ...
   pcodeProgram prg;
@@ -1630,17 +1746,21 @@ void releaseSysObjs(){
   theStrType=nullptr;
   theFloatType=nullptr;
   theBuiltIn=nullptr;
+  //
+  c_1=nullptr;
+  c_2=nullptr;
 }
 
 int main(){
-  bench("primo.pcd");
   //test("primo.pcd");
+  //bench("primo.pcd");
   //test("terzo.pcd");
   //test("fib.pcd");
   //bench("fib.pcd");
-  //bench_cc();
   //test_cc();
-  
+  //bench_cc();
+  //test_fib_cc();
+  bench_fib_cc();
   
   cout << "--- status on exit ---\n";  
   stdGC().status();
