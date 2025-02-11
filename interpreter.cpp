@@ -994,10 +994,10 @@ public:
   ~interp(){stack_gc->unlock();};
   //
   
-#define TESTSWITCH
+#define RUN_WITH_SWITCH
 
   void run() {
-#ifdef TESTSWITCH
+#ifdef RUN_WITH_SWITCH
     static void* pcodejump[256];
     static bool initPcodeJumps=true;
     if (initPcodeJumps){
@@ -1027,7 +1027,7 @@ public:
 	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " " << prg[pc].print() << endl;
 	  //cout << "pc:" << pc << " sp:" << sp << " " << prg->get(pc)->getCode() << " " << prg->get(pc)->print() << endl;
 #endif
-#ifdef TESTSWITCH
+#ifdef RUN_WITH_SWITCH
       const pcode& ppp=prg[pc];
       goto *pcodejump[ppp.getCode()];
       p_plus: stack[sp-1]=stack[sp-1]->plus(stack[sp]);stack.pop_back();sp--;goto endpcode;
@@ -1753,10 +1753,10 @@ void releaseSysObjs(){
 
 int main(){
   //test("primo.pcd");
-  //bench("primo.pcd");
+  bench("primo.pcd");
   //test("terzo.pcd");
   //test("fib.pcd");
-  //bench("fib.pcd");
+  bench("fib.pcd");
   //test_cc();
   //bench_cc();
   //test_fib_cc();
