@@ -1724,7 +1724,7 @@ void test(const string& fn){
 }
 
 int bench(string fn){
-  ankerl::nanobench::Bench().run("conta fino a 1000000", [&] {
+  ankerl::nanobench::Bench().run("esegue "+fn, [&] {
 	  test(fn);
   });
   return 0;
@@ -1753,10 +1753,10 @@ void releaseSysObjs(){
 
 int main(){
   //test("primo.pcd");
-  //bench("primo.pcd");
+  bench("primo.pcd");
   //test("terzo.pcd");
   //test("fib.pcd");
-  //bench("fib.pcd");
+  bench("fib.pcd");
   //test_cc();
   //bench_cc();
   //test_fib_cc();
