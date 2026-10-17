@@ -936,7 +936,7 @@ int pcodeProgram::loadPcd(string fn){
 	unsigned char code=0;
 	pcd.getline(line,2000);
 	if (header.compare(line)!=0){
-	  cout << "not a compiled cpl2 file ..." <<endl;
+	  cerr << "not a compiled cpl2 file ..." <<endl;
 	  prg.push_back(new pcodePCodeEnd(0));
 	  return 0;
 	}
@@ -958,11 +958,14 @@ int pcodeProgram::loadPcd(string fn){
     if (last->getCode()!=P_PCODEEND || last->getIntValue()!=0){
 	  prg.clear();
 	  prg.push_back(new pcodePCodeEnd(0));
-	  cout << fn << " has errors!" << endl;
+	  cerr << fn << " has errors!" << endl;
 	  return 0;
 	}
     return 1;
   }
+  // file non apribile: prima non diceva niente (vedi D4). Il messaggio nomina
+  // il percorso derivato, cosi' si vede che cosa e' stato cercato.
+  cerr << "cannot open p-code file: " << fn << endl;
   prg.push_back(new pcodePCodeEnd(0));
   return 0;
 };
@@ -1713,7 +1716,19 @@ int bench_fib_cc(){
   return 0;
 }
 
-void test(const string& fn){
+// D2: dal nome scritto in command line al percorso del p-code da caricare.
+// E' la regola opposta di pcodePath() del compilatore: li' si sostituisce
+// l'estensione, qui se nel nome di base non c'e' alcun punto si accoda ".pcd",
+// altrimenti il percorso resta quello digitato (vedi anche D6: nessun flag).
+// Il punto si cerca solo nel nome di base, quindi "dir.d/x" resta "dir.d/x.pcd".
+string pcodePathFor(const string& arg){
+  size_t slash=arg.find_last_of('/');
+  string base=slash==string::npos?arg:arg.substr(slash+1);
+  if (base.find_last_of('.')==string::npos) return arg+".pcd";
+  return arg;
+}
+
+int runPcd(const string& fn){
   // prova reale ...
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
@@ -1721,11 +1736,13 @@ void test(const string& fn){
   interp intp(ctx,prg);
   if (r) intp.run();
   assert(intp.sp==-1);
+  // D3: 0 se il caricamento e' riuscito (il programma e' stato eseguito), 1 altrimenti
+  return r?0:1;
 }
 
 int bench(string fn){
   ankerl::nanobench::Bench().run("esegue "+fn, [&] {
-	  test(fn);
+	  runPcd(fn);
   });
   return 0;
 }
@@ -1751,17 +1768,28 @@ void releaseSysObjs(){
   c_2=nullptr;
 }
 
-int main(){
   //test("primo.pcd");
-  bench("primo.pcd");
+  //bench("primo.pcd");
   //test("terzo.pcd");
   //test("fib.pcd");
-  bench("fib.pcd");
+  //bench("fib.pcd");
   //test_cc();
   //bench_cc();
   //test_fib_cc();
-  bench_fib_cc();
+  //bench_fib_cc();
   
+// D1: esattamente un argomento, il p-code da eseguire. Niente flag: un nome che
+// inizia con '-' e' un percorso (vedi D6). Senza argomento o con piu' di uno si
+// esce con 1 senza eseguire nulla. D5: sparisce il blocco di bench hardcoded,
+// ma le funzioni bench*()/test*_cc() restano nel sorgente e si chiamano da qui.
+int main(int argc, char** argv){
+  if (argc!=2){
+	cerr << "uso: interpreter <file.pcd>" << endl;
+	cerr << "  un nome senza estensione viene completato con .pcd" << endl;
+	return 1;
+  }
+  int rc=runPcd(pcodePathFor(argv[1]));
+
   cout << "--- status on exit ---\n";  
   stdGC().status();
   //cout << "--- collect 0 ---\n";  
@@ -1777,4 +1805,5 @@ int main(){
   cout << "--- final status,locked objs ---\n";
   stdGC().printLocked();
   cout << "--- end ---\n";
+  return rc;
 }

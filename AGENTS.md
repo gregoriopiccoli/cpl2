@@ -58,20 +58,33 @@ contains the reverse pass (readable -> binary, keyed off the first line) and tha
 byte-exact today, but nothing needs it — the interpreter reads the binary `.pcd` the compiler just
 wrote, so don't build anything on top of it.
 
-## Running a program — there is no CLI
+## Running a program — one argument, no flags
 
-`./interpreter` takes **no arguments**. `main()` hardcodes nanobench runs over `primo.pcd`,
-`fib.pcd` and `bench_fib_cc()`. To run your own file you must edit `main()`:
+`./interpreter` takes **exactly one argument**: the p-code to run.
+
+```sh
+./compiler mio.cpl        # writes mio.pcd next to the source
+./interpreter mio.pcd     # same thing, the .pcd can be omitted: ./interpreter mio
+```
+
+To run your own file you no longer have to edit `main()`. Benchmarks still do require editing it:
 
 ```cpp
-test("mio.pcd");    // single run  (asserts the stack unwound to sp==-1)
+runPcd("mio.pcd");   // single run  (asserts the stack unwound to sp==-1)
 bench("mio.pcd");   // nanobench loop — ~30-60s for fib(34)
 ```
 
-Build the p-code with `./compiler mio.cpl`, which writes `mio.pcd` next to the source.
+A name with no extension gets `.pcd` appended, and the dot is looked for **in the base name
+only**, so `dir.d/x` stays `dir.d/x.pcd`. A name that already has an extension is used verbatim:
+`./interpreter fib.cpl` tries to load `fib.cpl` and says it is not compiled p-code. There are no
+flags: an argument starting with `-` is a path, so `./interpreter -h` tries to open a file named `-h`.
 
-Open work, see `todo.md`. So plain `./interpreter` is **not** a smoke test: it prints program
-output many times plus GC stats, and takes a minute.
+A file that can't be opened, isn't compiled p-code, or has compile errors prints the reason on
+stderr and exits 1 without running anything. A clean run exits 0. `main()` keeps printing the GC
+report on stdout afterwards, so `> out.txt` captures the program output *and* that report.
+
+Open work, see `todo.md`. Plain `./interpreter` is **not** a smoke test: with no arguments it prints
+usage on stderr and exits 1 without running anything.
 
 Debug switches in `interpreter.cpp`:
 - `#define PRINT_PCODE_EXECUTION` — per-instruction `pc / sp / obj` trace. Start here.
