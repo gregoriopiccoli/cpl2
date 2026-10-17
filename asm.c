@@ -55,6 +55,7 @@ int cpl2asm(FILE* f){
 }
 
 int main() {
+  emit_out=stdout; // emit.c e' incluso anche qui, l'emissione resta su stdout
   initpcodetxt();	
   return cpl2asm(stdin);  
 }

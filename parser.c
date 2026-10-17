@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
+#include <errno.h>
 
 #include "cpl2.h"
 #include "pcodes.h"
@@ -7,6 +9,21 @@
 const char* separators="+-*/%()[]{}!|<>= \t\r\n.:;,@?";
 const char* blankchars=" \t\r\n";
 const char* numberchars="0123456789";
+
+// percorso del sorgente in compilazione, NULL in modalita' standard input
+const char* srcFile=NULL;
+
+// diagnostica su stderr, con il percorso del sorgente come prefisso quando e' noto.
+// Tutte le diagnostiche del compilatore passano da qui: scanner, errore di sintassi
+// della grammatica e gestione dei file indicati in command line.
+void diag(const char* fmt, ...){
+	va_list args;
+	if (srcFile!=NULL)
+		fprintf(stderr,"%s: ",srcFile);
+	va_start(args,fmt);
+	vfprintf(stderr,fmt,args);
+	va_end(args);
+}
 
 int getTokenCodeFromString(const char* token){
 	switch(token[0]){
@@ -266,7 +283,7 @@ void tokenize(scannerStatus* s){
 			nextch=line[++i];
 		} else {
 			// ERR: stringa non terminata correttamente sulla stessa linea
-			printf("stringa non terminata\n");
+			diag("stringa non terminata\n");
 		}
 		tokenCode=TOK_STR_CONST;
 	} else if (strchr(numberchars,nextch)!=NULL) { // è un numero			
@@ -288,7 +305,7 @@ void tokenize(scannerStatus* s){
 		// qui bisogna controllare che nextchar sia un separatore
 		// ERR: il numero non è terminato in un separatore
 		if (strchr(separators,nextch)==NULL)
-			printf("numero terminato male\n");
+			diag("numero terminato male\n");
 			//  
 		token[tokl]='\0';
 	} else {
@@ -359,7 +376,9 @@ int parse(FILE* f){
 	emit_asm=0;
 	emit_ver("0.0.1");
     char line[2000];
-    fgets(line,2000,f);
+    // se il file e' vuoto la prima fgets fallisce: senza questo controllo line
+    // resterebbe non inizializzata e verrebbe trattata come una stringa
+    if (fgets(line,2000,f)==NULL) line[0]='\0';
     scannerStatus s;
     initScanner(&s);
     initScannerLine(&s,line);
@@ -372,7 +391,7 @@ int parse(FILE* f){
     pParser = ParseAlloc(malloc);
     initParserState(&sState);
     //ParseTrace(stdout,"TRACE:");
-    while (!feof(stdin) && strcmp(line,"eof\n")!=0 && strcmp(line,"EOF\n")!=0) {
+    while (!feof(f) && strcmp(line,"eof\n")!=0 && strcmp(line,"EOF\n")!=0) {
 	  // setta il numero di riga per riportare la posizione degli errori
 	  s.lineNo++;
 	  sState.lineNo++;
@@ -400,6 +419,52 @@ int parse(FILE* f){
     return sState.errors;
 }
 
-int main(){
-	return parse(stdin);
+// ricava il percorso del file p-code da quello del sorgente: si toglie
+// l'eventuale estensione dal solo nome di base e si accoda ".pcd", quindi la
+// directory del sorgente resta conservata (vedi D2 e la specifica sulla derivazione).
+// fib.cpl -> fib.pcd, test/a.cpl -> test/a.pcd, dir.d/x -> dir.d/x.pcd
+void pcodePath(const char* src, char* out){
+	const char* slash=strrchr(src,'/');
+	const char* base=slash!=NULL?slash+1:src;  // nome di base
+	const char* dot=strrchr(base,'.');         // ultima estensione, solo nel nome di base
+	size_t stem=dot!=NULL?(size_t)(dot-src):strlen(src);
+	memcpy(out,src,stem);
+	strcpy(out+stem,".pcd");
+}
+
+int main(int argc, char** argv){
+	// nessun file in command line: percorso di sempre, il p-code va su stdout
+	// e le diagnostiche escono senza prefisso (vedi D5)
+	if (argc<2) {
+		srcFile=NULL;
+		emit_out=stdout;
+		return parse(stdin);
+	}
+	// con i file in command line ogni sorgente produce il proprio .pcd e su
+	// stdout non viene scritto nulla; gli errori si sommano su tutti i file (D7)
+	int errors=0;
+	for (int i=1;i<argc;i++) {
+		char pcdPath[2000];
+		pcodePath(argv[i],pcdPath);
+		srcFile=argv[i];
+		FILE* fIn=fopen(argv[i],"r");
+		if (fIn==NULL) {
+			diag("impossibile aprire il sorgente: %s\n",strerror(errno));
+			errors++;
+			continue;
+		}
+		FILE* fOut=fopen(pcdPath,"w");
+		if (fOut==NULL) {
+			diag("impossibile aprire il p-code: %s\n",strerror(errno));
+			fclose(fIn);
+			errors++;
+			continue;
+		}
+		emit_out=fOut;
+		errors+=parse(fIn);
+		emit_out=stdout;
+		fclose(fIn);
+		fclose(fOut);
+	}
+	return errors;
 }

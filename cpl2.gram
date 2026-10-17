@@ -23,7 +23,7 @@ FATTO:
 %type iif_then {int}
 
 %extra_argument {parserState *sState}
-%syntax_error {printf("syntax error at line %d!\n",sState->lineNo);sState->errors++;}
+%syntax_error {diag("syntax error at line %d!\n",sState->lineNo);sState->errors++;}
 
 start ::= cmd_list.                               {int errs=sState->errors; emit_i(P_PCODEEND,errs);}
 
