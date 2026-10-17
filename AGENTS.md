@@ -69,33 +69,42 @@ contains the reverse pass (readable -> binary, keyed off the first line) and tha
 byte-exact today, but nothing needs it — the interpreter reads the binary `.pcd` the compiler just
 wrote, so don't build anything on top of it.
 
-## Running a program — one argument, no flags
+## Running a program — one argument, or `-bench` plus one argument
 
-`./interpreter` takes **exactly one argument**: the p-code to run.
+`./interpreter` takes **one argument**: the p-code to run. The single flag is `-bench`, and it
+goes **before** the path.
 
 ```sh
-./compiler mio.cpl        # writes mio.pcd next to the source
-./interpreter mio.pcd     # same thing, the .pcd can be omitted: ./interpreter mio
+./compiler mio.cpl             # writes mio.pcd next to the source
+./interpreter mio.pcd          # single run; the .pcd can be omitted: ./interpreter mio
+./interpreter -bench mio.pcd   # nanobench loop instead of a single run — ~30-60s for fib(34)
 ```
 
-To run your own file you no longer have to edit `main()`. Benchmarks still do require editing it:
+Neither running nor benchmarking your own file requires editing `main()` any more. The two
+functions behind those two lines are:
 
 ```cpp
-runPcd("mio.pcd");   // single run  (asserts the stack unwound to sp==-1)
-bench("mio.pcd");   // nanobench loop — ~30-60s for fib(34)
+runPcd("mio.pcd");     // single run  (asserts the stack unwound to sp==-1)
+benchPcd("mio.pcd");   // nanobench loop around runPcd(), same exit code
 ```
 
 A name with no extension gets `.pcd` appended, and the dot is looked for **in the base name
 only**, so `dir.d/x` stays `dir.d/x.pcd`. A name that already has an extension is used verbatim:
-`./interpreter fib.cpl` tries to load `fib.cpl` and says it is not compiled p-code. There are no
-flags: an argument starting with `-` is a path, so `./interpreter -h` tries to open a file named `-h`.
+`./interpreter fib.cpl` tries to load `fib.cpl` and says it is not compiled p-code. `-bench` is
+matched as an exact string and only in first position: every other argument starting with `-` is
+a path, so `./interpreter -h` still tries to open a file named `-h`, and
+`./interpreter --bench mio.pcd` prints the usage and runs nothing.
 
 A file that can't be opened, isn't compiled p-code, or has compile errors prints the reason on
-stderr and exits 1 without running anything. A clean run exits 0. `main()` keeps printing the GC
-report on stdout afterwards, so `> out.txt` captures the program output *and* that report.
+stderr and exits 1 without running anything. The same holds with `-bench`: `benchPcd()` loads the
+file once before measuring and returns 1 on failure, so an unloadable file prints no nanobench
+table. A clean run — or a clean measurement — exits 0. `main()` keeps printing the GC report on
+stdout afterwards in both modes, so `> out.txt` captures the program output, the nanobench table
+*and* that report.
 
-Open work, see `todo.md`. Plain `./interpreter` is **not** a smoke test: with no arguments it prints
-usage on stderr and exits 1 without running anything.
+Open work, see `todo.md`. Plain `./interpreter` is **not** a smoke test: with no arguments, with
+more than one argument, and with a bare `-bench` it prints usage on stderr and exits 1 without
+running or measuring anything.
 
 Debug switches in `interpreter.cpp`:
 - `#define PRINT_PCODE_EXECUTION` — per-instruction `pc / sp / obj` trace. Start here.

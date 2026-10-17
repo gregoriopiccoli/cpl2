@@ -22,6 +22,7 @@ FATTO:
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstring>
 #include <unordered_map>
 #include <vector>
 //#include <deque>
@@ -1728,23 +1729,30 @@ string pcodePathFor(const string& arg){
   return arg;
 }
 
-int runPcd(const string& fn){
-  // prova reale ...
-  pcodeProgram prg;
-  int r=prg.loadPcd(fn);  
+int runPCode(pcodeProgram& prg){
   lockgc_ptr<contextObj> ctx{new contextObj()};
   interp intp(ctx,prg);
-  if (r) intp.run();
+  intp.run();
   assert(intp.sp==-1);
-  // D3: 0 se il caricamento e' riuscito (il programma e' stato eseguito), 1 altrimenti
+  return 1;
+}
+
+int runPcd(const string& fn){
+  pcodeProgram prg;
+  int r=prg.loadPcd(fn);  
+  if (r) runPCode(prg);
   return r?0:1;
 }
 
-int bench(string fn){
-  ankerl::nanobench::Bench().run("esegue "+fn, [&] {
-	  runPcd(fn);
-  });
-  return 0;
+int benchPcd(const string& fn){
+  pcodeProgram prg;
+  int r=prg.loadPcd(fn);  
+  if (r){
+    ankerl::nanobench::Bench().run("esegue "+fn, [&] {
+	    runPCode(prg);
+    });
+  }
+  return r?1:0;
 }
 
 int bench_cc(){
@@ -1778,17 +1786,35 @@ void releaseSysObjs(){
   //test_fib_cc();
   //bench_fib_cc();
   
-// D1: esattamente un argomento, il p-code da eseguire. Niente flag: un nome che
-// inizia con '-' e' un percorso (vedi D6). Senza argomento o con piu' di uno si
-// esce con 1 senza eseguire nulla. D5: sparisce il blocco di bench hardcoded,
-// ma le funzioni bench*()/test*_cc() restano nel sorgente e si chiamano da qui.
+// D1: due sole forme valide, "<percorso>" che esegue e "-bench <percorso>" che misura.
+// Il flag e' confrontato come stringa esatta e solo in prima posizione: ogni altro
+// nome che inizia con '-' resta un percorso (vedi D6), quindi "./interpreter -h"
+// tenta ancora di aprire il file di nome "-h". Senza argomenti, con piu' di un
+// percorso, con "-bench" senza percorso o con "-bench" troppo indietro si esce con 1
+// senza eseguire ne' misurare nulla. D5: il blocco di bench hardcoded resta fuori,
+// le funzioni bench*()/test*_cc() restano nel sorgente e si chiamano da qui.
 int main(int argc, char** argv){
-  if (argc!=2){
-	cerr << "uso: interpreter <file.pcd>" << endl;
+  // D4: l'uso nomina il flag ma resta corto, la derivazione del percorso e' gia'
+  // spiegata e il messaggio non cambia per forma sbagliata: chi sbaglia riceve comunque l'uso.
+  const char* BENCH="-bench";
+  bool bench=false;
+  string path;
+  if (argc==3 && strcmp(argv[1],BENCH)==0){
+    bench=true;
+    path=argv[2];
+  }
+  else if (argc==2 && strcmp(argv[1],BENCH)!=0){
+    path=argv[1];
+  }
+  else {
+	cerr << "uso: interpreter [-bench] <file.pcd>" << endl;
+	cerr << "  -bench misura il file invece di eseguirlo una volta" << endl;
 	cerr << "  un nome senza estensione viene completato con .pcd" << endl;
 	return 1;
   }
-  int rc=runPcd(pcodePathFor(argv[1]));
+  // D2: la derivazione resta qui, una volta sola, cosi' la tabella del bench mostra
+  // il percorso realmente caricato e non quello digitato.
+  int rc=bench?benchPcd(pcodePathFor(path)):runPcd(pcodePathFor(path));
 
   cout << "--- status on exit ---\n";  
   stdGC().status();

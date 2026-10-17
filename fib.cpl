@@ -1,12 +1,3 @@
-/*
-func int doppio(int i)
-  result:=i+i
-end
-
-? doppio(1)
-? doppio(10)
-? doppio(100)
-*/
 
 func int fib(int n)
   if n<2
