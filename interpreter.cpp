@@ -33,6 +33,7 @@ using namespace std;
 void showIntCache();
 
 #include "gc.cpp"
+#include "cli.c"
 
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
 
@@ -1786,35 +1787,59 @@ void releaseSysObjs(){
   //test_fib_cc();
   //bench_fib_cc();
   
-// D1: due sole forme valide, "<percorso>" che esegue e "-bench <percorso>" che misura.
-// Il flag e' confrontato come stringa esatta e solo in prima posizione: ogni altro
-// nome che inizia con '-' resta un percorso (vedi D6), quindi "./interpreter -h"
-// tenta ancora di aprire il file di nome "-h". Senza argomenti, con piu' di un
-// percorso, con "-bench" senza percorso o con "-bench" troppo indietro si esce con 1
-// senza eseguire ne' misurare nulla. D5: il blocco di bench hardcoded resta fuori,
-// le funzioni bench*()/test*_cc() restano nel sorgente e si chiamano da qui.
+// D7: l'opzione di misura si scrive con tre grafie, `--bench`, `-b` e `-bench`.
+// Le prime due stanno nella tabella; `-bench` e' un alias, perche' e' una parola
+// intera preceduta da un solo trattino e quindi non e' ne' un nome lungo ne' un
+// nome corto. Resta accettata perche' e' documentata in AGENTS.md e in diversi
+// scenari di interpreter-cli. Tabella e variabile sono fuori da main() perche' il
+// campo `dest` deve puntare a qualcosa che sopravviva alla chiamata.
+static int benchOpzione=0;
+static const cliOpzione tabOpzioni[1]={
+  {"bench",'b',"bench","misura il file invece di eseguirlo una volta",CLI_OPZIONE,&benchOpzione}
+};
+
+// D8: l'elenco delle opzioni non e' scritto a mano, arriva dalla stessa tabella
+// che usa la scansione, quindi un flag nuovo compare nell'uso senza toccare qui.
+static void uso(){
+  cerr << "uso: interpreter [opzioni] <file.pcd>" << endl;
+  cliOpzioni(tabOpzioni,1,stderr);
+  cerr << "  un nome senza estensione viene completato con .pcd" << endl;
+  cerr << "  dopo -- ogni argomento e' un percorso" << endl;
+}
+
+// D1/D3: le opzioni si riconoscono in qualunque posizione e "--" le termina,
+// quindi non serve piu' contare le forme della command line. Quello che resta
+// sono i percorsi e ne deve essere esattamente uno: senza percorsi, o con piu'
+// di uno, si esce con 1 senza eseguire ne' misurare nulla. Un argomento che
+// comincia con "-" e non e' il solo "-" non e' piu' un percorso, quindi
+// "./interpreter -h" non prova piu' ad aprire il file di nome "-h".
 int main(int argc, char** argv){
-  // D4: l'uso nomina il flag ma resta corto, la derivazione del percorso e' gia'
-  // spiegata e il messaggio non cambia per forma sbagliata: chi sbaglia riceve comunque l'uso.
-  const char* BENCH="-bench";
-  bool bench=false;
-  string path;
-  if (argc==3 && strcmp(argv[1],BENCH)==0){
-    bench=true;
-    path=argv[2];
-  }
-  else if (argc==2 && strcmp(argv[1],BENCH)!=0){
-    path=argv[1];
-  }
-  else {
-	cerr << "uso: interpreter [-bench] <file.pcd>" << endl;
-	cerr << "  -bench misura il file invece di eseguirlo una volta" << endl;
-	cerr << "  un nome senza estensione viene completato con .pcd" << endl;
-	return 1;
+  const char* percorsi[2];
+  cliScansione sc;
+  int nPercorsi;
+  benchOpzione=0;
+  cliInizia(&sc,argc,argv);
+  nPercorsi=cliScansiona(&sc,tabOpzioni,1,percorsi,2);
+  if (sc.errore!=CLI_ERRORE_NESSUNO||nPercorsi!=1) {
+    switch (sc.errore) {
+      case CLI_ERRORE_VALORE:
+        cerr << "l'opzione " << sc.erroreNome << " richiede un valore" << endl;
+        break;
+      case CLI_ERRORE_NONVALORE:
+        cerr << "l'opzione " << sc.erroreNome << " non accetta un valore: " << sc.erroreValore << endl;
+        break;
+      case CLI_ERRORE_SCONOSCIUTA:
+        cerr << "opzione sconosciuta: " << sc.erroreNome << endl;
+        break;
+      default:
+        break;
+    }
+    uso();
+    return 1;
   }
   // D2: la derivazione resta qui, una volta sola, cosi' la tabella del bench mostra
   // il percorso realmente caricato e non quello digitato.
-  int rc=bench?benchPcd(pcodePathFor(path)):runPcd(pcodePathFor(path));
+  int rc=benchOpzione?benchPcd(pcodePathFor(percorsi[0])):runPcd(pcodePathFor(percorsi[0]));
 
   cout << "--- status on exit ---\n";  
   stdGC().status();

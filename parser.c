@@ -356,6 +356,7 @@ typedef struct ifelseif {
 	int last;
 } ifelseif;
 		
+#include "cli.c"
 #include "pcodes.c"
 #include "emit.c"
 #include "cpl2.c"
@@ -476,42 +477,103 @@ FILE* openSource(const char* arg, const char** resolved){
 	return NULL;
 }
 
-int main(int argc, char** argv){
-	// nessun file in command line: percorso di sempre, il p-code va su stdout
-	// e le diagnostiche escono senza prefisso (vedi D5)
-	if (argc<2) {
-		srcFile=NULL;
-		emit_out=stdout;
-		return parse(stdin);
+// D6: la tabella delle opzioni del compilatore parte vuota, e non e' una difesa.
+// Il ciclo condiviso gira lo stesso e quindi un argomento che comincia con "-" e
+// non e' il solo "-" non arriva piu' fra i sorgenti. La riga inerte serve solo a
+// dare al ciclo una tabella su cui camminare: quando arrivera' il primo flag, il
+// posto in cui scriverlo e' gia' qui.
+static const cliOpzione tabOpzioni[1]={{NULL,0,NULL,NULL,CLI_OPZIONE,NULL}};
+
+// la diagnostica dell'errore di scansione dice quale opzione e' stata rifiutata e
+// perche': senza questo la tabella vuota renderebbe "-x" e "--out" indistinguibili
+// fra loro.
+static void diagOpzione(cliScansione* sc){
+	switch (sc->errore) {
+		case CLI_ERRORE_VALORE:
+			diag("l'opzione %s richiede un valore\n",sc->erroreNome);
+			break;
+		case CLI_ERRORE_NONVALORE:
+			diag("l'opzione %s non accetta un valore: %s\n",sc->erroreNome,sc->erroreValore);
+			break;
+		default:
+			diag("opzione sconosciuta: %s\n",sc->erroreNome);
+			break;
 	}
+}
+
+int main(int argc, char** argv){
 	// con i file in command line ogni sorgente produce il proprio .pcd e su
 	// stdout non viene scritto nulla; gli errori si sommano su tutti i file (D7)
 	int errors=0;
-	for (int i=1;i<argc;i++) {
+	// la scansione separa le opzioni dai sorgenti: i sorgenti sono cioe' quello
+	// che resta e vengono tradotti nell'ordine in cui sono stati indicati. Il
+	// modulo non alloca, quindi il vettore dei sorgenti e' qui
+	int maxArg=argc>1?argc:1;   // argc<2 non ha argomenti: una cella basta lo stesso
+	const char** sorgenti=(const char**)malloc((size_t)maxArg*sizeof(char*));
+	cliScansione sc;
+	int nSorgenti=0;
+	int i;
+	if (sorgenti==NULL) {
+		fprintf(stderr,"memoria insufficiente per gli argomenti\n");
+		return 1;
+	}
+	cliInizia(&sc,argc,argv);
+	nSorgenti=cliScansiona(&sc,tabOpzioni,1,sorgenti,maxArg);
+	if (sc.errore!=CLI_ERRORE_NESSUNO) {
+		// un'opzione sconosciuta riguarda tutta l'invocazione, quindi nessun
+		// sorgente viene tradotto: e' diverso da un sorgente che non si puo'
+		// aprire, che non ferma gli altri. srcFile e' ancora NULL, quindi la
+		// diagnostica esce senza prefisso come nella modalita' standard input
+		diagOpzione(&sc);
+		free(sorgenti);
+		return 1;
+	}
+	if (nSorgenti==0) {
+		// nessun sorgente in command line: percorso di sempre, il p-code va su
+		// stdout e le diagnostiche escono senza prefisso (vedi D5)
+		srcFile=NULL;
+		emit_out=stdout;
+		errors=parse(stdin);
+		free(sorgenti);
+		return errors;
+	}
+	for (i=0;i<nSorgenti;i++) {
+		const char* arg=sorgenti[i];
 		const char* resolved=NULL;
+		FILE* fIn;
+		FILE* fOut;
+		char pcdPath[2000];
+		// "-" e' il modo consueto di dire "leggere dallo standard input": si
+		// riusa lo stesso ramo di quando i sorgenti non sono indicati (D5)
+		if (strcmp(arg,"-")==0) {
+			srcFile=NULL;
+			emit_out=stdout;
+			errors+=parse(stdin);
+			emit_out=stdout;
+			continue;
+		}
 		// srcFile non deve mai essere quello del file precedente: nel ramo di
 		// errore non esiste un percorso risolto e il prefisso delle diagnostiche
 		// resta quello digitato, come prima della risoluzione
-		srcFile=argv[i];
-		FILE* fIn=openSource(argv[i],&resolved);
+		srcFile=arg;
+		fIn=openSource(arg,&resolved);
 		if (fIn==NULL) {
 			// openSource tenta anche il ripiego solo se errno e' ENOENT e il nome
 			// di base non ha estensione, quindi la stessa condizione dice se i
 			// percorsi tentati sono due o uno solo: nel ramo dei permessi
 			// fib.cpl non e' mai stato provato e non va citato
-			if (errno==ENOENT && baseDot(argv[i])==NULL)
-				diag("impossibile aprire il sorgente: %s, %s.cpl: %s\n",argv[i],argv[i],strerror(errno));
+			if (errno==ENOENT && baseDot(arg)==NULL)
+				diag("impossibile aprire il sorgente: %s, %s.cpl: %s\n",arg,arg,strerror(errno));
 			else
-				diag("impossibile aprire il sorgente: %s: %s\n",argv[i],strerror(errno));
+				diag("impossibile aprire il sorgente: %s: %s\n",arg,strerror(errno));
 			errors++;
 			continue;
 		}
 		// dal percorso risolto derivano diagnostiche e nome del .pcd: per "fib"
 		// risolto in "fib.cpl" il prefisso e' fib.cpl e il p-code resta fib.pcd
 		srcFile=resolved;
-		char pcdPath[2000];
 		pcodePath(resolved,pcdPath);
-		FILE* fOut=fopen(pcdPath,"w");
+		fOut=fopen(pcdPath,"w");
 		if (fOut==NULL) {
 			diag("impossibile aprire il p-code: %s\n",strerror(errno));
 			fclose(fIn);
@@ -524,5 +586,6 @@ int main(int argc, char** argv){
 		fclose(fIn);
 		fclose(fOut);
 	}
+	free(sorgenti);
 	return errors;
 }

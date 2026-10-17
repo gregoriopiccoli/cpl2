@@ -69,15 +69,16 @@ contains the reverse pass (readable -> binary, keyed off the first line) and tha
 byte-exact today, but nothing needs it — the interpreter reads the binary `.pcd` the compiler just
 wrote, so don't build anything on top of it.
 
-## Running a program — one argument, or `-bench` plus one argument
+## Running a program — one path, plus options
 
-`./interpreter` takes **one argument**: the p-code to run. The single flag is `-bench`, and it
-goes **before** the path.
+`./interpreter` takes **one path**: the p-code to run. The only flag is the benchmark one, written
+`-bench`, `-b` or `--bench`, and it may go **before or after** the path.
 
 ```sh
 ./compiler mio.cpl             # writes mio.pcd next to the source
 ./interpreter mio.pcd          # single run; the .pcd can be omitted: ./interpreter mio
 ./interpreter -bench mio.pcd   # nanobench loop instead of a single run — ~30-60s for fib(34)
+./interpreter -b mio.pcd       # same thing, short spelling
 ```
 
 Neither running nor benchmarking your own file requires editing `main()` any more. The two
@@ -90,21 +91,28 @@ benchPcd("mio.pcd");   // nanobench loop around runPcd(), same exit code
 
 A name with no extension gets `.pcd` appended, and the dot is looked for **in the base name
 only**, so `dir.d/x` stays `dir.d/x.pcd`. A name that already has an extension is used verbatim:
-`./interpreter fib.cpl` tries to load `fib.cpl` and says it is not compiled p-code. `-bench` is
-matched as an exact string and only in first position: every other argument starting with `-` is
-a path, so `./interpreter -h` still tries to open a file named `-h`, and
-`./interpreter --bench mio.pcd` prints the usage and runs nothing.
+`./interpreter fib.cpl` tries to load `fib.cpl` and says it is not compiled p-code.
+
+Options are recognized anywhere on the line, long (`--bench`) or short (`-b`), and `--` ends
+option recognition so everything after it is a path. An argument starting with `-` that is not
+the lone `-` is an **option**, not a path: an unrecognized one is reported as unknown on stderr
+and nothing runs. `./interpreter -h` says so rather than opening a file named `-h`, and
+`./interpreter -b -- mio.pcd` measures `mio.pcd`. A path that really starts with `-` needs `./`
+(`./interpreter ./-bench`) or the `--` terminator.
 
 A file that can't be opened, isn't compiled p-code, or has compile errors prints the reason on
-stderr and exits 1 without running anything. The same holds with `-bench`: `benchPcd()` loads the
-file once before measuring and returns 1 on failure, so an unloadable file prints no nanobench
-table. A clean run — or a clean measurement — exits 0. `main()` keeps printing the GC report on
-stdout afterwards in both modes, so `> out.txt` captures the program output, the nanobench table
-*and* that report.
+stderr and exits 1 without running anything. The same holds with the benchmark flag: `benchPcd()`
+loads the file once before measuring, so an unloadable file prints no nanobench table. `main()`
+keeps printing the GC report on stdout afterwards in both modes, so `> out.txt` captures the
+program output, the nanobench table *and* that report.
 
 Open work, see `todo.md`. Plain `./interpreter` is **not** a smoke test: with no arguments, with
-more than one argument, and with a bare `-bench` it prints usage on stderr and exits 1 without
-running or measuring anything.
+more than one path, and with the benchmark flag and no path it prints usage on stderr and exits 1
+without running or measuring anything.
+
+**Known bug, not part of any change:** `benchPcd()` ends with `return r?1:0` where `runPcd()` uses
+`return r?0:1`, so `-bench` exits **1** on a successful measurement and **0** on an unloadable
+file — the inverse of what `interpreter-cli` requires. Fixing it is a separate change.
 
 Debug switches in `interpreter.cpp`:
 - `#define PRINT_PCODE_EXECUTION` — per-instruction `pc / sp / obj` trace. Start here.
@@ -122,9 +130,24 @@ Debug switches in `interpreter.cpp`:
   `emit.c`. `emit.c` and `pcodes.c` are shared with the interpreter.
 - `interpreter.cpp` `#include`s `gc.cpp` (generational mark & sweep; tunables at the top of
   `gc.cpp`) and `pcodes.h`/`pcodes.c`. `nanobench.h` is vendored.
+- `cli.c` is shared by **both** binaries and is `#include`d into the two translation units, the
+  same way `pcodes.c` and `emit.c` are. It holds only the command-line scan loop: it knows the
+  *shape* of an option (long name, short name, single-dash alias, with or without value) and
+  nothing about either tool's vocabulary. Each tool declares its own `cliOpzione` table —
+  `interpreter.cpp` has `--bench`/`-b`/`-bench`, `parser.c` has an intentionally empty one until
+  the first compiler flag exists. Adding a flag means adding a row to that table; the usage text
+  is generated from it via `cliOpzioni()`, so it never needs a second edit. It must stay valid C
+  **and** C++ (`interpreter.cpp` is C++, `parser.c` is C), and it never allocates: the caller
+  supplies the options table and the positionals array.
+- An unknown option is an error, not a path: `./interpreter -h` and `compiler -x fib.cpl` report
+  it on stderr and run nothing. The compiler stops the whole invocation for it (unlike an
+  unreadable source, which is counted and skipped); the interpreter prints usage and exits 1.
 - `gc_test.cpp` is standalone (its own `GCObject` copy and `main`), not in the Makefile:
-  `c++ -g -O2 gc_test.cpp -o gc_test && ./gc_test`. `test/gc_test.cpp` is a different, untracked
-  variant — don't confuse them.
+  `c++ -g -O2 gc_test.cpp -o gc_test && ./gc_test`. `cli_test.c` is standalone in the same way and
+  is the only place the option-with-value form is exercised, since neither binary declares one:
+  `cc -g -O2 cli_test.c -o cli_test && ./cli_test` (add `-x c++` to compile it as C++ and prove
+  the dual-language constraint). `test/gc_test.cpp` is a different, untracked variant — don't
+  confuse them.
 
 ## Adding a p-code: four coordinated edits
 

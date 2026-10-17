@@ -1,9 +1,9 @@
 all: interpreter compiler asm
 
-interpreter: interpreter.cpp pcodes.c pcodes.h gc.cpp
+interpreter: interpreter.cpp pcodes.c pcodes.h gc.cpp cli.c
 	c++ -g -O2 interpreter.cpp -o interpreter
 
-compiler: parser.c cpl2.c cpl2.h pcodes.h pcodes.c emit.c
+compiler: parser.c cpl2.c cpl2.h pcodes.h pcodes.c emit.c cli.c
 	cc parser.c -o compiler
 	
 cpl2.c: cpl2.gram
