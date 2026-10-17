@@ -29,3 +29,5 @@ var int|str i_or_s
 var myClass cc
 var a.b.c c2
 
+var ? xx
+var any yy
