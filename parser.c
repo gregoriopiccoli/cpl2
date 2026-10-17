@@ -419,17 +419,61 @@ int parse(FILE* f){
     return sState.errors;
 }
 
+// restituisce l'ultimo '.' presente nel solo nome di base del percorso, NULL se
+// il nome di base non ne contiene: la directory non viene considerata, quindi
+// "dir.d/x" non ha estensione. Usata sia da pcodePath() sia dalla risoluzione del
+// sorgente in command line, cosi' la regola sta in un posto solo.
+const char* baseDot(const char* path){
+	const char* slash=strrchr(path,'/');
+	const char* base=slash!=NULL?slash+1:path;  // nome di base
+	return strrchr(base,'.');
+}
+
 // ricava il percorso del file p-code da quello del sorgente: si toglie
 // l'eventuale estensione dal solo nome di base e si accoda ".pcd", quindi la
 // directory del sorgente resta conservata (vedi D2 e la specifica sulla derivazione).
 // fib.cpl -> fib.pcd, test/a.cpl -> test/a.pcd, dir.d/x -> dir.d/x.pcd
 void pcodePath(const char* src, char* out){
-	const char* slash=strrchr(src,'/');
-	const char* base=slash!=NULL?slash+1:src;  // nome di base
-	const char* dot=strrchr(base,'.');         // ultima estensione, solo nel nome di base
+	const char* dot=baseDot(src);             // ultima estensione, solo nel nome di base
 	size_t stem=dot!=NULL?(size_t)(dot-src):strlen(src);
 	memcpy(out,src,stem);
 	strcpy(out+stem,".pcd");
+}
+
+// apre il sorgente indicato in command line. Se il percorso digitato non si
+// apre perche' non esiste e il nome di base non ha estensione, si prova anche
+// accodando ".cpl". *resolved riceve il percorso effettivamente aperto, che
+// resta valido almeno fino alla chiamata successiva: in modalita' file e' la
+// sorgente di srcFile e di pcodePath(). Il percorso digitato ha la precedenza:
+// se si apre, il ripiego non viene neppure provato, e se non si apre per un
+// motivo diverso dall'assenza (permessi) il ripiego non viene provato affatto,
+// perche' tradurre un file diverso da quello nominato e' peggio che fallire.
+FILE* openSource(const char* arg, const char** resolved){
+	FILE* fIn=fopen(arg,"r");
+	if (fIn!=NULL) {
+		*resolved=arg;   // il percorso digitato vince
+		return fIn;
+	}
+	int firstErrno=errno;   // salvato prima del secondo tentativo, altrimenti
+	                        // strerror(errno) riporterebbe l'errore sbagliato
+	// il ripiego vale solo per un nome senza estensione, e il punto si cerca
+	// solo nel nome di base: "dir.d/x.cpl" e' il candidato di "dir.d/x"
+	if (firstErrno!=ENOENT || baseDot(arg)!=NULL) {
+		errno=firstErrno;
+		return NULL;
+	}
+	// il buffer e' statico perche' *resolved viene usato dopo la ritornata,
+	// come srcFile e come argomento di pcodePath(): sta in pila morirebbe qui
+	static char cand[2000];   // stessa dimensione di pcdPath e line
+	snprintf(cand,sizeof(cand),"%s.cpl",arg);
+	fIn=fopen(cand,"r");
+	if (fIn!=NULL) {
+		*resolved=cand;   // aperto il ripiego con ".cpl"
+		return fIn;
+	}
+	errno=firstErrno;   // se anche il ripiego e' irraggiungibile il motivo che
+	                    // l'utente capisce e' che il nome digitato non esiste
+	return NULL;
 }
 
 int main(int argc, char** argv){
@@ -444,15 +488,29 @@ int main(int argc, char** argv){
 	// stdout non viene scritto nulla; gli errori si sommano su tutti i file (D7)
 	int errors=0;
 	for (int i=1;i<argc;i++) {
-		char pcdPath[2000];
-		pcodePath(argv[i],pcdPath);
+		const char* resolved=NULL;
+		// srcFile non deve mai essere quello del file precedente: nel ramo di
+		// errore non esiste un percorso risolto e il prefisso delle diagnostiche
+		// resta quello digitato, come prima della risoluzione
 		srcFile=argv[i];
-		FILE* fIn=fopen(argv[i],"r");
+		FILE* fIn=openSource(argv[i],&resolved);
 		if (fIn==NULL) {
-			diag("impossibile aprire il sorgente: %s\n",strerror(errno));
+			// openSource tenta anche il ripiego solo se errno e' ENOENT e il nome
+			// di base non ha estensione, quindi la stessa condizione dice se i
+			// percorsi tentati sono due o uno solo: nel ramo dei permessi
+			// fib.cpl non e' mai stato provato e non va citato
+			if (errno==ENOENT && baseDot(argv[i])==NULL)
+				diag("impossibile aprire il sorgente: %s, %s.cpl: %s\n",argv[i],argv[i],strerror(errno));
+			else
+				diag("impossibile aprire il sorgente: %s: %s\n",argv[i],strerror(errno));
 			errors++;
 			continue;
 		}
+		// dal percorso risolto derivano diagnostiche e nome del .pcd: per "fib"
+		// risolto in "fib.cpl" il prefisso e' fib.cpl e il p-code resta fib.pcd
+		srcFile=resolved;
+		char pcdPath[2000];
+		pcodePath(resolved,pcdPath);
 		FILE* fOut=fopen(pcdPath,"w");
 		if (fOut==NULL) {
 			diag("impossibile aprire il p-code: %s\n",strerror(errno));

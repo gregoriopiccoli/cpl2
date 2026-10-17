@@ -35,6 +35,17 @@ make                # -> interpreter, compiler, asm   (no clean/test target)
   next to itself, extension replaced by `.pcd` (`fib.cpl` -> `fib.pcd`, `test/a.cpl` ->
   `test/a.pcd`, no extension -> append `.pcd`). With no arguments it keeps the old stdin/stdout
   behaviour, so the `< fib.cpl > fib.pcd` pipeline is unchanged.
+- **Input path resolution** (`openSource()` in `parser.c`): the typed path is tried first and wins
+  if it opens. Only when it fails **because it doesn't exist** (`ENOENT`) *and* the **base name**
+  carries no dot is `".cpl"` appended as a fallback (`fib` -> `fib.cpl`, `dir.d/x` -> `dir.d/x.cpl`
+  — the dot in the directory is not an extension). A name that already has an extension is never
+  rewritten (`sorg.txt` tries `sorg.txt` and nothing else, not `sorg.txt.cpl` nor `sorg.cpl`), and
+  a failure other than "absent" (permissions) is **not** a fallback: `fib` unreadable reports `fib`,
+  never silently compiles `fib.cpl`.
+- The **resolved** path — not the typed one — is what `srcFile` and `pcodePath()` receive, so
+  `./compiler fib` resolving to `fib.cpl` gives diagnostics prefixed `fib.cpl: ` and still writes
+  `fib.pcd` (same stem, so the output name never changes). The "cannot open" diagnostic names every
+  path that was actually tried, i.e. both `fib` and `fib.cpl` only when the fallback ran.
 - **Compiler exit code == parse error count**, summed over every source given, including sources
   that couldn't be opened or whose `.pcd` couldn't be written (those are reported and skipped, the
   run continues).
