@@ -1,0 +1,39 @@
+/*
+
+Prove varie con i tipi dipendnti
+
+Penso che siano una grade figata, forse esattamente quello che stavo cercando e che si sposano benissimo con la generazione di codice con gli LLM
+
+*/
+
+
+// ensure/require/assume when/with assert/pre/post/invariant
+
+/*
+
+ensure : viene assicurata una proprietà che può essere usata anche dal dimostratore simbolico oppure può essere un test
+require: viene richiesta una proprietà che può essere dimostrata a compile time o diventa un test a run-time
+assume : una proprietà che il programmatore ritiene valida, non deve essere provata e viene usata nelle prove
+
+pre       : un test che viene fatto all'inizio di una procedura, forse in sovrapposizione con "require"
+post      : un test che può essere fatto alla fine di una procedura, può accedere ai valori finali e ai valori in ingresso (old.<var> ..)
+assert    : un test che vale nel punto dove viene scritto, si sovrappone ad "ensure" ma è posizionale
+invariant : un test che è sempre valido, può fallire nel corpo delle funzioni a cui si riferisce nel qual caso vale alla fine
+
+with : una variante del tipo che accetta solo assegnazioni che rispettano la condizione, può essere usata nelle dimostrazioni
+when : una variante nella costruzione delle classi che specifica che certi attributi/metodi sono disponibili solo in determinate condizioni
+
+*/
+
+// variabile intera con un tipo che accetta solo positivi
+var int with(this>=0)  jj
+
+type int with (this>=0) positive
+var positive pp
+
+
+func str! read(File with (status=Opened) f)
+end
+
+func str!    read(File with (status=Opened) f)
+end

@@ -1,0 +1,26 @@
+var int i
+i:="pippo"
+? "i=",i
+
+
+// prove di compilazioni con i tipi dipendenti
+
+type int with (this>=0) positive  // dichiarazione di tipo
+
+var positive pp
+
+var int with(this<0)  jj  // tipo limitato in linea
+
+func str with (this<>nil) read(File with (status=Opened) f) // funzione con parametro con tipo limitato
+end
+
+var str! s // variabile stringa che non può essere nil
+
+
+// array comprehension
+[x for each x in [1,2,3] with pari(x)]
+
+  
+// dict comprehension
+{k:x for each x in [1,2,3]}
+{k:x for each k:x in ["alfa","beta","gamma"] : [1,2,3]}

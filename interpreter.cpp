@@ -2,7 +2,6 @@
 Dove possibile usare sempre referenze!
 
 DA FARE: 
-  provare fib in traduzione c++ -- FATTO e cavolo se corre!
   provare computed goto -- FATTO almeno in parte ed è più veloce! Ho dovuto anche cambiare la getIntValue dei pcode per evitare una chiamata virtuale
   GC parallelo?
   provare a fare un GC super-semplice mark e sweep, magari è più veloce
@@ -12,6 +11,7 @@ DA FARE:
   Float e operazioni miste tra int e float
    
 FATTO: 
+  provare fib in traduzione c++ -- FATTO e cavolo se corre!
   Fatto il Garbage Collector! 
   Provato a riciclare gli interi ... ci si mette più tempo! Dovrò provare con la garbage collection. OTTIMO!
   Nil è meglio con nullptr o con uno specifico oggetto nil? per ora provo con un oggetto specifico così non è mai un puntatore non inizializzato ...
