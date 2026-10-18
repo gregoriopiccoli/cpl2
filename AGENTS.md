@@ -71,15 +71,23 @@ wrote, so don't build anything on top of it.
 
 ## Running a program — one path, plus options
 
-`./interpreter` takes **one path**: the p-code to run. The only flag is the benchmark one, written
-`-bench`, `-b` or `--bench`, and it may go **before or after** the path.
+`./interpreter` takes **one path**: the p-code to run. There are two flags, each with two spellings:
+the benchmark one, written `--bench` or `-b`, and the help one, written `--help` or `-h`. Both may
+go **before or after** the path.
 
 ```sh
 ./compiler mio.cpl             # writes mio.pcd next to the source
 ./interpreter mio.pcd          # single run; the .pcd can be omitted: ./interpreter mio
-./interpreter -bench mio.pcd   # nanobench loop instead of a single run — ~30-60s for fib(34)
-./interpreter -b mio.pcd       # same thing, short spelling
+./interpreter -b mio.pcd       # nanobench loop instead of a single run — ~30-60s for fib(34)
+./interpreter --bench mio.pcd  # same thing, long spelling
+./interpreter --help           # usage on stdout, exit 0
 ```
+
+`--help` and `-h` print the usage — the same text as the error path, the options included — on
+**stdout** and exit **0**, running and measuring nothing. They win over the path, so
+`./interpreter -h mio.pcd` prints the help and ignores `mio.pcd`; they don't win over a malformed
+line, so `./interpreter -h -z mio.pcd` still reports `-z` as unknown. Usage printed because of an
+error stays on **stderr** with exit **1**.
 
 Neither running nor benchmarking your own file requires editing `main()` any more. The two
 functions behind those two lines are:
@@ -93,12 +101,13 @@ A name with no extension gets `.pcd` appended, and the dot is looked for **in th
 only**, so `dir.d/x` stays `dir.d/x.pcd`. A name that already has an extension is used verbatim:
 `./interpreter fib.cpl` tries to load `fib.cpl` and says it is not compiled p-code.
 
-Options are recognized anywhere on the line, long (`--bench`) or short (`-b`), and `--` ends
-option recognition so everything after it is a path. An argument starting with `-` that is not
-the lone `-` is an **option**, not a path: an unrecognized one is reported as unknown on stderr
-and nothing runs. `./interpreter -h` says so rather than opening a file named `-h`, and
-`./interpreter -b -- mio.pcd` measures `mio.pcd`. A path that really starts with `-` needs `./`
-(`./interpreter ./-bench`) or the `--` terminator.
+Options are recognized anywhere on the line, long (`--bench`, `--help`) or short (`-b`, `-h`),
+and `--` ends option recognition so everything after it is a path. An argument starting with `-`
+that is not the lone `-` is an **option**, not a path: an unrecognized one is reported as unknown
+on stderr and nothing runs — that includes `-bench`, the old single-dash spelling that no longer
+exists (`./interpreter -bench mio.pcd` is an error now). `./interpreter -b -- mio.pcd` measures
+`mio.pcd`. A path that really starts with `-` needs `./` (`./interpreter ./-b`) or the `--`
+terminator.
 
 A file that can't be opened, isn't compiled p-code, or has compile errors prints the reason on
 stderr and exits 1 without running anything. The same holds with the benchmark flag: `benchPcd()`
@@ -111,7 +120,7 @@ more than one path, and with the benchmark flag and no path it prints usage on s
 without running or measuring anything.
 
 **Known bug, not part of any change:** `benchPcd()` ends with `return r?1:0` where `runPcd()` uses
-`return r?0:1`, so `-bench` exits **1** on a successful measurement and **0** on an unloadable
+`return r?0:1`, so `-b` exits **1** on a successful measurement and **0** on an unloadable
 file — the inverse of what `interpreter-cli` requires. Fixing it is a separate change.
 
 Debug switches in `interpreter.cpp`:
@@ -134,7 +143,7 @@ Debug switches in `interpreter.cpp`:
   same way `pcodes.c` and `emit.c` are. It holds only the command-line scan loop: it knows the
   *shape* of an option (long name, short name, single-dash alias, with or without value) and
   nothing about either tool's vocabulary. Each tool declares its own `cliOpzione` table —
-  `interpreter.cpp` has `--bench`/`-b`/`-bench`, `parser.c` has an intentionally empty one until
+  `interpreter.cpp` has `--bench`/`-b` and `--help`/`-h`, `parser.c` has an intentionally empty one until
   the first compiler flag exists. Adding a flag means adding a row to that table; the usage text
   is generated from it via `cliOpzioni()`, so it never needs a second edit. It must stay valid C
   **and** C++ (`interpreter.cpp` is C++, `parser.c` is C), and it never allocates: the caller

@@ -1787,40 +1787,58 @@ void releaseSysObjs(){
   //test_fib_cc();
   //bench_fib_cc();
   
-// D7: l'opzione di misura si scrive con tre grafie, `--bench`, `-b` e `-bench`.
-// Le prime due stanno nella tabella; `-bench` e' un alias, perche' e' una parola
-// intera preceduta da un solo trattino e quindi non e' ne' un nome lungo ne' un
-// nome corto. Resta accettata perche' e' documentata in AGENTS.md e in diversi
-// scenari di interpreter-cli. Tabella e variabile sono fuori da main() perche' il
-// campo `dest` deve puntare a qualcosa che sopravviva alla chiamata.
+// D7: l'opzione di misura si scrive con due grafie, `--bench` e `-b`: il nome
+// lungo e il nome corto. Il terzo campo della riga resta vuoto perche' la terza
+// grafia che c'era prima, `-bench` con un solo trattino, e' sparita: non e' un
+// nome lungo ne' un nome corto, e' un residuo del confronto con argv[1] che
+// precede la tabella. `-bench` ora e' un'opzione sconosciuta come `-z`, e resta il
+// ramo CLI_ERRORE_SCONOSCIUTA a segnalarla.
+// Tabella e variabili sono fuori da main() perche' il campo `dest` deve puntare
+// a qualcosa che sopravviva alla chiamata.
 static int benchOpzione=0;
-static const cliOpzione tabOpzioni[1]={
-  {"bench",'b',"bench","misura il file invece di eseguirlo una volta",CLI_OPZIONE,&benchOpzione}
+static int helpOpzione=0;
+static const cliOpzione tabOpzioni[2]={
+  {"bench",'b',NULL,"misura il file invece di eseguirlo una volta",CLI_OPZIONE,&benchOpzione},
+  {"help",'h',NULL,"stampa queste istruzioni d'uso",CLI_OPZIONE,&helpOpzione}
 };
 
-// D8: l'elenco delle opzioni non e' scritto a mano, arriva dalla stessa tabella
-// che usa la scansione, quindi un flag nuovo compare nell'uso senza toccare qui.
-static void uso(){
-  cerr << "uso: interpreter [opzioni] <file.pcd>" << endl;
-  cliOpzioni(tabOpzioni,1,stderr);
-  cerr << "  un nome senza estensione viene completato con .pcd" << endl;
-  cerr << "  dopo -- ogni argomento e' un percorso" << endl;
+// D8 (libera): l'elenco delle opzioni non e' scritto a mano, arriva dalla stessa
+// tabella che usa la scansione, quindi un flag nuovo compare nell'uso senza toccare
+// qui.
+// D2: il testo dell'uso e' uno solo ed esce su due stream: stderr quando accompagna
+// un errore di command line (codice 1), stdout quando l'utente lo chiede con `-h`
+// (codice 0). Per questo `uso()` riceve il FILE* su cui scrivere e non sceglie da
+// se', e `cliOpzioni()` riceve lo stesso puntatore.
+static void uso(FILE* out){
+  fprintf(out,"uso: interpreter [opzioni] <file.pcd>\n");
+  cliOpzioni(tabOpzioni,2,out);
+  fprintf(out,"  un nome senza estensione viene completato con .pcd\n");
+  fprintf(out,"  dopo -- ogni argomento e' un percorso\n");
 }
 
+// D1: tre controlli in sequenza, e non uno. Prima gli errori della scansione (opzione
+// sconosciuta, valore mancante, valore non accettato): sono un errore di sintassi
+// della riga e vanno segnalati anche se l'utente ha scritto `-h`, quindi il ramo
+// dell'errore non cede. Poi l'help richiesto esplicitamente: stampa su stdout e
+// esce con 0 senza eseguire ne' misurare nulla, e cede sul numero di percorsi perche'
+// l'utente che scrive `-h fib.pcd` vuole leggere le istruzioni, non provare a
+// mettere le mani su `fib.pcd`. Infine il numero di percorsi: ne deve essere
+// esattamente uno.
 // D1/D3: le opzioni si riconoscono in qualunque posizione e "--" le termina,
-// quindi non serve piu' contare le forme della command line. Quello che resta
-// sono i percorsi e ne deve essere esattamente uno: senza percorsi, o con piu'
-// di uno, si esce con 1 senza eseguire ne' misurare nulla. Un argomento che
+// quindi non serve piu' contare le forme della command line. Un argomento che
 // comincia con "-" e non e' il solo "-" non e' piu' un percorso, quindi
-// "./interpreter -h" non prova piu' ad aprire il file di nome "-h".
+// "./interpreter -h" non prova piu' ad aprire il file di nome "-h", e
+// "./interpreter -bench fib.pcd" non prova piu' a misurare: `-bench` non e' piu'
+// una grafia dell'opzione di misura ed e' segnalata come sconosciuta.
 int main(int argc, char** argv){
   const char* percorsi[2];
   cliScansione sc;
   int nPercorsi;
   benchOpzione=0;
+  helpOpzione=0;
   cliInizia(&sc,argc,argv);
-  nPercorsi=cliScansiona(&sc,tabOpzioni,1,percorsi,2);
-  if (sc.errore!=CLI_ERRORE_NESSUNO||nPercorsi!=1) {
+  nPercorsi=cliScansiona(&sc,tabOpzioni,2,percorsi,2);
+  if (sc.errore!=CLI_ERRORE_NESSUNO) {
     switch (sc.errore) {
       case CLI_ERRORE_VALORE:
         cerr << "l'opzione " << sc.erroreNome << " richiede un valore" << endl;
@@ -1834,7 +1852,17 @@ int main(int argc, char** argv){
       default:
         break;
     }
-    uso();
+    uso(stderr);
+    return 1;
+  }
+  // D4: l'help esce qui, prima di pcodePathFor(), quindi non deriva il percorso, non
+  // carica nessun file e non stampa il rapporto del GC che segue la run.
+  if (helpOpzione) {
+    uso(stdout);
+    return 0;
+  }
+  if (nPercorsi!=1) {
+    uso(stderr);
     return 1;
   }
   // D2: la derivazione resta qui, una volta sola, cosi' la tabella del bench mostra
