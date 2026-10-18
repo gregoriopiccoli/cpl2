@@ -1572,7 +1572,7 @@ void test_cc(){
   contextObj* ctx=new contextObj();
   interp intp(ctx,prg);
   theStringIntern.add("i");
-  //
+
   prg.add(new pcodeIntType());     // 0: INT_TYPE
   prg.add(new pcodeVar("i"));      // 1: VAR i
   prg.add(new pcodePop());         // 2: POP
@@ -1595,24 +1595,20 @@ void test_cc(){
   prg.add(new pcodePrint(1));
   prg.add(new pcodePCodeEnd(9));
   
-  //intObj* c_1(new intObj(1));
-  //intObj* c_1000000(new intObj(1000000));
   lockgc_ptr<intObj> c_1(new intObj(1));
-  lockgc_ptr<intObj> c_1000000(new intObj(1000000));
-    
+  lockgc_ptr<intObj> c_10000000(new intObj(10000000));
+      
   // esecuzione
   prg[0].exec(intp);                                      // int type
-  
   //obj* i;                              //prg.get(1)->exec(intp); // var i
   lockgc_ptr<obj> i;                   // ATTENZIONE: solo così sono sicuro di tenere i valori dal GC!
-   
   intp.stack.pop_back();intp.sp--;     //prg.get(2)->exec(intp); // pop
   prg[3].exec(intp);                                      // int const 0
   i=intp.stack[intp.sp];               //prg.get(4)->exec(intp); // store i
   intp.stack.pop_back();intp.sp--;     //prg.get(5)->exec(intp); // pop
   label3:                                                     // label 3
   intp.stack.push_back(i);intp.sp++;   //prg.get(7)->exec(intp); // load i
-  intp.stack.push_back(c_1000000); intp.sp++; //prg.get(8)->exec(intp);  // int const 1000000
+  intp.stack.push_back(c_10000000); intp.sp++; //prg.get(8)->exec(intp);  // int const 1000000
   
   //prg[9].exec(intp);                                      // lt
   intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->lt(intp.stack[intp.sp]);
@@ -1777,16 +1773,20 @@ void releaseSysObjs(){
   c_2=nullptr;
 }
 
+void test_cc_translation(){
   //test("primo.pcd");
   //bench("primo.pcd");
   //test("terzo.pcd");
-  //test("fib.pcd");
-  //bench("fib.pcd");
-  //test_cc();
-  //bench_cc();
-  //test_fib_cc();
-  //bench_fib_cc();
-  
+  runPcd("cnt10000000.pcd");
+  benchPcd("cnt10000000.pcd");
+  test_cc();
+  bench_cc();
+  runPcd("fib.pcd");
+  benchPcd("fib.pcd");
+  test_fib_cc();
+  bench_fib_cc();
+}
+
 // D7: l'opzione di misura si scrive con due grafie, `--bench` e `-b`: il nome
 // lungo e il nome corto. Il terzo campo della riga resta vuoto perche' la terza
 // grafia che c'era prima, `-bench` con un solo trattino, e' sparita: non e' un
@@ -1797,9 +1797,12 @@ void releaseSysObjs(){
 // a qualcosa che sopravviva alla chiamata.
 static int benchOpzione=0;
 static int helpOpzione=0;
-static const cliOpzione tabOpzioni[2]={
+static int testOpzione=0;
+#define N_OPT 3
+static const cliOpzione tabOpzioni[N_OPT]={
   {"bench",'b',NULL,"misura il file invece di eseguirlo una volta",CLI_OPZIONE,&benchOpzione},
-  {"help",'h',NULL,"stampa queste istruzioni d'uso",CLI_OPZIONE,&helpOpzione}
+  {"help",'h',NULL,"stampa queste istruzioni d'uso",CLI_OPZIONE,&helpOpzione},
+  {"test",'t',NULL,"esegue i test standard",CLI_OPZIONE,&testOpzione}
 };
 
 // D8 (libera): l'elenco delle opzioni non e' scritto a mano, arriva dalla stessa
@@ -1811,7 +1814,7 @@ static const cliOpzione tabOpzioni[2]={
 // se', e `cliOpzioni()` riceve lo stesso puntatore.
 static void uso(FILE* out){
   fprintf(out,"uso: interpreter [opzioni] <file.pcd>\n");
-  cliOpzioni(tabOpzioni,2,out);
+  cliOpzioni(tabOpzioni,N_OPT,out);
   fprintf(out,"  un nome senza estensione viene completato con .pcd\n");
   fprintf(out,"  dopo -- ogni argomento e' un percorso\n");
 }
@@ -1831,13 +1834,14 @@ static void uso(FILE* out){
 // "./interpreter -bench fib.pcd" non prova piu' a misurare: `-bench` non e' piu'
 // una grafia dell'opzione di misura ed e' segnalata come sconosciuta.
 int main(int argc, char** argv){
-  const char* percorsi[2];
+  const char* percorsi[N_OPT];
   cliScansione sc;
   int nPercorsi;
   benchOpzione=0;
   helpOpzione=0;
+  testOpzione=0;
   cliInizia(&sc,argc,argv);
-  nPercorsi=cliScansiona(&sc,tabOpzioni,2,percorsi,2);
+  nPercorsi=cliScansiona(&sc,tabOpzioni,N_OPT,percorsi,N_OPT);
   if (sc.errore!=CLI_ERRORE_NESSUNO) {
     switch (sc.errore) {
       case CLI_ERRORE_VALORE:
@@ -1855,20 +1859,22 @@ int main(int argc, char** argv){
     uso(stderr);
     return 1;
   }
+  int rc=0;
   // D4: l'help esce qui, prima di pcodePathFor(), quindi non deriva il percorso, non
   // carica nessun file e non stampa il rapporto del GC che segue la run.
   if (helpOpzione) {
     uso(stdout);
     return 0;
-  }
-  if (nPercorsi!=1) {
+  } else if (testOpzione==1){
+	test_cc_translation();
+  } else if (nPercorsi!=1) {
     uso(stderr);
     return 1;
+  } else {
+    // D2: la derivazione resta qui, una volta sola, cosi' la tabella del bench mostra
+    // il percorso realmente caricato e non quello digitato.
+    rc=benchOpzione?benchPcd(pcodePathFor(percorsi[0])):runPcd(pcodePathFor(percorsi[0]));
   }
-  // D2: la derivazione resta qui, una volta sola, cosi' la tabella del bench mostra
-  // il percorso realmente caricato e non quello digitato.
-  int rc=benchOpzione?benchPcd(pcodePathFor(percorsi[0])):runPcd(pcodePathFor(percorsi[0]));
-
   cout << "--- status on exit ---\n";  
   stdGC().status();
   //cout << "--- collect 0 ---\n";  
