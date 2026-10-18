@@ -1,0 +1,36 @@
+MacBook M2 Pro
+
+GC PARAM: Time:                 GC stats:
+5000 1 1  3.71 1.41 40.08 4.38  objs 2274 object x generation:2274 0       maxlive:85   maxsize:5086 gcexec:199751
+
+5000 2 2  3.60 1.32 38.59 3.24  objs 2290 object x generation:2230 10 50   maxlive:632  maxsize:5633 gcexec:199751
+5000 2 3  3.60 1.31 38.76 3.28  objs 2287 object x generation:2230 10 47   maxlive:1003 maxsize:6004 gcexec:199751
+5000 2 4  3.70 1.34 39.20 3.28  objs 2473 object x generation:2230 22 221  maxlive:1480 maxsize:6481 gcexec:199751
+5000 2 8  3.62 1.32 40.85 3.40  objs 2306 object x generation:2230 37 39   maxlive:4292 maxsize:9293 gcexec:199751
+
+5000 3 2  3.63 1.33 38.76 3.26  objs 2318 object x generation:2230 34 2 52   maxlive:588  maxsize:5589 gcexec:199751
+5000 3 3  3.62 1.32 40.00 4.39  objs 2516 object x generation:2230 22 1 263  maxlive:1805 maxsize:6806 gcexec:199751
+
+5000 4 2  3.61 1.32 38.99 3.36  objs 2282 object x generation:2230 10 3 0 39  maxlive:956  maxsize:5957  gcexec:199751
+5000 4 4  3.64 1.34 43.67 3.58  objs 3009 object x generation:2230 10 5 4 760 maxlive:9243 maxsize:14244 gcexec:199751
+
+5000 8 1  3.60 1.31 38.29 3.21  objs 2274  object x generation:2274 0 0 0 0 0 0 0 0           maxlive:85     maxsize:5086   gcexec:199751
+5000 8 2  3.63 1.34 43.01 3.70  objs 3121  object x generation:2230 22 3 2 0 1 0 3 860        maxlive:10211  maxsize:15212  gcexec:199751
+5000 8 4  3.92 1.70 71.44 23.69 objs 84701 object x generation:2230 34 7 4 11 4 1 14782 67628 maxlive:155634 maxsize:160635 gcexec:199751
+
+
+GC PARAM:   Time:                  GC Stats
+10000 2 1   3.73 1.45 40.59 4.51   objs 2139 object x generation:2139 0 0    maxlive:83   maxsize:10084 gcexec:99886
+10000 2 2   3.62 1.34 39.48 4.30   objs 2139 object x generation:2112 2 25   maxlive:612  maxsize:10613 gcexec:99886
+10000 2 4   3.69 1.37 39.53 4.39   objs 2165 object x generation:2095 27 43  maxlive:1577 maxsize:11578 gcexec:99886
+10000 2 8   3.66 1.35 39.65 4.46   objs 2454 object x generation:2095 60 299 maxlive:3787 maxsize:13788 gcexec:99886
+
+10000 4 2   3.64 1.36 39.24 4.35   objs 2172  object x generation:2095 12 1 2 62      maxlive:888   maxsize:10889 gcexec:99886
+10000 4 4   3.67 1.36 42.11 5.02   objs 2912  object x generation:2095 73 5 1 738     maxlive:9906  maxsize:19907 gcexec:99886
+10000 4 8   3.01 1.38 50.52 6.74   objs 18187 object x generation:2095 12 17 17 16046 maxlive:72515 maxsize:82516 gcexec:99886
+
+100000 1 1  3.66 1.72 42.61 5.20   objs 42028 object x generation:42028 0                    maxlive:83   maxsize:100084 gcexec:9990
+100000 2 2  3.69 1.67 42.05 5.04   objs 42028 object x generation:41991 10 27                maxlive:683  maxsize:100684 gcexec:9990
+100000 4 2  3.71 1.64 42.23 4.98   objs 42385 object x generation:41991 10 1 1 382           maxlive:824  maxsize:100825 gcexec:9990
+100000 8 2  3.68 1.75 42.65 5.30   objs 42641 object x generation:41991 38 3 4 3 0 1 388 213 maxlive:5182 maxsize:105183 gcexec:9990
+

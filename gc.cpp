@@ -1,16 +1,16 @@
 /*
 DA FARE:
 migliorare esplorazione quando si cambia generazione, ora ricerca sempre ...
-supportare più di 2 generazioni (ora scandice 0,1 o max)  
+supportare più di 2 generazioni (ora scandisce 0,1 o max)  
 */
 
 #include <cassert>
 
 using namespace std;
 
-#define GC_OBJSLIM  5000 //10000  // Ogni quanti nuovi oggetti esegue una collect
-#define GC_GEN      4    //2      // Il numero di generazioni
-#define GC_GENSCALE 4    //8      // la proporzione prima di salire alla collect del livello superiore    
+#define GC_OBJSLIM  5000 //5000  // Ogni quanti nuovi oggetti esegue una collect
+#define GC_GEN      2    //2      // Il numero di generazioni
+#define GC_GENSCALE 2    //2      // la proporzione prima di salire alla collect del livello superiore    
 
 //#define GC_USING_USET
 

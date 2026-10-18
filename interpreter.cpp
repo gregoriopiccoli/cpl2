@@ -1753,7 +1753,7 @@ int benchPcd(const string& fn){
 }
 
 int bench_cc(){
-  ankerl::nanobench::Bench().run("conta fino a 1000000 in cc", [&] {
+  ankerl::nanobench::Bench().run("conta fino a 10000000 in cc", [&] {
 	test_cc();
   });
   return 0;
