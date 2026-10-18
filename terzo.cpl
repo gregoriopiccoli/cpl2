@@ -1,33 +1,12 @@
-proc p(int i, int j)
-  ? i,' ',j
+
+? '-- prova di parametri con valore di default --'
+
+proc q(int i:=100)
+  ? 'i=',i
 end
 
-p(1,2)
-p(10)
-p()
+q(1)
+q(10)
+q()    
 
-var int j:=102
-
-proc ee()
-  var int i
-  i:=101
-  ? 'in ee, i:',i,' j:',j
-end
-
-? p
-? ee
-
-ee()
-j:=103
-ee()
-
-? 'in base, j:',j
---? 'in base, i:',i // deve dare errore
-  
-func int doppio(int x)
-  result:=x+x
-end
-
-? 'doppio(1)=',doppio(1)
-? 'doppio(10)=',doppio(10)
-? 'doppio(100)=',doppio(100)
+? '------------ arrivato alla fine ------------'

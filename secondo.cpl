@@ -1,3 +1,5 @@
+? '-- prova di chiamata di procedura --'
+
 var int i
 i:=100
 
@@ -10,4 +12,40 @@ end
 ? p
 p()
 
-? 'alla fine ...'
+? '-- prova di chiamata di funzione --'
+
+func int doppio(int x)
+  result:=x+x
+end
+
+? 'doppio(1)=',doppio(1)
+? 'doppio(10)=',doppio(10)
+? 'doppio(100)=',doppio(100)
+
+? '-- prova di lettura di valori da locali della funzione e da modulo --'
+
+var int j:=102
+
+proc ee()
+  var int i
+  i:=101
+  ? 'in ee, i:',i,' j:',j
+end
+
+
+ee()
+j:=103
+ee()
+? 'in base, j:',j
+
+? '-- prova di chiamata con parametri incompleti --'
+
+proc pp(int i, int j)
+  ? i,' ',j
+end
+
+pp(1,2)
+pp(10)
+pp()
+
+? '------------ arrivato alla fine ------------'

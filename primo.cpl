@@ -53,5 +53,4 @@ b:={}
 ? hello
 ? hello()
 
--- prova di errore per nome non definito
--- ? hello2()
+? '------------ arrivato alla fine ------------'
