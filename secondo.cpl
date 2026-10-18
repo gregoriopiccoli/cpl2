@@ -4,9 +4,12 @@ var int i
 i:=100
 
 proc p()
+  // commento nella funzione
   var int j:=200
   i:=111
   ? 'Hello world! ',i,' ',j
+  // segue una linea vuota
+  
 end
 
 ? p

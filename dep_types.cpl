@@ -21,7 +21,7 @@ assert    : un test che vale nel punto dove viene scritto, si sovrappone ad "ens
 invariant : un test che è sempre valido, può fallire nel corpo delle funzioni a cui si riferisce nel qual caso vale alla fine
 
 with : una variante del tipo che accetta solo assegnazioni che rispettano la condizione, può essere usata nelle dimostrazioni
-when : una variante nella costruzione delle classi che specifica che certi attributi/metodi sono disponibili solo in determinate condizioni
+// NON SERVE! when : una variante nella costruzione delle classi che specifica che certi attributi/metodi sono disponibili solo in determinate condizioni
 
 */
 
@@ -45,3 +45,35 @@ else
   ensure i<0
   -- anche questo è dimostrabile
 end  
+
+enum FStatus Opened,Closed
+enum FMode R,W,RW
+
+class File
+  
+  var FStatus status:=FStatus.Closed
+  //
+  with status=FStatus.Closed
+    //
+    func bool open(str! fn); end
+    //
+  end
+  with status=FStatus.Opened
+    // 
+    var FMode mode
+    func int tell(); end
+    func bool eof(); end
+    //
+    with mode=FMode.R or mode=FMode.RW 
+      //
+      func str! read(); end
+      //
+    end  
+    with mode=FMode.W or mode=FMode.RW 
+      //
+      func bool write(str! s); end
+      //
+    end  
+  end
+end
+  

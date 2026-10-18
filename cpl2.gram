@@ -112,6 +112,9 @@ classcmd ::= procdecl EOL.
 classcmd ::= vardecl EOL.
 classcmd ::= enum EOL.
 classcmd ::= invariant_stm EOL.
+classcmd ::= EOL.
+
+classcmd ::= WITH expr EOL classcmd_list END EOL.
 
 generic ::=.
 generic ::= LSQ generic_list RSQ.                 {emit_s(P_COMMENT,"da fare generics ...");}
