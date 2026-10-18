@@ -19,8 +19,9 @@ var str! s // variabile stringa che non può essere nil
 
 // array comprehension
 [x for each x in [1,2,3] with pari(x)]
+[x for each x,k in [1,2,3] with pari(x)]
 
   
 // dict comprehension
-{k:x for each x in [1,2,3]}
+{k:x for each k,x in ["alfa","beta","gamma"]}
 {k:x for each k:x in ["alfa","beta","gamma"] : [1,2,3]}
