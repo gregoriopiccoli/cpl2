@@ -79,6 +79,7 @@ int getTokenCodeFromString(const char* token){
 		  if (strcmp(token,"enum")==0) return TOK_ENUM;
 		  if (strcmp(token,"elseif")==0) return TOK_ELSEIF;
 		  if (strcmp(token,"event")==0) return TOK_EVENT;
+		  if (strcmp(token,"ensure")==0) return TOK_ENSURE;
 		 break;  
 		case 'f':
 		  if (strcmp(token,"func")==0) return TOK_FUNC;
@@ -121,6 +122,7 @@ int getTokenCodeFromString(const char* token){
 		case 'r':
 		  if (strcmp(token,"repeat")==0) return TOK_REPEAT;
 		  if (strcmp(token,"result")==0) return TOK_RESULT;
+		  if (strcmp(token,"require")==0) return TOK_REQUIRE;
 		  break;
 		case 's':
 		  if (strcmp(token,"str")==0) return TOK_STR;

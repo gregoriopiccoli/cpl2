@@ -37,3 +37,14 @@ end
 
 func str!    read(File with (status=Opened) f)
 end
+
+
+var int i:=f()
+require i<>nil
+if i>=0
+  ensure (i is positive)
+  -- questo è dimostrabile
+else
+  ensure i<0
+  -- anche questo è dimostrabile
+end  

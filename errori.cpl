@@ -1,3 +1,11 @@
+/*
+
+  File che accumula le cose da fare
+  
+  Deve compilare e non eseguire, via via faccio quelo che esegue svuotandolo
+   
+*/
+
 var int i
 i:="pippo"
 ? "i=",i
@@ -9,12 +17,12 @@ type int with (this>=0) positive  // dichiarazione di tipo
 
 var positive pp
 
-var int with(this<0)  jj  // tipo limitato in linea
+var int with this<0  jj  // tipo limitato in linea
 
-func str with (this<>nil) read(File with (status=Opened) f) // funzione con parametro con tipo limitato
+func str! read(File with (status=Opened) f) // funzione con parametro con tipo limitato
 end
 
-var str! s // variabile stringa che non può essere nil
+var str with this<>nil s // variabile stringa che non può essere nil
 
 
 // array comprehension
@@ -24,4 +32,6 @@ var str! s // variabile stringa che non può essere nil
   
 // dict comprehension
 {k:x for each k,x in ["alfa","beta","gamma"]}
+{k:x for each k,x in ["alfa","beta","gamma"] with pari(k)}
 {k:x for each k:x in ["alfa","beta","gamma"] : [1,2,3]}
+{k:x for each k:x in ["alfa","beta","gamma"] : [1,2,3] with pari(x)}

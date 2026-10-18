@@ -149,6 +149,8 @@ stm ::= print_stm EOL.
 stm ::= pre_stm EOL.
 stm ::= post_stm EOL.
 stm ::= assert_stm EOL.
+stm ::= require_stm EOL.
+stm ::= ensure_stm EOL.
 stm ::= EOL.
 
 // --- dichiarazione di variabili ---
@@ -171,7 +173,7 @@ type ::= or_type(N).                              {emit_i(P_OR_TYPE,N);}
 or_type(N) ::= btype VBAR btype.                  {N = 2;}
 or_type(N) ::= or_type(P) VBAR btype.             {N = P+1;}
  
-with_type ::= WITH LPAR lexpr RPAR.
+with_type ::= WITH lexpr .
  
 btype ::= INT.                                    {emit(P_INT_TYPE);}
 btype ::= STR.                                    {emit(P_STR_TYPE);}
@@ -304,6 +306,8 @@ post_stm ::= POST expr COLON expr.               {emit_i(P_POST,2);}
 assert_stm ::= ASSERT expr.                      {emit_i(P_ASSERT,1);}
 assert_stm ::= ASSERT expr COLON expr.           {emit_i(P_ASSERT,2);}
 invariant_stm ::= INVARIANT expr.                {emit_s(P_COMMENT,"da fare invariant ...");}
+require_stm ::= REQUIRE expr.
+ensure_stm ::= ENSURE expr.
 
 // --- espressioni con assegnazione ---
 
