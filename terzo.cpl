@@ -1,3 +1,15 @@
+? '-- prova di dichiarazione multipla --'
+
+var int i,j,k
+i:=100
+j:=200
+k:=300
+? 'i=',i,' j=',j,' k=',k
+
+? '-- prova di assegnazione in dichiarazione --'
+
+var int i:=100 -- non funziona ancora
+
 
 ? '-- prova di parametri con valore di default --'
 
@@ -6,7 +18,6 @@ proc q(int i:=100)
 end
 
 q(1)
-q(10)
-q()    
+q() -- non funziona ancora   
 
 ? '------------ arrivato alla fine ------------'

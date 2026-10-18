@@ -35,10 +35,7 @@ var positive pp
 func str! read(File with (status=Opened) f)
 end
 
-func str!    read(File with (status=Opened) f)
-end
-
-
+assume f()<>nil
 var int i:=f()
 require i<>nil
 if i>=0

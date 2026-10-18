@@ -151,6 +151,7 @@ stm ::= post_stm EOL.
 stm ::= assert_stm EOL.
 stm ::= require_stm EOL.
 stm ::= ensure_stm EOL.
+stm ::= assume_stm EOL.
 stm ::= EOL.
 
 // --- dichiarazione di variabili ---
@@ -308,6 +309,7 @@ assert_stm ::= ASSERT expr COLON expr.           {emit_i(P_ASSERT,2);}
 invariant_stm ::= INVARIANT expr.                {emit_s(P_COMMENT,"da fare invariant ...");}
 require_stm ::= REQUIRE expr.
 ensure_stm ::= ENSURE expr.
+assume_stm ::= ASSUME expr.
 
 // --- espressioni con assegnazione ---
 

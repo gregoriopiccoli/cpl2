@@ -55,6 +55,7 @@ int getTokenCodeFromString(const char* token){
 		  if (strcmp(token,"any")==0) return TOK_ANY;	
 		  if (strcmp(token,"abstract")==0) return TOK_ABSTRACT;	  
 		  if (strcmp(token,"assert")==0) return TOK_ASSERT;	  
+		  if (strcmp(token,"assume")==0) return TOK_ASSUME;	  
 		  break;
 		case 'b':
 		  if (strcmp(token,"bool")==0) return TOK_BOOL;
