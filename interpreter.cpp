@@ -374,6 +374,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeOrType: public ipcode {
+public:
+  explicit pcodeOrType(int v):ipcode(v){code=P_OR_TYPE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeProcType: public ipcode {
 public:
   explicit pcodeProcType(int v):ipcode(v){code=P_PROC_TYPE;}
@@ -478,6 +484,7 @@ pcode* makePCode(int c,const char* s){
 	case P_ARRAY_TYPE:return new pcodeArrayType();
 	case P_DICT_TYPE:return new pcodeDictType();
 	case P_TUPLE_TYPE:return new pcodeTupleType(atoi(s));
+	case P_OR_TYPE:return new pcodeOrType(atoi(s));
 	case P_PROC_TYPE:return new pcodeProcType(atoi(s));
 	case P_FUNC_TYPE:return new pcodeFuncType(atoi(s));
 	case P_LINE:return new pcodeLine(atoi(s));
@@ -820,6 +827,23 @@ public:
 		int p=1;
 		for(obj* t:types) {r+=(p==1?"":",")+t->print();p=0;}
 		r+="]";
+		return r;
+	  }
+};
+
+class orType : public obj {
+    vector<obj*> altTypes;
+public:
+    orType(){}
+    //
+    virtual void mark() override {if (!marked) {marked=true;for(const auto& o:altTypes) o->mark();}}
+    virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:altTypes) {if (o->generation<gen) o->expand(gen);}}
+    //
+    virtual void addAltType(obj* t){altTypes.push_back(t);}
+    virtual string print() const override {
+		string r="";
+		int p=1;
+		for(obj* t:altTypes) {r+=(p==1?"":"|")+t->print();p=0;}
 		return r;
 	  }
 };
@@ -1673,6 +1697,17 @@ void pcodeTupleType::exec(interp& interpreter) const {
   for(int i=0;i<value-1;i++) interpreter.stack.pop_back();
   interpreter.sp-=(value-1);
   interpreter.stack[interpreter.sp]=t; 	 
+}
+
+void pcodeOrType::exec(interp& interpreter) const {
+  orType* t=new orType();
+  for(int i=0;i<value;i++){
+	  t->addAltType(interpreter.stack[interpreter.sp-value+1+i]);
+  }
+  for(int i=0;i<value-1;i++) interpreter.stack.pop_back();
+  interpreter.sp-=(value-1);
+  interpreter.stack[interpreter.sp]=t; 	 
+  //cout << t->print() << endl;
 }
 
 void pcodeProcType::exec(interp& interpreter) const {
