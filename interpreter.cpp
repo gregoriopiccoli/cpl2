@@ -344,6 +344,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeBoolType: public pcode {
+public:
+  explicit pcodeBoolType(){code=P_BOOL_TYPE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeStrType: public pcode {
 public:
   explicit pcodeStrType(){code=P_STR_TYPE;}
@@ -467,6 +473,7 @@ pcode* makePCode(int c,const char* s){
 	case P_PCODEEND:return new pcodePCodeEnd(atoi(s));
 	case P_ANY_TYPE:return new pcodeAnyType();
 	case P_INT_TYPE:return new pcodeIntType();
+	case P_BOOL_TYPE:return new pcodeBoolType();
 	case P_STR_TYPE:return new pcodeStrType();
 	case P_ARRAY_TYPE:return new pcodeArrayType();
 	case P_DICT_TYPE:return new pcodeDictType();
@@ -640,6 +647,7 @@ public:
   virtual string print() const override {return (value?"true":"false");};
   virtual obj* eq(const obj* o) const override;
   virtual obj* ne(const obj* o) const override;
+  virtual const obj* getBaseType() const override;
   //
   //const boolObj* check_bool(const obj* o,const char*  msg) const {const boolObj* oo=dynamic_cast<const boolObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
   const boolObj* check_bool(const obj* o,const char*  msg) const;
@@ -750,6 +758,11 @@ public:
     virtual string print() const override {return "str";}
 };
 
+class boolType: public obj {
+public:
+    virtual string print() const override {return "bool";}
+};
+
 class floatType: public obj {
 public:
     virtual string print() const override {return "float";}
@@ -757,9 +770,12 @@ public:
 
 lockgc_ptr<obj> theIntType{new intType()};
 lockgc_ptr<obj> theStrType{new strType()};
+lockgc_ptr<obj> theBoolType{new boolType()};
 lockgc_ptr<obj> theFloatType{new floatType()};
 
 const obj* intObj::getBaseType() const {return theIntType;}
+
+const obj* boolObj::getBaseType() const {return theBoolType;}
 
 const intObj* intObj::check_int(const obj* o,const char* msg) const {
   if (o->getBaseType()!=theIntType) throw domain_error(msg);
@@ -1629,6 +1645,11 @@ void pcodeIntType::exec(interp& interpreter) const {
   interpreter.stack.push_back(theIntType);
 }
 
+void pcodeBoolType::exec(interp& interpreter) const {
+  interpreter.sp++;
+  interpreter.stack.push_back(theBoolType);
+}
+
 void pcodeStrType::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(theStrType);
@@ -1929,6 +1950,7 @@ void releaseSysObjs(){
   theFalse=nullptr;
   theIntType=nullptr;
   theStrType=nullptr;
+  theBoolType=nullptr;
   theFloatType=nullptr;
   theBuiltIn=nullptr;
   //
