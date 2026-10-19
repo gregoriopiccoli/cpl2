@@ -368,6 +368,18 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeProcType: public ipcode {
+public:
+  explicit pcodeProcType(int v):ipcode(v){code=P_PROC_TYPE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeFuncType: public ipcode {
+public:
+  explicit pcodeFuncType(int v):ipcode(v){code=P_FUNC_TYPE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeLine: public ipcode {
 public:
   explicit pcodeLine(int v):ipcode(v){code=P_LINE;}
@@ -459,6 +471,8 @@ pcode* makePCode(int c,const char* s){
 	case P_ARRAY_TYPE:return new pcodeArrayType();
 	case P_DICT_TYPE:return new pcodeDictType();
 	case P_TUPLE_TYPE:return new pcodeTupleType(atoi(s));
+	case P_PROC_TYPE:return new pcodeProcType(atoi(s));
+	case P_FUNC_TYPE:return new pcodeFuncType(atoi(s));
 	case P_LINE:return new pcodeLine(atoi(s));
 	case P_STORE_RESULT:return new pcodeStoreResult();
   }
@@ -793,7 +807,45 @@ public:
 		return r;
 	  }
 };
+
+class procType : public obj {
+    vector<obj*> prmTypes;
+public:
+    procType(){}
+    //
+    virtual void mark() override {if (!marked) {marked=true;for(const auto& o:prmTypes) o->mark();}}
+    virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:prmTypes) {if (o->generation<gen) o->expand(gen);}}
+    //
+    virtual void addPrmType(obj* t){prmTypes.push_back(t);}
+    virtual string print() const override {
+		string r="(";
+		int p=1;
+		for(obj* t:prmTypes) {r+=(p==1?"":", ")+t->print();p=0;}
+		r+=")";
+		return r;
+	  }
+};
 	
+class funcType : public obj {
+    vector<obj*> prmTypes;
+    obj* retType;
+public:
+    funcType(){}
+    //
+    virtual void mark() override {if (!marked) {marked=true;for(const auto& o:prmTypes) o->mark();retType->mark();}}
+    virtual void expand(int gen) override {if (generation<gen) generation=gen;if (retType->generation<gen) retType->expand(gen);for(const auto& o:prmTypes) {if (o->generation<gen) o->expand(gen);}}
+    //
+    virtual void addPrmType(obj* t){prmTypes.push_back(t);}
+    virtual void setRetType(obj* t){retType=t;}
+    virtual string print() const override {
+		string r="("+retType->print()+":";
+		int p=1;
+		for(obj* t:prmTypes) {r+=(p==1?"":", ")+t->print();p=0;}
+		r+=")";
+		return r;
+	  }
+};
+
 // --- gli array e i dizionari
 
 class arrayObj: public obj {
@@ -1600,6 +1652,34 @@ void pcodeTupleType::exec(interp& interpreter) const {
   for(int i=0;i<value-1;i++) interpreter.stack.pop_back();
   interpreter.sp-=(value-1);
   interpreter.stack[interpreter.sp]=t; 	 
+}
+
+void pcodeProcType::exec(interp& interpreter) const {
+  procType* t=new procType();
+  for(int i=0;i<value;i++){
+	  t->addPrmType(interpreter.stack[interpreter.sp-value+1+i]);
+  }
+  if (value==0) {
+    interpreter.sp++;
+    interpreter.stack.push_back(t);
+  } else {
+    for(int i=0;i<value-1;i++) interpreter.stack.pop_back();
+    interpreter.sp-=(value-1);
+    interpreter.stack[interpreter.sp]=t;
+  }
+  //cout << t->print() << endl;
+}
+
+void pcodeFuncType::exec(interp& interpreter) const {
+  funcType* t=new funcType();
+  for(int i=0;i<value;i++){
+	  t->addPrmType(interpreter.stack[interpreter.sp-value+1+i]);
+  }
+  t->setRetType(interpreter.stack[interpreter.sp-value]);
+  for(int i=0;i<value;i++) interpreter.stack.pop_back();
+  interpreter.sp-=value;
+  interpreter.stack[interpreter.sp]=t;
+  //cout << t->print() << endl;
 }
 
 void pcodeLine::exec(interp& interpreter) const {
