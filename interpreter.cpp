@@ -350,6 +350,24 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeArrayType: public pcode {
+public:
+  explicit pcodeArrayType(){code=P_ARRAY_TYPE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeDictType: public pcode {
+public:
+  explicit pcodeDictType(){code=P_DICT_TYPE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeTupleType: public ipcode {
+public:
+  explicit pcodeTupleType(int v):ipcode(v){code=P_TUPLE_TYPE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeLine: public ipcode {
 public:
   explicit pcodeLine(int v):ipcode(v){code=P_LINE;}
@@ -438,6 +456,9 @@ pcode* makePCode(int c,const char* s){
 	case P_ANY_TYPE:return new pcodeAnyType();
 	case P_INT_TYPE:return new pcodeIntType();
 	case P_STR_TYPE:return new pcodeStrType();
+	case P_ARRAY_TYPE:return new pcodeArrayType();
+	case P_DICT_TYPE:return new pcodeDictType();
+	case P_TUPLE_TYPE:return new pcodeTupleType(atoi(s));
 	case P_LINE:return new pcodeLine(atoi(s));
 	case P_STORE_RESULT:return new pcodeStoreResult();
   }
@@ -731,6 +752,48 @@ const intObj* intObj::check_int(const obj* o,const char* msg) const {
   return static_cast<const intObj*>(o);
 }
 
+// --- i tipi composti
+
+class arrayType : public obj {
+	obj* atype;
+public:
+    //
+    virtual void mark() override {if (!marked) {marked=true;atype->mark();}}
+    virtual void expand(int gen) override {if (generation<gen) generation=gen;if (atype->generation<gen) atype->expand(gen);}
+    //
+    arrayType(obj* t){atype=t;};
+    virtual string print() const override {string r="array["+atype->print()+"]";return r;}	
+};
+
+class dictType : public obj {
+	obj* dtype;
+public:
+    //
+    virtual void mark() override {if (!marked) {marked=true;dtype->mark();}}
+    virtual void expand(int gen) override {if (generation<gen) generation=gen;if (dtype->generation<gen) dtype->expand(gen);}
+    //
+    dictType(obj* t){dtype=t;};
+    virtual string print() const override {string r="array["+dtype->print()+"]";return r;}	
+};
+
+class tupleType : public obj {
+    vector<obj*> types;
+public:
+    tupleType(){}
+    //
+    virtual void mark() override {if (!marked) {marked=true;for(const auto& o:types) o->mark();}}
+    virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:types) {if (o->generation<gen) o->expand(gen);}}
+    //
+    virtual void addSubType(obj* t){types.push_back(t);}    
+    virtual string print() const override {
+		string r="tuple[";
+		int p=1;
+		for(obj* t:types) {r+=(p==1?"":",")+t->print();p=0;}
+		r+="]";
+		return r;
+	  }
+};
+	
 // --- gli array e i dizionari
 
 class arrayObj: public obj {
@@ -1054,7 +1117,7 @@ public:
       p_endproc:stop=true;goto endpcode;
       p_endfunc:stop=true;goto endpcode;
       p_endparm:stop=true;goto endpcode;
-      p_line: currentSourceLine=ppp.getIntValue();goto endpcode;
+      p_line: currentSourceLine=ppp.getIntValue();/*ppp.exec(*this);*/goto endpcode;
       default_pcode: ppp.exec(*this);
 	  endpcode:
 #else      
@@ -1519,8 +1582,28 @@ void pcodeStrType::exec(interp& interpreter) const {
   interpreter.stack.push_back(theStrType);
 }
 
+void pcodeArrayType::exec(interp& interpreter) const {
+  obj* t=interpreter.stack[interpreter.sp];
+  interpreter.stack[interpreter.sp]=new arrayType(t);
+}
+
+void pcodeDictType::exec(interp& interpreter) const {
+  obj* t=interpreter.stack[interpreter.sp];
+  interpreter.stack[interpreter.sp]=new dictType(t);
+}
+
+void pcodeTupleType::exec(interp& interpreter) const {
+  tupleType* t=new tupleType();
+  for(int i=0;i<value;i++){
+	  t->addSubType(interpreter.stack[interpreter.sp-value+1+i]);
+  }
+  for(int i=0;i<value-1;i++) interpreter.stack.pop_back();
+  interpreter.sp-=(value-1);
+  interpreter.stack[interpreter.sp]=t; 	 
+}
+
 void pcodeLine::exec(interp& interpreter) const {
-  //cout << "line:" << value << endl;
+  cout << "line:" << value << endl;
   interpreter.currentSourceLine=value;
 }
 
@@ -1647,10 +1730,10 @@ void fib_cc(interp& intp){
   intp.stack.pop_back();
   intp.sp--;
   //cout << "dopo n sp:" << intp.sp << " n:" << n->print() << endl;
-  // n<=2
+  // n<2
   intp.stack.push_back(n);intp.sp++;
   intp.stack.push_back(c_2);intp.sp++;
-  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->le(intp.stack[intp.sp]);
+  intp.stack[intp.sp-1]=intp.stack[intp.sp-1]->lt(intp.stack[intp.sp]);
   intp.stack.pop_back();
   intp.sp--;
   // if false 0

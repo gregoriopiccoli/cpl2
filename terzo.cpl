@@ -6,6 +6,12 @@ j:=200
 k:=300
 ? 'i=',i,' j=',j,' k=',k
 
+? '-- prova di tipi composti --'
+
+var array[int] a
+var dict[int] d
+var tuple[int,int,str] t
+
 ? '-- prova di assegnazione in dichiarazione --'
 
 var int i:=100 -- non funziona ancora

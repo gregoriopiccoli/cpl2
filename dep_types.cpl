@@ -56,12 +56,12 @@ class File
   with status=FStatus.Closed
     //
     func bool open(str! fn); end
-    //
+    //        ----
   end
   with status=FStatus.Opened
     // 
     var FMode mode
-    func int tell(); end
+    func int  tell(); end
     func bool eof(); end
     //
     with mode=FMode.R or mode=FMode.RW 
