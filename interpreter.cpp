@@ -230,6 +230,12 @@ public:
   explicit pcodeArray(int v):ipcode(v){code=P_ARRAY;}
   virtual void exec(interp& interpreter) const override;
 };
+
+class pcodeTuple: public ipcode {
+public:
+  explicit pcodeTuple(int v):ipcode(v){code=P_TUPLE;}
+  virtual void exec(interp& interpreter) const override;
+};
 	
 class pcodeDict: public ipcode {
 public:
@@ -258,6 +264,12 @@ public:
 class pcodeSlice: public pcode {
 public:
   explicit pcodeSlice(){code=P_SLICE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeStoreSlice: public pcode {
+public:
+  explicit pcodeStoreSlice(){code=P_STORESLICE;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -458,10 +470,12 @@ pcode* makePCode(int c,const char* s){
 	case P_FALSE:return new pcodeFalse();
 	case P_ARRAY:return new pcodeArray(atoi(s));
 	case P_DICT:return new pcodeDict(atoi(s));
+	case P_TUPLE:return new pcodeTuple(atoi(s));
 	case P_VAR:return new pcodeVar(s);
 	case P_VAR_STORE:return new pcodeVarStore(s);
 	case P_LOAD:return new pcodeLoad(s);
 	case P_SLICE:return new pcodeSlice();
+	case P_STORESLICE:return new pcodeStoreSlice();
 	case P_STORE:return new pcodeStore(s);
 	case P_GOTO:return new pcodeGoto(atoi(s));
 	case P_LABEL:return new pcodeLabel(atoi(s));
@@ -887,7 +901,7 @@ public:
 	  }
 };
 
-// --- gli array e i dizionari
+// --- gli array, le tuple e i dizionari
 
 class arrayObj: public obj {
 	vector<obj*> a;
@@ -934,6 +948,45 @@ string arrayObj::print() const {
     res[0]='[';
   } else 
     res="[]";  
+  return res;
+}
+
+class tupleObj: public obj {
+	vector<obj*> a;
+public:
+  explicit tupleObj(const int& sz){a.resize(sz);}
+  //
+  virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) {if (o->generation<gen) o->expand(gen);}}
+  //
+  virtual obj* slice(const obj* idx) override {
+	    const intObj* pos=dynamic_cast<const intObj*>(idx);
+	    if (pos!=nullptr)
+	      return a[pos->value];
+	    throw domain_error("slicing a tuple with a non integer index");
+	  };
+  virtual void storeslice(obj* idx,obj* value) override {
+	    const intObj* pos=dynamic_cast<intObj*>(idx);
+	    if (pos!=nullptr) {
+		  a[pos->value]=value;
+		} else {
+	      throw domain_error("storing in a tuple with a non integer index");
+	    }
+	  };
+  void setelem(int idx,obj* value){a[idx]=value;}
+  //
+  virtual string print() const override;
+};
+
+string tupleObj::print() const {
+  string res="|";
+  int p=1;
+  for(const obj* o:a){
+	if (p==0) res+=",";
+	res+=o->print();
+	p=0;
+  }
+  res+="|";
   return res;
 }
 
@@ -1532,6 +1585,19 @@ void pcodeArray::exec(interp& interpreter) const {
   interpreter.sp=sp;
 }
 
+void pcodeTuple::exec(interp& interpreter) const {
+  // la grammatica garantisce N>=1 (non esiste la costante tuple vuota)
+  tupleObj* t=new tupleObj(value);
+  int sp=interpreter.sp-value+1;
+  for(int i=0;i<value;i++){
+	t->setelem(i,interpreter.stack[sp+i]);
+  }
+  for(int i=sp+1;i<=interpreter.sp;i++)
+    interpreter.stack.pop_back();
+  interpreter.stack[sp]=t;
+  interpreter.sp=sp;
+}
+
 void pcodeDict::exec(interp& interpreter) const {
   dictObj* d=new dictObj();
   int sp=interpreter.sp-value*2+1;
@@ -1569,6 +1635,18 @@ void pcodeSlice::exec(interp& interpreter) const {
   //cout << "cnt:" << cnt->print() << " idx:" << idx->print() << endl;
   interpreter.stack[interpreter.sp]=cnt->slice(idx);
   interpreter.stack.pop_back();
+}
+
+void pcodeStoreSlice::exec(interp& interpreter) const {
+  // layout: [..., contenitore(sp-2), indice(sp-1), valore(sp)]
+  obj* val=interpreter.stack[interpreter.sp];
+  obj* idx=interpreter.stack[interpreter.sp-1];
+  obj* cnt=interpreter.stack[interpreter.sp-2];
+  cnt->storeslice(idx,val);
+  interpreter.stack[interpreter.sp-2]=val;
+  interpreter.stack.pop_back();
+  interpreter.stack.pop_back();
+  interpreter.sp-=2;
 }
 
 void pcodeStore::exec(interp& interpreter) const {

@@ -53,4 +53,18 @@ b:={}
 ? hello
 ? hello()
 
+? '-- varie dichierazioni di tipo --'
+
+var array[int] aaa
+var dict[int] ddd
+var tuple[str,int,bool] ttt
+var (int,int) p1
+var () p2
+var (str,array[int]) p3
+
+var (int:str,bool) f1
+var (str:) f2
+
+var int|str o
+
 ? '------------ arrivato alla fine ------------'
