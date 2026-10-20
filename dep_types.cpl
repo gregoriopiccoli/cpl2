@@ -67,13 +67,35 @@ class File
     with mode=FMode.R or mode=FMode.RW 
       //
       func str! read(); end
-      //
+      //        ----
     end  
     with mode=FMode.W or mode=FMode.RW 
       //
       func bool write(str! s); end
-      //
+      //        -----
     end  
   end
 end
   
+
+
+class [T,int dim] vector  // int dim diventa un valore costante attributo della classe
+  //
+  var array[T] a
+  //          
+  proc init()
+    var int i
+    a:=[]
+    for i:=0 to dim-1     // qui usa "dim"
+      a.Append(nil)
+    end  
+  end
+  // slice
+  // storeslice
+end
+
+var vector[int,10] v
+v:=vector<int,10>()  
+
+? v,' ',v[0]
+v[1]:=10

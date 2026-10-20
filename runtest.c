@@ -1,11 +1,12 @@
 // Runner dei test del progetto cpl2 (decisione D1 del design).
 //
-// Un test e' la coppia <nome>.cpl + <nome>.out nella directory dei test: il
-// sorgente si compila con ./compiler, il p-code prodotto si esegue con
-// ./interpreter catturando il solo standard output, e quel contenuto si
-// confronta byte per byte con il .out (D3). Un .cpl senza .out non e' un test e
-// non entra nel rapporto; un .out senza .cpl e' un'incoerenza nominata nel
-// rapporto che conta come fallimento.
+// Un test e' un file .cpl della directory dei test. Se ha accanto un .out con
+// lo stesso nome di base e' un test completo (D1): il sorgente si compila con
+// ./compiler, il p-code prodotto si esegue con ./interpreter catturando il solo
+// standard output, e quel contenuto si confronta byte per byte con il .out
+// (D3). Se il .out manca, e' un test di sola compilazione: si compila con
+// ./compiler e basta, mai eseguito, ma entra lo stesso nel rapporto. Un .out
+// senza .cpl e' un'incoerenza nominata nel rapporto che conta come fallimento.
 //
 // Come parser.c e interpreter.cpp, anche qui la command line la legge la forma
 // condivisa di cli.c con una tabella delle opzioni vuota (D8): l'unico
@@ -118,17 +119,21 @@ typedef struct {
 	int nTest;
 	char** orfani;  // nomi dei .out che non hanno il .cpl accanto, ordinati
 	int nOrfani;
+	char** soloCompilazione;  // nomi base dei .cpl senza .out accanto, ordinati
+	int nSoloCompilazione;
 } raccolta;
 
-// raccoglie le coppie .cpl + .out della directory indicata: un .cpl senza .out
-// non e' un test e non entra nel rapporto (i .cpl senza .out restano quello che
-// sono, uno scratchpad); un .out senza .cpl e' un'incoerenza che conta come
-// fallimento (requisito "Output atteso senza sorgente"). Si guarda solo dentro
-// la directory: nessuna ricorsione nelle sottodirectory
+// raccoglie i file della directory indicata in tre elenchi: un .cpl con il .out
+// accanto e' un test completo; un .cpl senza .out e' un test di sola
+// compilazione, compilato ma mai eseguito e comunque contato; un .out senza .cpl
+// e' un'incoerenza che conta come fallimento (requisito "Output atteso senza
+// sorgente"). Si guarda solo dentro la directory: nessuna ricorsione nelle
+// sottodirectory
 static int raccogli(const char* dirTest,raccolta* rc){
 	DIR* d=opendir(dirTest);
 	struct dirent* e;
 	rc->test=NULL;rc->nTest=0;rc->orfani=NULL;rc->nOrfani=0;
+	rc->soloCompilazione=NULL;rc->nSoloCompilazione=0;
 	if (d==NULL){
 		fprintf(stderr,"runtest: impossibile aprire la directory %s: %s\n",dirTest,strerror(errno));
 		return -1;
@@ -142,13 +147,16 @@ static int raccogli(const char* dirTest,raccolta* rc){
 		// nessuna sottodirectory viene guardata
 		if (stat(percorso,&st)!=0||!S_ISREG(st.st_mode)) continue;
 		if (finisceCon(e->d_name,".cpl")){
-			// il .cpl entra solo se ha il .out con lo stesso nome di base
+			// il .cpl con il .out accanto e' un test completo, altrimenti
+			// e' un test di sola compilazione
 			size_t baseLen=strlen(e->d_name)-4;
 			char atteso[PERCORSO];
 			snprintf(atteso,sizeof atteso,"%s/%.*s.out",dirTest,(int)baseLen,e->d_name);
+			e->d_name[baseLen]='\0';
 			if (eFileRegolare(atteso)){
-				e->d_name[baseLen]='\0';
 				if (aggiungi(&rc->test,&rc->nTest,e->d_name)!=0) goto memoria;
+			}else{
+				if (aggiungi(&rc->soloCompilazione,&rc->nSoloCompilazione,e->d_name)!=0) goto memoria;
 			}
 		}else if (finisceCon(e->d_name,".out")){
 			// il .out senza .cpl corrispondente e' un'incoerenza segnalata
@@ -162,6 +170,7 @@ static int raccogli(const char* dirTest,raccolta* rc){
 	closedir(d);
 	if (rc->nTest>1) qsort(rc->test,(size_t)rc->nTest,sizeof(char*),confrontaNomi);
 	if (rc->nOrfani>1) qsort(rc->orfani,(size_t)rc->nOrfani,sizeof(char*),confrontaNomi);
+	if (rc->nSoloCompilazione>1) qsort(rc->soloCompilazione,(size_t)rc->nSoloCompilazione,sizeof(char*),confrontaNomi);
 	return 0;
 
 memoria:
@@ -169,7 +178,9 @@ memoria:
 	fprintf(stderr,"runtest: memoria insufficiente per raccogliere i test\n");
 	liberaElenco(rc->test,rc->nTest);
 	liberaElenco(rc->orfani,rc->nOrfani);
+	liberaElenco(rc->soloCompilazione,rc->nSoloCompilazione);
 	rc->test=NULL;rc->nTest=0;rc->orfani=NULL;rc->nOrfani=0;
+	rc->soloCompilazione=NULL;rc->nSoloCompilazione=0;
 	return -1;
 }
 
@@ -320,11 +331,13 @@ static void mostraDifferenza(const char* atteso,size_t na,const char* ottenuto,s
 // ------------------------------------------------------------------
 
 // esegue un test e aggiorna il rapporto: copia il .cpl nell'appoggio, compila
-// con ./compiler, esegue con ./interpreter catturando il solo stdout, confronta
-// con il .out originale. Un qualsiasi passaggio che non riesce rende il test
-// fallito e il giro continua con gli altri (requisito "Isolamento ed esito di
-// ogni test")
-static void eseguiTest(const char* dirTest,const char* appoggio,const char* nome,rapporto* rap){
+// con ./compiler, e per un test completo esegue con ./interpreter catturando il
+// solo stdout e confronta con il .out originale. Con soloCompilazione la fase
+// di esecuzione salta: il test e' superato appena la compilazione ha esito 0
+// (requisito "Test di sola compilazione"). Un qualsiasi passaggio che non riesce
+// rende il test fallito e il giro continua con gli altri (requisito "Isolamento
+// ed esito di ogni test")
+static void eseguiTest(const char* dirTest,const char* appoggio,const char* nome,int soloCompilazione,rapporto* rap){
 	char src[PERCORSO],dst[PERCORSO],cmd[PERCORSO],catturato[PERCORSO],atteso[PERCORSO];
 	char motivo[PERCORSO+128];
 	int rc;
@@ -351,6 +364,15 @@ static void eseguiTest(const char* dirTest,const char* appoggio,const char* nome
 		if (rc<0) snprintf(motivo,sizeof motivo,"compilazione terminata in modo anomalo");
 		else snprintf(motivo,sizeof motivo,"compilazione fallita (codice %d)",rc);
 		fallito(rap,nome,motivo);
+		return;
+	}
+
+	// test di sola compilazione: la riuscita della compilazione e' l'esito, e
+	// ./interpreter non viene mai toccato (requisito "Test di sola
+	// compilazione")
+	if (soloCompilazione){
+		rap->superati++;
+		fprintf(stderr,"SUPERATO %s\n",nome);
 		return;
 	}
 
@@ -431,14 +453,20 @@ int main(int argc,char** argv){
 	if (creaAppoggio(appoggio,sizeof appoggio)!=0){
 		liberaElenco(rc.test,rc.nTest);
 		liberaElenco(rc.orfani,rc.nOrfani);
+		liberaElenco(rc.soloCompilazione,rc.nSoloCompilazione);
 		return 1;
 	}
+	// prima i test completi, poi i test di sola compilazione (D5): entrambi gli
+	// elenchi sono gia' ordinati per nome, quindi il giro resta deterministico
 	for (k=0;k<rc.nTest;k++)
-		eseguiTest(dirTest,appoggio,rc.test[k],&rap);
+		eseguiTest(dirTest,appoggio,rc.test[k],0,&rap);
+	for (k=0;k<rc.nSoloCompilazione;k++)
+		eseguiTest(dirTest,appoggio,rc.soloCompilazione[k],1,&rap);
 	rimuoviAppoggio(appoggio);
 
 	liberaElenco(rc.test,rc.nTest);
 	liberaElenco(rc.orfani,rc.nOrfani);
+	liberaElenco(rc.soloCompilazione,rc.nSoloCompilazione);
 
 	fprintf(stderr,"runtest: superati %d, falliti %d\n",rap.superati,rap.falliti);
 	return rap.falliti?1:0;

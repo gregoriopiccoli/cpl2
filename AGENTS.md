@@ -187,10 +187,20 @@ The only builtin is `hello` (registered through the `BUILTIN()` macro in `interp
 ## Tests
 
 `runtest` is the runner for the fixtures in `test/` (and for any other directory you point it at).
-A test is the pair `<name>.cpl` + `<name>.out` sitting in the same directory: `runtest` compiles the
-`.cpl` with the `compiler` binary, runs the resulting p-code with the `interpreter` binary, captures
-the **standard output** of that single run and compares it with the `.out` **byte for byte** — no
-trimming, no whitespace tolerance, no normalisation. Identical output passes, anything else fails.
+Every `.cpl` in the directory it scans is a test, in one of two forms:
+
+- `<name>.cpl` + `<name>.out` is a **full test**: `runtest` compiles the `.cpl` with the `compiler`
+  binary, runs the resulting p-code with the `interpreter` binary, captures the **standard output**
+  of that single run and compares it with the `.out` **byte for byte** — no trimming, no whitespace
+  tolerance, no normalisation. Identical output passes, anything else fails.
+- `<name>.cpl` with **no** `<name>.out` is a **compile-only test**: `runtest` compiles it with
+  `compiler` and that is the whole test — it is never run through `interpreter`. Exit 0 from the
+  compiler counts it as passed, anything else counts it as failed (named on stderr like any other
+  failure). This is how a source whose pcodes aren't implemented yet (`simple_class.cpl`'s `class`,
+  `simple_import.cpl`'s `import`) still gets checked.
+
+Both forms are executed the same way otherwise: the source is copied to a temporary directory
+first, so a compile-only test leaves no `.pcd` in the test directory either.
 
 ```sh
 make && ./runtest              # run every test in test/  (the default directory)
@@ -198,15 +208,17 @@ make && ./runtest              # run every test in test/  (the default directory
 ./runtest > /dev/null          # the report is on stderr, so the exit code still tells the truth
 ```
 
-- The convention is the **only** definition of a test: a `.cpl` with no `.out` next to it is not run
-  and not counted (`test_expr1.cpl`, `test_stm1.cpl`, `test_var1.cpl` are scratchpad, not tests), and
-  an `.out` with no `.cpl` is reported by name and counts as a failure.
+- The convention is the **only** definition of a test: a `.cpl` with a `.out` beside it is a full
+  test, one without is a compile-only test, and an `.out` with no `.cpl` is reported by name and
+  counts as a failure.
 - Exit code: **0** when every test passed, **1** when at least one failed (or an orphan `.out` was
-  found). Every failing test is named on stderr, with the differing lines shown.
+  found). Every failing test is named on stderr; a full test's differing lines are shown too.
 - Nothing is written into the test directory: the `.pcd` and the captured output go to a temporary
   `mkdtemp()` directory, removed at the end of the run even when tests failed. A pre-existing `.pcd`
   in `test/` is neither read nor touched — the p-code a test runs is the one `runtest` just compiled.
-- Tests run in normal mode, never with `--bench`, so a nanobench table never enters the comparison.
+- Full tests run before compile-only ones, each group in name order, so two consecutive runs report
+  the same outcome. Tests run in normal mode, never with `--bench`, so a nanobench table never
+  enters the comparison.
 
 **`--test`/`-t` is not this suite.** The interpreter's `--test` branch runs a fixed sequence of
 interpreter self-checks (`test_cc_translation()`) and measures inside nanobench; it reads no
@@ -217,8 +229,8 @@ Verification of the **expected p-code block written inside a source file** stays
 what `AGENTS.md` describes with `./asm < x.pcd`: several fixtures in `test/` embed their expected
 p-code as a comment block inside the same file (`test/simple_class.cpl` is the clearest example).
 `runtest` executes programs and compares output; it does not read those comments. `test_expr.txt` is
-a scratchpad of cpl2 snippets by feature plus a commented-out C++ reference block; it has no expected
-outputs.
+a scratchpad of cpl2 snippets by feature plus a commented-out C++ reference block; it is not in
+`test/`, so `runtest` never sees it.
 
 ## Git hygiene
 
