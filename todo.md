@@ -1,8 +1,9 @@
-DA FARE: (11)
+DA FARE: (12)
 
 8. fare parametri posizionali
 9. fare parametri per referenza
 3. pCode delle classi
+11. fare il check di tipo
 10. fare esecuzione di import
 4. la sintassi per i "tipi dipendenti"
 
