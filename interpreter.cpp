@@ -303,6 +303,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeParmDefault: public interningpcode {
+public:
+  explicit pcodeParmDefault(const string& v):interningpcode(v){code=P_PARM_DEFAULT;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeIfFalse: public ipcode {
 public:
   explicit pcodeIfFalse(int v):ipcode(v){code=P_IF_FALSE;}
@@ -429,6 +435,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeEndParmDefault: public pcode {
+public:
+  pcodeEndParmDefault(){code=P_ENDPARM_DEFAULT;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeEndProc: public pcode {
 public:
   pcodeEndProc(){code=P_ENDPROC;}
@@ -481,7 +493,9 @@ pcode* makePCode(int c,const char* s){
 	case P_LABEL:return new pcodeLabel(atoi(s));
 	case P_CALL:return new pcodeCall(atoi(s));
 	case P_PARM:return new pcodeParm(s);
+	case P_PARM_DEFAULT:return new pcodeParmDefault(s);
 	case P_ENDPARM:return new pcodeEndParm();
+	case P_ENDPARM_DEFAULT:return new pcodeEndParmDefault();
 	case P_PROC:return new pcodeProc(s);
 	case P_ENDPROC:return new pcodeEndProc();
 	case P_FUNC:return new pcodeFunc(s);
@@ -1136,6 +1150,7 @@ public:
  	labelPos[id]=prg.size()-1;
   }
   const pcode& operator[](int i) const {return *prg[i];}
+  int size() const {return (int)prg.size();}
 };
 
 int pcodeProgram::loadPcd(string fn){
@@ -1320,9 +1335,20 @@ public:
 class procParm : public contextObj  {
 public:
   vector<int> prmOrder;
+  // bookkeeping dei default: per ogni parametro con valore di default memorizza
+  // l'intervallo p-code [inizio espressione, posizione di ENDPARM_DEFAULT];
+  // nessuna voce per il parametro = nessun default (sentinella)
+  unordered_map<int,pair<int,int>> defExp;
   void add(int intern, obj* type) override {
 	contextObj::add(intern,type);
 	prmOrder.push_back(intern);
+  }
+  void setDefaultExp(int intern,int start,int end){defExp[intern]={start,end};}
+  // intervallo dell'espressione di default del parametro, o {-1,-1} se non ha default
+  pair<int,int> getDefaultExp(int intern) const {
+	auto ff=defExp.find(intern);
+	if (ff!=defExp.end()) return ff->second;
+	return {-1,-1};
   }
   virtual string print() const override {
 	string s="";
@@ -1412,10 +1438,12 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   procVars* vars=mkVars();                        // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura 
   vars->lock();
   // ^--- func/proc shared_ptr<contextObj> vars=make_shared<contextObj>(*ctx); // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura
-  prm->initParms(vars,interpreter,parmCnt);                  // crea le variabili dalla lista dei parametri
-  // ora ha tolto dallo stack i parametri e sono state create delle variabili locali inizalizzate con i valori passati DA FARE: valori di default
+  // prg e contesto vanno settati prima di initParms, perché initParms può dover
+  // valutare le espressioni dei parametri con valore di default
   interpreter.context=vars;                                  // setta le variabili come nuovo contesto dell'interprete
   interpreter.prg=prg;                                       // setta come programma il pcode della procedura
+  prm->initParms(vars,interpreter,parmCnt);                  // crea le variabili dalla lista dei parametri
+  // ora ha tolto dallo stack i parametri e sono state create delle variabili locali inizalizzate con i valori passati o con i loro valori di default
   interpreter.pc=pc+1;                                       // mette il program counte alla posizione del codice della procedura
   // ora può interpretare i pcode della procedura
   interpreter.run();
@@ -1438,7 +1466,26 @@ void procParm::initParms(procVars*& vars, interp& i, int parmCnt){
   for(int j=0;j<pnp;j++){
 	int p=prmOrder[j];  
 	//cout << "parm:" << theStringIntern.get(p) << " type:" << types[p]->print() << " value:" << (j<parmCnt?i.stack[sp+j]->print():"nil") << endl;
-	vars->add(p,types[p],(j<parmCnt?i.stack[sp+j]:static_cast<obj*>(theNil)));
+	if (j<parmCnt) {
+	  vars->add(p,types[p],i.stack[sp+j]);                 // parametro passato: valore posizionale dallo stack
+	} else {
+	  // parametro non passato: se ha un default lo valuta, altrimenti nil
+	  pair<int,int> d=getDefaultExp(p);
+	  if (d.first>=0) {
+		int retPc=i.pc;
+		i.pc=d.first;                                      // i.pc all'inizio dell'espressione
+		i.stop=false;
+		i.run();                                           // EndParmDefault ferma la valutazione (default_pcode, non hot)
+		obj* v=i.stack[i.sp];                              // il valore calcolato è in cima allo stack
+		i.stack.pop_back();
+		i.sp--;
+		i.pc=retPc;
+		i.stop=false;
+		vars->add(p,types[p],v);
+	  } else {
+		vars->add(p,types[p],static_cast<obj*>(theNil));
+	  }
+	}
   }
   // sistema lo stack togliendo i valori dei parametri passati alla funzione 
   for(int j=0;j<parmCnt;j++)
@@ -1670,10 +1717,32 @@ void pcodeParm::exec(interp& interpreter) const {
   interpreter.context->add(value,interpreter.stack[interpreter.sp]);
   interpreter.sp--;
   interpreter.stack.pop_back();
-  // DA FARE: parametri con valore di default
+}
+
+void pcodeParmDefault::exec(interp& interpreter) const {
+  // registra il parametro come fa pcodeParm: consuma il tipo dalla cima dello stack
+  interpreter.context->add(value,interpreter.stack[interpreter.sp]);
+  interpreter.sp--;
+  interpreter.stack.pop_back();
+  // cerca avanti il primo ENDPARM_DEFAULT: non può esserci annidamento perché
+  // l'elemento è un'espressione e le espressioni non dichiarano proc/func
+  int e=interpreter.pc+1;
+  while(e<interpreter.prg.size() && interpreter.prg[e].getCode()!=P_ENDPARM_DEFAULT) e++;
+  if (e==interpreter.prg.size()) throw domain_error("PARM_DEFAULT without ENDPARM_DEFAULT ...");
+  // PARM_DEFAULT viene eseguito solo in fase di definizione, dove il contesto è il procParm
+  static_cast<procParm*>(interpreter.context)->setDefaultExp(value,interpreter.pc+1,e);
+  // salta l'espressione: pc sulla posizione di ENDPARM_DEFAULT, il pc++ del loop
+  // di run() atterra subito dopo e l'espressione non viene valutata alla definizione
+  interpreter.pc=e;
 }
 
 void pcodeEndParm::exec(interp& interpreter) const {
+  interpreter.stop=true;
+}
+
+void pcodeEndParmDefault::exec(interp& interpreter) const {
+  // marcatore di fine espressione: non tocca lo stack, il valore in cima
+  // resta quello che l'interprete assegna al parametro
   interpreter.stop=true;
 }
 
