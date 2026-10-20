@@ -31,6 +31,7 @@ FATTO:
 using namespace std;
 
 void showIntCache();
+static int gcOpzione=0;
 
 #include "gc.cpp"
 #include "cli.c"
@@ -2018,11 +2019,12 @@ void test_cc_translation(){
 static int benchOpzione=0;
 static int helpOpzione=0;
 static int testOpzione=0;
-#define N_OPT 3
+#define N_OPT 4
 static const cliOpzione tabOpzioni[N_OPT]={
   {"bench",'b',NULL,"misura il file invece di eseguirlo una volta",CLI_OPZIONE,&benchOpzione},
   {"help",'h',NULL,"stampa queste istruzioni d'uso",CLI_OPZIONE,&helpOpzione},
-  {"test",'t',NULL,"esegue i test standard",CLI_OPZIONE,&testOpzione}
+  {"test",'t',NULL,"esegue i test standard",CLI_OPZIONE,&testOpzione},
+  {"gc",'g',NULL,"stampa il report del garbage collector",CLI_OPZIONE,&gcOpzione}
 };
 
 // D8 (libera): l'elenco delle opzioni non e' scritto a mano, arriva dalla stessa
@@ -2060,6 +2062,7 @@ int main(int argc, char** argv){
   benchOpzione=0;
   helpOpzione=0;
   testOpzione=0;
+  gcOpzione=0;
   cliInizia(&sc,argc,argv);
   nPercorsi=cliScansiona(&sc,tabOpzioni,N_OPT,percorsi,N_OPT);
   if (sc.errore!=CLI_ERRORE_NESSUNO) {
@@ -2095,20 +2098,22 @@ int main(int argc, char** argv){
     // il percorso realmente caricato e non quello digitato.
     rc=benchOpzione?benchPcd(pcodePathFor(percorsi[0])):runPcd(pcodePathFor(percorsi[0]));
   }
-  cout << "--- status on exit ---\n";  
-  stdGC().status();
-  //cout << "--- collect 0 ---\n";  
-  //stdGC().collect(0);
-  //stdGC().status();
-  //cout << "--- collect all ---\n";  
-  releaseSysObjs();
-  stdGC().collectall();
-  stdGC().status();
-  //cout << "--- status after destruction of system objects ---\n";   
-  //stdGC().collectall();
-  //stdGC().status();
-  cout << "--- final status,locked objs ---\n";
-  stdGC().printLocked();
-  cout << "--- end ---\n";
+  if (gcOpzione) {
+    cout << "--- status on exit ---\n";  
+    stdGC().status();
+    //cout << "--- collect 0 ---\n";  
+    //stdGC().collect(0);
+    //stdGC().status();
+    //cout << "--- collect all ---\n";  
+    releaseSysObjs();
+    stdGC().collectall();
+    stdGC().status();
+    //cout << "--- status after destruction of system objects ---\n";   
+    //stdGC().collectall();
+    //stdGC().status();
+    cout << "--- final status,locked objs ---\n";
+    stdGC().printLocked();
+    cout << "--- end ---\n";
+  }
   return rc;
 }

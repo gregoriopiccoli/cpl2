@@ -91,7 +91,9 @@ public:
         delete it;
 	  }
       objs.clear();
-      cout << "--- GC objs:" << sz << " lckd:" << locked << " tot:" << cnt << " created:" << objectscnt << "\n       maxlive:" << maxlive << " maxsize:" << maxsize << " gcexec:" << gcexecutions << endl;
+      if (sz!=0 || gcOpzione){
+        cout << "--- GC objs:" << sz << " lckd:" << locked << " tot:" << cnt << " created:" << objectscnt << "\n       maxlive:" << maxlive << " maxsize:" << maxsize << " gcexec:" << gcexecutions << endl;
+	  }
     }
   void add(GCObject* o){ // aggiunge un oggetto agli oggetti che gestisce, se è il caso chiama la garbage collection
       if (added>objlimit) {
