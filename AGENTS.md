@@ -7,12 +7,13 @@ messages are in Italian — keep them that way.
 ## Build
 
 ```sh
-make                # -> interpreter, compiler, asm   (no clean/test target)
+make                # -> interpreter, compiler, asm, runtest   (no clean/test target)
 ```
 
 - `interpreter` = `c++ -g -O2 interpreter.cpp` (~5s, needs C++)
 - `compiler`    = `cc parser.c`
 - `asm`         = `cc asm.c`
+- `runtest`     = `cc runtest.c` (the test runner, see "Tests")
 - `lemon` must be installed; **any version will do.** The project pins no lemon version and never
   will — regenerate with whatever `lemon` is installed. Differences in the generated template
   boilerplate are not a problem: a newer lemon rewrites ~300 unrelated lines of `cpl2.c` and that's
@@ -111,9 +112,11 @@ terminator.
 
 A file that can't be opened, isn't compiled p-code, or has compile errors prints the reason on
 stderr and exits 1 without running anything. The same holds with the benchmark flag: `benchPcd()`
-loads the file once before measuring, so an unloadable file prints no nanobench table. `main()`
-keeps printing the GC report on stdout afterwards in both modes, so `> out.txt` captures the
-program output, the nanobench table *and* that report.
+loads the file once before measuring, so an unloadable file prints no nanobench table. `main()` does
+**not** print the GC report by default: it is behind `--gc`/`-g` (`if (gcOpzione) { ... }`, just
+before `return rc`), and without that option the standard output is only the program's. With `--gc`
+it is printed afterwards in both modes, so `> out.txt` then captures the program output, the
+nanobench table *and* that report.
 
 Open work, see `todo.md`. Plain `./interpreter` is **not** a smoke test: with no arguments, with
 more than one path, and with the benchmark flag and no path it prints usage on stderr and exits 1
@@ -183,16 +186,44 @@ The only builtin is `hello` (registered through the `BUILTIN()` macro in `interp
 
 ## Tests
 
-No runner. Verification is manual: `./compiler test/x.cpl` then `./asm < test/x.pcd` and diff the
-listing against the expected block. Several fixtures in `test/` embed their **expected p-code as a
-comment block inside the same file** (`test/simple_class.cpl` is the clearest example) — that's the
-intended check. `test_expr.txt` is a scratchpad of cpl2 snippets by feature plus a commented-out
-C++ reference block; it has no expected outputs.
+`runtest` is the runner for the fixtures in `test/` (and for any other directory you point it at).
+A test is the pair `<name>.cpl` + `<name>.out` sitting in the same directory: `runtest` compiles the
+`.cpl` with the `compiler` binary, runs the resulting p-code with the `interpreter` binary, captures
+the **standard output** of that single run and compares it with the `.out` **byte for byte** — no
+trimming, no whitespace tolerance, no normalisation. Identical output passes, anything else fails.
+
+```sh
+make && ./runtest              # run every test in test/  (the default directory)
+./runtest tmp/prove            # run the tests of another directory (at most one, no recursion)
+./runtest > /dev/null          # the report is on stderr, so the exit code still tells the truth
+```
+
+- The convention is the **only** definition of a test: a `.cpl` with no `.out` next to it is not run
+  and not counted (`test_expr1.cpl`, `test_stm1.cpl`, `test_var1.cpl` are scratchpad, not tests), and
+  an `.out` with no `.cpl` is reported by name and counts as a failure.
+- Exit code: **0** when every test passed, **1** when at least one failed (or an orphan `.out` was
+  found). Every failing test is named on stderr, with the differing lines shown.
+- Nothing is written into the test directory: the `.pcd` and the captured output go to a temporary
+  `mkdtemp()` directory, removed at the end of the run even when tests failed. A pre-existing `.pcd`
+  in `test/` is neither read nor touched — the p-code a test runs is the one `runtest` just compiled.
+- Tests run in normal mode, never with `--bench`, so a nanobench table never enters the comparison.
+
+**`--test`/`-t` is not this suite.** The interpreter's `--test` branch runs a fixed sequence of
+interpreter self-checks (`test_cc_translation()`) and measures inside nanobench; it reads no
+directory and compares nothing with a `.out`. Keeping the two systems distinct is deliberate (design
+D7); merging them is a separate change.
+
+Verification of the **expected p-code block written inside a source file** stays manual, and it is
+what `AGENTS.md` describes with `./asm < x.pcd`: several fixtures in `test/` embed their expected
+p-code as a comment block inside the same file (`test/simple_class.cpl` is the clearest example).
+`runtest` executes programs and compares output; it does not read those comments. `test_expr.txt` is
+a scratchpad of cpl2 snippets by feature plus a commented-out C++ reference block; it has no expected
+outputs.
 
 ## Git hygiene
 
 - **There is no `.gitignore`,** so build output sits untracked in the root: `compiler`,
-  `interpreter`, `asm`, `tt`, `interpreter.o`, `cpl2.out`, `*.pcd`, `*.out`, plus `tmp/`,
+  `interpreter`, `asm`, `runtest`, `tt`, `interpreter.o`, `cpl2.out`, `*.pcd`, `*.out`, plus `tmp/`,
   `gc_test.cpp`, `test/gc_test.cpp`. Never `git add -A` — add sources explicitly.
 - The compiler drops each `.pcd` next to its source, so compiling a fixture also litters `test/`
   (`test/simple_class.pcd`, ...). Still build output — don't commit it.

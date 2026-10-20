@@ -1,0 +1,13 @@
+-- prova di dichiarazione multipla --
+i=100 j=200 k=300
+-- prova di tipi composti --
+10 alfa true
+|10,beta,true|
+[1,2,3]
+[100,2,3]
+-- prova di assegnazione in dichiarazione --
+ii=100
+-- prova di parametri con valore di default --
+i in q=1
+i in q=nil
+------------ arrivato alla fine ------------

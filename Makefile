@@ -1,4 +1,4 @@
-all: interpreter compiler asm
+all: interpreter compiler asm runtest
 
 interpreter: interpreter.cpp pcodes.c pcodes.h gc.cpp cli.c
 	c++ -g -O2 interpreter.cpp -o interpreter
@@ -11,3 +11,6 @@ cpl2.c: cpl2.gram
 
 asm: asm.c
 	cc asm.c -o asm
+
+runtest: runtest.c cli.c
+	cc runtest.c -o runtest

@@ -1,0 +1,138 @@
+-- parametri con valore di default: dichiarazione, chiamata senza argomenti e con argomento
+
+proc p3(int i:=100)
+  ? i
+end
+
+p3()
+p3(7)
+
+-- caso misto posizionale: solo i primi parametri passati, gli altri prendono il default
+
+proc p(int a, int b:=10, int c:=20)
+  ? a,' ',b,' ',c
+end
+
+p(1)
+
+-- default che referenzia un parametro precedente
+
+proc q(int a, int b:=a*2)
+  ? a,' ',b
+end
+
+q(5)
+
+-- default che non deve mai essere valutato: referenzia un nome inesistente, ma la
+-- chiamata passa sempre il parametro
+
+proc r(int i:=nome_inesistente)
+  ? i
+end
+
+r(42)
+
+? '------------ arrivato alla fine ------------'
+
+/*
+PROC p3
+INT_TYPE
+PARM_DEFAULT i
+INT_CONST 100
+ENDPARM_DEFAULT
+ENDPARM
+LINE 4
+LOAD i
+PRINT 1
+LINE 5
+ENDPROC
+LINE 6
+LINE 7
+LOAD p3
+CALL 0
+LINE 8
+POP
+LOAD p3
+INT_CONST 7
+CALL 1
+LINE 9
+POP
+LINE 10
+LINE 11
+LINE 12
+PROC p
+INT_TYPE
+PARM a
+INT_TYPE
+PARM_DEFAULT b
+INT_CONST 10
+ENDPARM_DEFAULT
+INT_TYPE
+PARM_DEFAULT c
+INT_CONST 20
+ENDPARM_DEFAULT
+ENDPARM
+LINE 13
+LOAD a
+LOAD b
+LOAD c
+PRINT 3
+LINE 14
+ENDPROC
+LINE 15
+LINE 16
+LOAD p
+INT_CONST 1
+CALL 1
+LINE 17
+POP
+LINE 18
+LINE 19
+LINE 20
+PROC q
+INT_TYPE
+PARM a
+INT_TYPE
+PARM_DEFAULT b
+LOAD a
+INT_CONST 2
+MULT
+ENDPARM_DEFAULT
+ENDPARM
+LINE 21
+LOAD a
+LOAD b
+PRINT 2
+LINE 22
+ENDPROC
+LINE 23
+LINE 24
+LOAD q
+INT_CONST 5
+CALL 1
+LINE 25
+POP
+LINE 26
+LINE 27
+LINE 28
+LINE 29
+PROC r
+INT_TYPE
+PARM_DEFAULT i
+LOAD nome_inesistente
+ENDPARM_DEFAULT
+ENDPARM
+LINE 30
+LOAD i
+PRINT 1
+LINE 31
+ENDPROC
+LINE 32
+LINE 33
+LOAD r
+INT_CONST 42
+CALL 1
+LINE 34
+POP
+PCODEEND 0
+*/

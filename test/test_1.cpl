@@ -1,0 +1,39 @@
+? '-- prova di dichiarazione multipla --'
+
+var int i,j,k
+i:=100
+j:=200
+k:=300
+? 'i=',i,' j=',j,' k=',k
+
+? '-- prova di tipi composti --'
+
+var array[int] a
+var dict[int] d
+var tuple[int,str,bool] t
+
+t:=|10,"alfa",true|
+? t[0],' ',t[1],' ',t[2]
+t[1]:="beta"
+? t
+
+var array[int] aaa:=[1,2,3]
+? aaa
+aaa[0]:=100
+? aaa
+
+? '-- prova di assegnazione in dichiarazione --'
+
+var int ii:=100 
+? 'ii=',ii
+
+? '-- prova di parametri con valore di default --'
+
+proc q(int i/*:=100*/) -- non funziona ancora
+  ? 'i in q=',i
+end
+
+q(1)
+q() -- non funziona ancora   
+
+? '------------ arrivato alla fine ------------'
