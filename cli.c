@@ -1,16 +1,16 @@
-// Gestione in comune della command line di compiler e interpreter.
+// Gestione in comune della command line di compiler, interpreter e asm.
 //
-// Questo file non e' un'unita' di traduzione: viene incluso da parser.c e da
-// interpreter.cpp, che sono l'una in C e l'altra in C++, quindi qui si usano
+// Questo file non e' un'unita' di traduzione: viene incluso da parser.c, da
+// interpreter.cpp e da asm.c, che sono C e C++, quindi qui si usano
 // solo costrutti validi nei due linguaggi. Non alloca e non libera: la tabella
 // delle opzioni, l'array dei posizionali e la struttura di scansione li fornisce
 // il chiamante (D2).
 //
 // Il modulo conosce la FORMA di un'opzione (nome lungo, nome corto, alias con un
-// solo trattino, valore) ma non il vocabolario di nessuno dei due strumenti: la
-// tabella la scrive ogni main(). E' quello che permette a compiler e interpreter
-// di avere elenchi di opzioni diversi senza che questo file debba cambiare.
-// Nessuno dei due binari dichiara oggi un alias, ma la forma resta supportata e
+// solo trattino, valore) ma non il vocabolario di nessuno dei tre strumenti: la
+// tabella la scrive ogni main(). E' quello che permette a compiler, interpreter e
+// asm di avere elenchi di opzioni diversi senza che questo file debba cambiare.
+// Nessuno dei tre binari dichiara oggi un alias, ma la forma resta supportata e
 // provata da cli_test.c: se un giorno serve, basta riempire il campo alias di una
 // riga di tabella, senza toccare questo file.
 

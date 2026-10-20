@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include "pcodes.h"
 
 #include "pcodes.c"
 #include "emit.c"
+#include "cli.c"
 
 int FindPCode(const char* l){
 	int pcd=0,i;
@@ -54,8 +56,39 @@ int cpl2asm(FILE* f){
   return emit_asm+1;
 }
 
-int main() {
+// come il compilatore, anche asm non dichiara opzioni: la riga inerte serve solo
+// a dare al ciclo condiviso una tabella su cui camminare, e fa si' che un
+// argomento che comincia con "-" non venga scambiato per un percorso
+static const cliOpzione tabOpzioni[1]={{NULL,0,NULL,NULL,CLI_OPZIONE,NULL}};
+
+int main(int argc,char** argv) {
+  const char* pos[1]; // al massimo un percorso: cliScansiona conta i troppi
+  cliScansione sc;
+  FILE* f;
+  int rc;
   emit_out=stdout; // emit.c e' incluso anche qui, l'emissione resta su stdout
   initpcodetxt();	
-  return cpl2asm(stdin);  
+  cliInizia(&sc,argc,argv);
+  cliScansiona(&sc,tabOpzioni,1,pos,1);
+  if (sc.errore!=CLI_ERRORE_NESSUNO) {
+    fprintf(stderr,"opzione sconosciuta: %s\n",sc.erroreNome);
+    return 1;
+  }
+  if (sc.nPosizionali>1) {
+    // pos[] tiene solo il primo percorso: gli altri sono nominati da argv, che
+    // e' l'ordine in cui sono stati digitati
+    fprintf(stderr,"un file alla volta: non posso leggere %s e %s insieme\n",pos[0],argv[argc-1]);
+    return 1;
+  }
+  // nessun percorso, o il solo "-": il percorso di sempre, lo standard input
+  if (sc.nPosizionali==0||strcmp(pos[0],"-")==0)
+    return cpl2asm(stdin);
+  f=fopen(pos[0],"r");
+  if (f==NULL) {
+    fprintf(stderr,"impossibile aprire il file: %s: %s\n",pos[0],strerror(errno));
+    return 1;
+  }
+  rc=cpl2asm(f);
+  fclose(f);
+  return rc;
 }

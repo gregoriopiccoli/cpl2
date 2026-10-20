@@ -29,7 +29,8 @@ make                # -> interpreter, compiler, asm, runtest   (no clean/test ta
 ```sh
 ./compiler fib.cpl primo.cpl          # cpl2 sources -> fib.pcd, primo.pcd
 ./compiler < fib.cpl > fib.pcd        # no args: still reads stdin, still writes stdout
-./asm < fib.pcd                       # binary p-code -> readable text (inspect only)
+./asm fib.pcd                         # binary p-code -> readable text (inspect only)
+./asm < fib.pcd                       # same, reading the p-code from stdin
 ```
 
 - With file arguments the compiler writes **nothing on stdout**: each source produces its own p-code
@@ -65,10 +66,16 @@ make                # -> interpreter, compiler, asm, runtest   (no clean/test ta
 
 ## `asm` is a checker, not a pipeline stage
 
-`asm.c` is only there to eyeball a `.pcd`: `./asm < fib.pcd` prints the readable listing. It still
-contains the reverse pass (readable -> binary, keyed off the first line) and that round trip is
-byte-exact today, but nothing needs it — the interpreter reads the binary `.pcd` the compiler just
-wrote, so don't build anything on top of it.
+`asm.c` is only there to eyeball a `.pcd`: `./asm fib.pcd` prints the readable listing. It takes
+**at most one path** and reads from it instead of stdin; with no argument (or the lone `-`) the old
+`./asm < fib.pcd` pipeline still works, and the listing goes to stdout in both modes — `asm` never
+writes a file. It declares no options, so `./asm -b fib.pcd` reports `-b` as unknown on stderr and
+exits 1; `--` ends option recognition, so `./asm -- -file.pcd` reads the file named `-file.pcd`. A
+path it cannot open is reported on stderr and exits 1. It still contains the reverse pass (readable ->
+binary, keyed off the first line) and that round trip is byte-exact today, but nothing needs it — the
+interpreter reads the binary `.pcd` the compiler just wrote, so don't build anything on top of it.
+The conversion exit codes are unchanged from the stdin-only days: 2 = binary -> listing, 1 = listing
+-> binary, 0 = input that is neither.
 
 ## Running a program — one path, plus options
 
