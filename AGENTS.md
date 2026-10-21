@@ -30,6 +30,7 @@ make                # -> interpreter, compiler, asm, runtest   (no clean/test ta
 ./compiler fib.cpl primo.cpl          # cpl2 sources -> fib.pcd, primo.pcd
 ./compiler < fib.cpl > fib.pcd        # no args: still reads stdin, still writes stdout
 ./asm fib.pcd                         # binary p-code -> readable text (inspect only)
+./asm fib                             # name with no dot: tries fib, then fib.pcd
 ./asm < fib.pcd                       # same, reading the p-code from stdin
 ```
 
@@ -71,7 +72,12 @@ make                # -> interpreter, compiler, asm, runtest   (no clean/test ta
 `./asm < fib.pcd` pipeline still works, and the listing goes to stdout in both modes — `asm` never
 writes a file. It declares no options, so `./asm -b fib.pcd` reports `-b` as unknown on stderr and
 exits 1; `--` ends option recognition, so `./asm -- -file.pcd` reads the file named `-file.pcd`. A
-path it cannot open is reported on stderr and exits 1. It still contains the reverse pass (readable ->
+path it cannot open is reported on stderr and exits 1, naming the path **as typed**. As a second
+chance — like the interpreter's D2 rule, but as a fallback and not a derivation — when the typed
+path doesn't exist (ENOENT only) and its base name carries no dot, `asm` retries the same path with
+`.pcd` appended; the dot is looked for **in the base name only**, so `dir.d/x` still tries
+`dir.d/x.pcd`. An existing typed path always wins: `./asm x` reads `x`, never `x.pcd`.
+It still contains the reverse pass (readable ->
 binary, keyed off the first line) and that round trip is byte-exact today, but nothing needs it — the
 interpreter reads the binary `.pcd` the compiler just wrote, so don't build anything on top of it.
 The conversion exit codes are unchanged from the stdin-only days: 2 = binary -> listing, 1 = listing

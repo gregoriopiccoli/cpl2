@@ -84,6 +84,21 @@ int main(int argc,char** argv) {
   if (sc.nPosizionali==0||strcmp(pos[0],"-")==0)
     return cpl2asm(stdin);
   f=fopen(pos[0],"r");
+  // Come pcodePathFor() dell'interprete (regola D2) il punto si cerca solo nel
+  // nome di base, mai nella directory. A differenza di la' qui non si deriva il
+  // percorso ma si prova prima il nome com'e' scritto, perche' asm accetta sia
+  // un .pcd sia un listing testuale: il suffisso serve solo da seconda prova
+  // quando il file non esiste. Se entrambe le prove falliscono l'errore nomina
+  // il percorso digitato.
+  if (f==NULL && errno==ENOENT) {
+    const char* slash=strrchr(pos[0],'/');
+    const char* base=slash==NULL?pos[0]:slash+1;
+    if (strchr(base,'.')==NULL) {
+      char fallback[2000];
+      snprintf(fallback,sizeof(fallback),"%s.pcd",pos[0]);
+      f=fopen(fallback,"r");
+    }
+  }
   if (f==NULL) {
     fprintf(stderr,"impossibile aprire il file: %s: %s\n",pos[0],strerror(errno));
     return 1;

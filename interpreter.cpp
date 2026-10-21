@@ -1887,7 +1887,7 @@ void pcodeFuncType::exec(interp& interpreter) const {
 }
 
 void pcodeLine::exec(interp& interpreter) const {
-  cout << "line:" << value << endl;
+  //cout << "line:" << value << endl;
   interpreter.currentSourceLine=value;
 }
 
