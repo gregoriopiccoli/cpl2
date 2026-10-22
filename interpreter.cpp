@@ -225,6 +225,24 @@ public:
   virtual obj* getObjValue() const override {return theValue;}
 };
 
+class pcodeImportId: public spcode {
+public:
+  explicit pcodeImportId(const string& v):spcode(v){code=P_IMPORTID;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeImportIdx: public spcode {
+public:
+  explicit pcodeImportIdx(const string& v):spcode(v){code=P_IMPORTIDX;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeImport: public ipcode {
+public:
+  explicit pcodeImport(int v):ipcode(v){code=P_IMPORT;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeArray: public ipcode {
 public:
   explicit pcodeArray(int v):ipcode(v){code=P_ARRAY;}
@@ -477,6 +495,9 @@ pcode* makePCode(int c,const char* s){
 	case P_POP:return new pcodePop();
 	case P_INT_CONST:return new pcodeIntConst(atoi(s));
 	case P_STR_CONST:return new pcodeStrConst(s);
+	case P_IMPORTID:return new pcodeImportId(s);
+	case P_IMPORTIDX:return new pcodeImportIdx(s);
+	case P_IMPORT:return new pcodeImport(atoi(s));
 	case P_NIL:return new pcodeNil();
 	case P_TRUE:return new pcodeTrue();
 	case P_FALSE:return new pcodeFalse();
@@ -1201,6 +1222,8 @@ public:
   // i moduli caricati
   unordered_map<string,pcodeProgram*> modules;
   // dei valori che esistono sempre
+  // metodi del sistema 
+  int loadModule(string name);
 };
 sys theSys;
 
@@ -1614,6 +1637,40 @@ void pcodeStrConst::exec(interp& interpreter) const {
   interpreter.sp++;
   //interpreter.stack.push_back(new strObj(value));
   interpreter.stack.push_back(theValue);
+}
+
+void pcodeImportId::exec(interp& interpreter) const {
+  interpreter.sp++;
+  interpreter.stack.push_back(new strObj(value));
+}
+
+void pcodeImportIdx::exec(interp& interpreter) const {
+  interpreter.sp++;
+  interpreter.stack.push_back(new strObj(value));
+  if (interpreter.sp<1) throw domain_error("importidx without a previous component");
+  const strObj* id=dynamic_cast<const strObj*>(interpreter.stack[interpreter.sp]);
+  const strObj* previous=dynamic_cast<const strObj*>(interpreter.stack[interpreter.sp-1]);
+  if (id==nullptr || previous==nullptr) throw domain_error("importidx with a non string component");
+  interpreter.stack[interpreter.sp-1]=new strObj(previous->value+"."+id->value);
+  interpreter.stack.pop_back();
+  interpreter.sp--;
+}
+
+void pcodeImport::exec(interp& interpreter) const {
+  // l'operando è il numero di nomi generati dalla lista import
+  int n=value;
+  if (n<0 || interpreter.sp<n-1) throw domain_error("import with too few names on the stack");
+  for (int i=interpreter.sp-n+1;i<=interpreter.sp;i++) {
+    if (dynamic_cast<const strObj*>(interpreter.stack[i])==nullptr)
+      throw domain_error("import with a non string name");
+  }
+  for (int i=interpreter.sp-n+1;i<=interpreter.sp;i++) {
+    cout << interpreter.stack[i]->print() << endl;
+  }
+  for (int j=0;j<n;j++) {
+    interpreter.stack.pop_back();
+    interpreter.sp--;
+  }
 }
 
 void pcodeArray::exec(interp& interpreter) const {
