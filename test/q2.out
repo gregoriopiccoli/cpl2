@@ -1,7 +1,7 @@
 in q1, i:100
 in q1, doppio(10)=20
 ------------ arrivato alla fine di q1 ------------
-container ,int doppio (<func int doppio(int x) -- pcode>),int i (100)
+<module q1>
 100
 <func int doppio(int x) -- pcode>
 ------------ arrivato alla fine di q2 ------------

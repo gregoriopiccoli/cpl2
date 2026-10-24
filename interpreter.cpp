@@ -2332,12 +2332,12 @@ int runModule(const string& fn){
 
 int benchPcd(const string& fn){
   pcodeProgram prg;
+  theSys.currentDir = theSys.dirOfPath(fn);
+  if (theSys.currentDir.empty()) theSys.currentDir = ".";
   int r=prg.loadPcd(fn);  
   if (r){
-    theSys.currentDir = theSys.dirOfPath(fn);
-    if (theSys.currentDir.empty()) theSys.currentDir = ".";
     ankerl::nanobench::Bench().run("esegue "+fn, [&] {
-	    runPCode(prg);
+	    runPcd(fn);
     });
   }
   return r?0:1;
@@ -2371,11 +2371,11 @@ void test_cc_translation(){
   //test("primo.pcd");
   //bench("primo.pcd");
   //test("terzo.pcd");
-  runPcd("cnt10000000.pcd");
+  runModule("cnt10000000.pcd");
   benchPcd("cnt10000000.pcd");
   test_cc();
   bench_cc();
-  runPcd("fib.pcd");
+  runModule("fib.pcd");
   benchPcd("fib.pcd");
   test_fib_cc();
   bench_fib_cc();
