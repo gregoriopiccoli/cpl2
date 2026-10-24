@@ -5,6 +5,6 @@ q1.i:=200
 ? 'in q, ora q1.i:',q1.i
 
 ? 'in q, q1.doppio(5)=',q1.doppio(5)
-  
+
 ? '------------ arrivato alla fine di q ------------'
 

@@ -9,5 +9,5 @@ i=100 j=200 k=300
 ii=100
 -- prova di parametri con valore di default --
 i in q=1
-i in q=nil
+i in q=100
 ------------ arrivato alla fine ------------

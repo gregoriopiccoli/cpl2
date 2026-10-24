@@ -29,11 +29,11 @@ var int ii:=100
 
 ? '-- prova di parametri con valore di default --'
 
-proc q(int i/*:=100*/) -- non funziona ancora
+proc q(int i:=100)
   ? 'i in q=',i
 end
 
 q(1)
-q() -- non funziona ancora   
+q()
 
 ? '------------ arrivato alla fine ------------'
