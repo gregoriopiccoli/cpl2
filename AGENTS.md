@@ -188,18 +188,24 @@ entries have the values swapped (`P_ABSTRACT`=85, `P_EVENT`=78). Trust `pcodes.h
 
 ## Don't assume a construct runs
 
-Only 60 of the 105 defined pcodes are implemented in `makePCode()`. The remaining 45 fall through
+Only 62 of the 105 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
 to `pcodeNotImpl`, which prints `not impl!` and throws `domain_error`. These compile without
 errors and then blow up at runtime: `from`/`FROM`, `class`/`end`/`end class`, `abstract`,
 `event`/`emitevent`, `try`/`catch`/`raise`, `pre`/`post`/`assert`, float/date/time/tuple constants
-and types, `is`, the `and`/`or` pcodes, `P_IF_TRUE`, and slice/`LOADX`/`STOREX`. The grammar also
+and types, `is`, the `and`/`or` pcodes, `P_IF_TRUE`, and slice. The grammar also
 emits `P_COMMENT` (`"da fare ..."`) for array/dict comprehensions — likewise unimplemented.
 
-`import` without `from` does execute, but only as a first step: `IMPORTID`/`IMPORTIDX` build the
-module name on the stack as a string (`a`, then `a.b`, ...) and `IMPORT` prints the N names on top
-of the stack (N from its operand), one per line in list order, and removes them. It does not load,
-resolve or evaluate the module, so the real inclusion is still missing; `from ... import ...`
-still ends in `P_FROM` and `pcodeNotImpl`.
+`import` without `from` loads and executes modules: the dotted name is mapped to a `.pcd` path
+by replacing `.` with `/` and appending `.pcd`, searched relative to the directory of the p-code
+that contains the `import` (and propagated to imported modules). Each module is loaded once and
+cached in `sys`; it runs in its own context with `theBuiltIn` as superlevel, locked for the
+process lifetime. `IMPORT` validates the N string names on top of the stack, calls `loadModule`
+for each in order from bottom to top, removes them without printing, and raises `domain_error`
+if loading fails. After a successful load, `IMPORT` also adds to the importing context one
+symbol named after the last dotted component (`q1` for `q1`, `x` for `a.x`) whose value is the
+module context; first-wins if the name already exists, and no module name is copied unqualified.
+Module names are read and written through it (`q1.i`, `a.x:=5`) via `LOADX`/`STOREX`, which are
+now implemented. `from ... import ...` still ends in `P_FROM` and `pcodeNotImpl`.
 
 The only builtin is `hello` (registered through the `BUILTIN()` macro in `interpreter.cpp`).
 

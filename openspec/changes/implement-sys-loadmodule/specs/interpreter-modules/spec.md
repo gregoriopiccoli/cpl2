@@ -110,3 +110,46 @@ dello stesso modulo non causa esecuzione ricorsiva.
 
 - **WHEN** il modulo `a` importa `b` e il modulo `b` importa `a`, e un programma importa `a`
 - **THEN** entrambi i moduli si eseguono una sola volta e il programma termina
+
+### Requirement: Creazione del simbolo del modulo nel contesto che importa
+
+Dopo un caricamento riuscito, `import` SHALL creare nel contesto dell'importatore un simbolo il
+cui nome è l'ultimo componente del nome puntato importato (`q1` per `q1`, `x` per `a.x` o
+`a.b.x`) e il cui valore è il contesto del modulo. Il simbolo SHALL essere creato anche quando il
+modulo era già in cache.
+
+#### Scenario: Nome semplice
+
+- **WHEN** un programma esegue `import q1` e il modulo `q1` definisce al livello superiore `i`
+- **THEN** nel contesto del programma esiste un simbolo `q1` che vale il contesto del modulo, e
+  `q1.i` legge il valore di `i`
+
+#### Scenario: Nome puntato
+
+- **WHEN** un programma esegue `import a.x` e il modulo `x` definisce al livello superiore `i`
+- **THEN** il simbolo creato nel contesto del programma si chiama `x` e `x.i` legge il valore di
+  `i`
+
+#### Scenario: Doppio import
+
+- **WHEN** un programma esegue due volte `import q1`
+- **THEN** il simbolo `q1` esiste una sola volta e non viene sollevato alcun errore di nome già
+  presente
+
+### Requirement: Nomi del modulo raggiungibili solo dal simbolo
+
+`import` SHALL NOT copiare i nomi del modulo nel contesto dell'importatore: essi restano
+raggiungibili solo attraverso il simbolo del modulo. Se il contesto dell'importatore ha già un
+simbolo con il nome locale del modulo, `import` SHALL lasciarlo invariato e SHALL NOT sollevare
+un errore.
+
+#### Scenario: Due moduli con lo stesso nome locale
+
+- **WHEN** un programma importa `a.x` e poi `b.x`, ed entrambi i moduli sono caricabili
+- **THEN** il simbolo `x` resta quello creato dal primo import e il secondo modulo è comunque
+  caricato ed eseguito una sola volta
+
+#### Scenario: Nome del modulo usato senza il simbolo
+
+- **WHEN** un modulo definisce `i` e il programma che lo importa usa `i` senza qualificarlo
+- **THEN** il programma fallisce con l'errore di nome non trovato

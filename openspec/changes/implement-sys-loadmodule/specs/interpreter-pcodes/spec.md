@@ -58,6 +58,45 @@ stringhe lasciando intatto ciò che sta sotto. `IMPORT` SHALL NOT stampare i nom
 - **THEN** l'interprete segnala il fallimento e solleva `domain_error`, invece di proseguire
   come se il modulo fosse stato incluso
 
+### Requirement: Esecuzione del p-code LOADX
+
+L'interprete SHALL eseguire `LOADX`, il cui operando stringa è un nome di simbolo: SHALL usare
+il contenitore in cima allo stack di esecuzione e SHALL sostituirlo con il valore che il
+contenitore ha per quel nome, senza cambiare la profondità. Se il contenitore non espone quel
+nome, l'interprete SHALL riportare l'errore del contenitore. L'esecuzione di un `.pcd` che
+contiene `LOADX` SHALL NOT terminare con `pcode not implemented`.
+
+#### Scenario: Lettura di un nome del modulo
+
+- **WHEN** viene eseguito `LOAD q1` seguito da `LOADX i` e `q1` vale un contenitore con il nome
+  `i` impostato a 100
+- **THEN** lo stack contiene `100` al posto del contenitore e la profondità non cambia
+
+#### Scenario: Catena di nomi puntati
+
+- **WHEN** viene eseguita una catena `LOAD a` + `LOADX b` + `LOADX c`
+- **THEN** ogni `LOADX` legge il nome dal contenitore prodotto dal passo precedente
+
+#### Scenario: Nome assente
+
+- **WHEN** viene eseguito `LOADX i` su un contenitore che non ha `i`
+- **THEN** l'interprete riporta l'errore del contenitore e non produce un valore
+
+### Requirement: Esecuzione del p-code STOREX
+
+L'interprete SHALL eseguire `STOREX`, il cui operando stringa è un nome di simbolo: SHALL usare
+il contenitore e il valore in cima allo stack (`[..., contenitore, valore]`), SHALL scrivere il
+valore nel contenitore sotto quel nome e SHALL lasciare il valore in cima allo stack, come
+`STORE`. L'esecuzione di un `.pcd` che contiene `STOREX` SHALL NOT terminare con `pcode not
+implemented`.
+
+#### Scenario: Scrittura di un nome del modulo
+
+- **WHEN** viene eseguito `LOAD q1`, poi viene messo `5` in cima allo stack e viene eseguito
+  `STOREX i`
+- **THEN** il contenitore `q1` ha `i` impostato a `5` e lo stack contiene `5` al posto del
+  contenitore, con profondità diminuita di uno
+
 ## MODIFIED Requirements
 
 ### Requirement: IMPORTID, IMPORTIDX e IMPORT non sono più p-code non implementati
@@ -104,5 +143,5 @@ parte di IMPORT".
 indicato invece di limitarsi a stamparne il nome.
 
 **Migration**: nessuna azione necessaria per i programmi che usavano `import`; un modulo
-assente ora è un errore a runtime invece di una riga stampata. Restano fuori perimetro
-`from ... import ...` e l'accesso ai nomi esportati dal modulo.
+assente ora è un errore a runtime invece di una riga stampata. I nomi del modulo si raggiungono
+attraverso il simbolo creato dall'import (`q1.i`); resta fuori perimetro `from ... import ...`.

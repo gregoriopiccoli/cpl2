@@ -14,6 +14,9 @@ Lo stato attuale rilevante:
   programma con il solo `PCODEEND`. Non memorizza il percorso da cui è stato caricato.
 - `pcodeImport::exec()` (p-code `IMPORT`) valida le N stringhe in cima allo stack, le stampa e le
   rimuove. Non ha accesso al percorso del programma corrente.
+- La grammatica emette `LOAD` + `LOADX` per un nome puntato (`a.b`) e `STOREX` per l'assegnamento
+  a un nome puntato (`a.b := ...`); `LOADX` e `STOREX` non hanno un caso in `makePCode()` e
+  finiscono in `pcodeNotImpl`.
 - `interp` esegue un `pcodeProgram&` con un `contextObj*`; `runPCode()` crea un contesto nuovo
   (superlivello di default = builtin) e verifica `sp==-1` al termine. `runPcd()`/`benchPcd()`
   sono gli unici chiamanti di `runPCode()`.
@@ -28,13 +31,16 @@ Lo stato attuale rilevante:
 - Dare una definizione unica di `sys::loadModule` che risolva il nome, carichi il `.pcd`,
   esegua il modulo una sola volta e ne conservi programma e contesto.
 - Rendere `IMPORT` un vero comando di inclusione, mantenendo la validazione delle N stringhe e
-  la pulizia dello stack.
+  la pulizia dello stack, e collegare il contesto del modulo all'importatore con un simbolo
+  esplicito.
+- Rendere utilizzabili i nomi del modulo attraverso quel simbolo, implementando `LOADX` e
+  `STOREX`.
 - Rendere il comportamento verificabile con `./runtest` senza modificare il runner.
 
 **Non-Goals:**
 
-- Nessuna esportazione dei nomi del modulo verso l'importatore: il contesto del modulo resta
-  separato e non c'è ancora una sintassi per accedervi.
+- Nessuna esportazione implicita dei nomi del modulo: restano nel contesto del modulo e si
+  raggiungono solo attraverso il simbolo del modulo, non con un nome nudo.
 - Nessuna ricerca in una lista di directory (include path) o tramite variabili d'ambiente.
 - Nessun supporto a `from ... import ...`: `P_FROM` resta non implementato.
 - Nessuna modifica al formato `.pcd`, a `pcodes.h`/`pcodes.c`, a `cpl2.gram`, ad `asm.c` o alla
@@ -119,6 +125,9 @@ dichiarare a sua volta `var int x:=2` e stampare `x`; l'output atteso è `modulo
 `2`. Il test verifica insieme: esecuzione del modulo (la riga del modulo compare), cache
 (compare una sola volta) e contesto separato (la seconda `var int x` non solleva "name already
 in context", cosa che accadrebbe se il modulo fosse eseguito nel contesto dell'importatore).
+`test/module_access.cpl` + `.out` importa `a_module`, stampa `a_module.x`, assegna
+`a_module.x:=5` e lo stampa di nuovo: verifica il simbolo del modulo e `LOADX`/`STOREX`
+sull'output atteso `modulo a`, `x:1`, `x:5`.
 
 Il runner non cambia. `runtest` usa una sola directory di appoggio per l'intero giro e compila
 i test completi in ordine di nome: `a_module` (che inizia per `a`) viene compilato prima che
@@ -131,6 +140,37 @@ La mappatura puntata `a.b → a/b.pcd` non è coperta da `runtest`, che copia i 
 piatto: viene verificata manualmente con un modulo in una sottodirectory, e la delta spec la
 descrive con scenari propri.
 
+### 5. Il simbolo del modulo e l'accesso con LOADX/STOREX
+
+`IMPORT`, dopo ogni `loadModule` riuscito (anche quando il modulo era già in cache), crea nel
+contesto dell'importatore un simbolo con il **nome locale** del modulo, cioè l'ultimo componente
+del nome puntato: `q1` per `q1`, `x` per `a.x`. Il valore è il `contextObj*` del modulo già
+conservato in `sys::moduleContexts`, il tipo è `theNil`. Un nome puntato completo non è un
+identificatore valido per il linguaggio, quindi l'ultimo componente è l'unico nome con cui il
+simbolo può essere usato nella sintassi `nome.variabile`.
+
+L'inserimento è **first-wins**: se il contesto dell'importatore ha già un simbolo con quel nome
+lo lascia invariato, senza errore. Serve perché un secondo `import` dello stesso nome non deve
+fallire, e perché due moduli con lo stesso nome locale (`a.x` e `b.x`) restano un caso definito
+invece che un'eccezione a runtime. Per questo `contextObj` acquisisce un piccolo helper
+`addIfAbsent(intern,type,value)` che guarda solo il livello locale (non il superlivello), così un
+modulo con lo stesso nome di un builtin può comunque essere importato.
+
+`LOADX` (operando stringa, nome internato) prende il contenitore in cima allo stack e lo
+sostituisce con il valore che quel contenitore ha per quel nome:
+`stack[sp] = stack[sp]->load(intern)`. Funziona perché il simbolo del modulo vale un
+`contextObj`, la cui `load()` è già quella usata da `LOAD`; per un contenitore che non sa fare
+`load` l'errore esistente ("load not implemented") resta invariato.
+
+`STOREX` (stesso operando) usa il layout `[..., contenitore(sp-1), valore(sp)]`:
+`contenitore->store(intern,valore)`, poi lascia il valore in cima come fa `STORE`
+(`stack[sp-1]=valore`, `pop_back`, `sp--`). L'assegnamento a un nome inesistente segue la
+`store()` del contenitore, quindi un modulo la cui variabile non esiste produce l'errore di nome
+non trovato dei builtin.
+
+Nessuno dei due p-code è caldo: non entrano in `pcodejump[]`. Non serve toccare `pcodes.h` né
+`pcodes.c`: `P_LOADX` (64) e `P_STOREX` (68) esistono già, manca solo il caso in `makePCode()`.
+
 ## Risks / Trade-offs
 
 - [La ricerca relativa al p-code differisce dalla regola CLI relativa alla cwd] → è il
@@ -141,9 +181,12 @@ descrive con scenari propri.
   esecuzione.
 - [Il contesto del modulo resta lockato per sempre] → è voluto: dura quanto il processo, e il
   distruttore del GC lo elimina a fine esecuzione.
-- [Nessun nome esportato: importare un modulo non dà accesso a nulla] → limite dichiarato; il
-  cambio successivo potrà aggiungere l'accesso ai nomi senza cambiare la cache né la
-  risoluzione dei percorsi.
+- [Nessun nome esportato con un nome nudo: importare un modulo non rende visibili i suoi nomi
+  senza il simbolo del modulo] → limite dichiarato; il simbolo del modulo evita la copia e
+  lascia aperta l'aggiunta di `from` senza cambiare la cache né la risoluzione dei percorsi.
+- [Due moduli con lo stesso nome locale rendono raggiungibile solo il primo] → è la regola
+  first-wins, scelta per non far fallire un doppio import; i nomi puntati distinti restano
+  caricati e memorizzati anche se il secondo simbolo non viene creato.
 - [Un modulo mancante termina il programma con `domain_error` non catturata] → coerente con gli
   altri errori a runtime (`pcode not implemented` compreso); la causa del caricamento è già su
   stderr.
@@ -158,5 +201,6 @@ descrive con scenari propri.
 
 Nessuna migrazione di dati o formati: i `.pcd` esistenti restano validi e non vanno ricompilati.
 Rollback: rimuovere la definizione di `loadModule`, i campi aggiunti a `sys` e il collegamento
-in `pcodeImport::exec`, ripristinando stampa e rimozione dei nomi; rimuovere i fixture nuovi e
-ripristinare `test/import_stack` e la riga di `AGENTS.md`.
+in `pcodeImport::exec` (compresa la creazione del simbolo), rimuovere `pcodeLoadX`/`pcodeStoreX`
+e i loro casi in `makePCode()`, ripristinando stampa e rimozione dei nomi; rimuovere i fixture
+nuovi e ripristinare `test/import_stack` e le righe di `AGENTS.md`.

@@ -82,7 +82,7 @@ public:
   virtual ~GC(){ // distrugge il GC, elimina tutti gli oggetti ancora vivi così viene chiamato il loro distruttore
 	  //cout << "distrugge il GC, elimina tutti gli oggetti ancora vivi per chiamare il distruttore\n";
 	  gc_ending=1;
-      int sz=0,locked=0;
+      int locked=0;
       for(const auto& it:objs){
         if (it->locked>0) {
 			locked++;
@@ -91,6 +91,7 @@ public:
         delete it;
 	  }
       objs.clear();
+      int sz=objs.size();
       if (sz!=0 || gcOpzione){
         cout << "--- GC objs:" << sz << " lckd:" << locked << " tot:" << cnt << " created:" << objectscnt << "\n       maxlive:" << maxlive << " maxsize:" << maxsize << " gcexec:" << gcexecutions << endl;
 	  }
@@ -131,6 +132,7 @@ public:
 	  if (o->locked>0)
 	    cout << o->print() << endl;
   }
+  int size(){return objs.size();}
 };
 
 

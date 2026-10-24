@@ -95,7 +95,10 @@ class [T,int dim] vector  // int dim diventa un valore costante attributo della 
 end
 
 var vector[int,10] v
-v:=vector<int,10>()  
+v:=vector<int,10>()   // ????? due modi? non ne basta uno ?????
+
+var vector<int,10> v:=vector<int,10>()
+var vector[int,10] v:=vector[int,10]()   
 
 ? v,' ',v[0]
 v[1]:=10

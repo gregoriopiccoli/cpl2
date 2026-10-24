@@ -25,6 +25,7 @@ FATTO:
 #include <cstring>
 #include <unordered_map>
 #include <vector>
+#include <cassert>
 //#include <deque>
 //#include <memory>
 
@@ -84,6 +85,7 @@ protected:
   //int value;
 public:
   explicit ipcode(int i){value=i;}
+  virtual ~ipcode(){}
   //virtual int getIntValue() const override {return value;}
   virtual string print() const override {return string(pcodetxt[code])+" "+to_string(value);}
 };
@@ -93,6 +95,7 @@ protected:
   //int value;
 public:
   explicit interningpcode(const string& s){value=theStringIntern.add(s);}
+  virtual ~interningpcode(){}
   //virtual int getIntValue() const override {return value;}
   virtual string print() const override {return string(pcodetxt[code])+" "+theStringIntern.get(value);}
 };
@@ -102,6 +105,7 @@ protected:
   string value;
 public:
   explicit spcode(const string& s):value{s}{}
+  virtual ~spcode(){}
   virtual string print() const override {return string(pcodetxt[code])+" "+value;}
 };
 
@@ -211,7 +215,7 @@ class pcodeIntConst: public ipcode {
   lockgc_ptr<obj> theValue;	
 public:
   explicit pcodeIntConst(int v);
-  ~pcodeIntConst() override {theValue=nullptr;}
+  virtual ~pcodeIntConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
   virtual obj* getObjValue() const override {return theValue;}
 };
@@ -220,7 +224,7 @@ class pcodeStrConst: public spcode {
   lockgc_ptr<obj> theValue;	
 public:
   explicit pcodeStrConst(const string& v);
-  ~pcodeStrConst() override {theValue=nullptr;}
+  virtual ~pcodeStrConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
   virtual obj* getObjValue() const override {return theValue;}
 };
@@ -279,6 +283,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeLoadX: public interningpcode {
+public:
+  explicit pcodeLoadX(const string& v):interningpcode(v){code=P_LOADX;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeSlice: public pcode {
 public:
   explicit pcodeSlice(){code=P_SLICE;}
@@ -294,6 +304,12 @@ public:
 class pcodeStore: public interningpcode {
 public:
   explicit pcodeStore(const string& v):interningpcode(v){code=P_STORE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeStoreX: public interningpcode {
+public:
+  explicit pcodeStoreX(const string& v):interningpcode(v){code=P_STOREX;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -507,9 +523,11 @@ pcode* makePCode(int c,const char* s){
 	case P_VAR:return new pcodeVar(s);
 	case P_VAR_STORE:return new pcodeVarStore(s);
 	case P_LOAD:return new pcodeLoad(s);
+	case P_LOADX:return new pcodeLoadX(s);
 	case P_SLICE:return new pcodeSlice();
 	case P_STORESLICE:return new pcodeStoreSlice();
 	case P_STORE:return new pcodeStore(s);
+	case P_STOREX:return new pcodeStoreX(s);
 	case P_GOTO:return new pcodeGoto(atoi(s));
 	case P_LABEL:return new pcodeLabel(atoi(s));
 	case P_CALL:return new pcodeCall(atoi(s));
@@ -1157,14 +1175,13 @@ protected:
   vector<pcode*> prg;    // i pcode che costituiscono il programma
   vector<int> labelPos;  // la posizione delle label nel pcode, per effettuare i salti
 public:
+  virtual ~pcodeProgram(){release();}
   void add(pcode* p){
 	prg.push_back(p);
 	if (p->getCode()==P_LABEL) putLabelPos(p->getIntValue());
   }
   const pcode& get(int i){return *prg[i];}
   int getLabelPos(int l){return labelPos[l];}
-  void clear(){for(auto p:prg) delete p;prg.clear();labelPos.clear();}
-  virtual ~pcodeProgram(){clear();}
   int loadPcd(string fn);
   void putLabelPos(int id){
 	if ((int)labelPos.size()<=id) labelPos.resize(id+1);
@@ -1172,6 +1189,11 @@ public:
   }
   const pcode& operator[](int i) const {return *prg[i];}
   int size() const {return (int)prg.size();}
+  void release(){
+	//cout << "elimina i pcode del programma" << endl; 
+	for(auto p:prg) delete p;prg.clear();
+	labelPos.clear();
+  }
 };
 
 int pcodeProgram::loadPcd(string fn){
@@ -1220,12 +1242,53 @@ int pcodeProgram::loadPcd(string fn){
 class sys {
 public:
   // i moduli caricati
-  unordered_map<string,pcodeProgram*> modules;
+  unordered_map<string,pcodeProgram*> modulesPcode;
+  unordered_map<string,contextObj*> moduleContexts;
+  string currentDir;
   // dei valori che esistono sempre
   // metodi del sistema 
-  int loadModule(string name);
+  sys(): currentDir(".") {}
+  ~sys(){release();};
+  string dirOfPath(const string& fn) const;
+  string modulePathFor(const string& name, const string& baseDir) const;
+  contextObj* loadModule(string name);
+  int execModule(string name);
+  // 
+  void release(){
+	//cout << "elimina i programmi dei moduli" << endl;  
+	for(auto& [k,p]:modulesPcode) {
+		//cout << "elimina pcode di " << k << endl; 
+		delete p;
+	}
+	modulesPcode.clear();
+	//cout << "elimina i contesti dei moduli" << endl;  
+	for(auto& [k,c]:moduleContexts) {
+		//cout << "elimina " << k << endl;
+		c->unlock(); 
+	}
+	moduleContexts.clear();
+  }
 };
 sys theSys;
+
+string sys::dirOfPath(const string& fn) const {
+  if (fn.empty()) return ".";
+  size_t slash = fn.find_last_of('/');
+  if (slash == string::npos) return ".";
+  if (slash == 0) return "/";
+  return fn.substr(0, slash);
+}
+
+string sys::modulePathFor(const string& name, const string& baseDir) const {
+  string path = name;
+  for (size_t i = 0; i < path.size(); i++) {
+    if (path[i] == '.') path[i] = '/';
+  }
+  path += ".pcd";
+  if (baseDir.empty() || baseDir == ".") return path;
+  if (baseDir == "/") return "/" + path;
+  return baseDir + "/" + path;
+}
 
 //#define PRINT_PCODE_EXECUTION
 
@@ -1246,7 +1309,7 @@ public:
   ~interp(){stack_gc->unlock();};
   //
   
-#define RUN_WITH_SWITCH
+//#define RUN_WITH_SWITCH
 
   void run() {
 #ifdef RUN_WITH_SWITCH
@@ -1312,6 +1375,43 @@ public:
   }
 };
 
+contextObj* sys::loadModule(string name) {
+  // cout << "module:" << name << endl;
+  auto it = moduleContexts.find(name);
+  if (it != moduleContexts.end()) {
+    return moduleContexts[name];
+  }
+  string oldDir = currentDir;
+  string modPath = modulePathFor(name, currentDir);
+  pcodeProgram* prg = new pcodeProgram();
+  int loaded = prg->loadPcd(modPath);
+  if (!loaded) {
+    delete prg;
+    return nullptr;
+  }
+  modulesPcode[name] = prg;
+  contextObj* ctx = new contextObj(theBuiltIn);
+  ctx->lock();
+  moduleContexts[name] = ctx;
+  try {
+    currentDir = dirOfPath(modPath);
+    if (currentDir.empty()) currentDir = ".";
+    interp intp(ctx, *prg);
+    intp.run();
+    assert(intp.sp == -1);
+    currentDir = oldDir;
+  } catch (...) {
+    currentDir = oldDir;
+    throw;
+  }
+  return ctx;
+}
+
+int sys::execModule(string name){
+  obj* ctx=loadModule(name);
+  return ctx!=nullptr?1:0;
+}
+	
 class cppFunc : public obj {
 protected:
   string name;
@@ -1471,7 +1571,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   // ora può interpretare i pcode della procedura
   interpreter.run();
   // mette un nil che è sempre il risultato di una procedura
-  interpreter.stack.pop_back(); // toglie l'oggeto procedura che è nella cima dello stack
+  interpreter.stack.pop_back(); // toglie l'oggetto procedura che è nella cima dello stack
   interpreter.stack.push_back(vars->getResult());
   // ^--- func/proc interpreter.stack.push_back(theNil);
   // rimette a posto lo stato dell'interprete a prima della chiamata
@@ -1665,7 +1765,13 @@ void pcodeImport::exec(interp& interpreter) const {
       throw domain_error("import with a non string name");
   }
   for (int i=interpreter.sp-n+1;i<=interpreter.sp;i++) {
-    cout << interpreter.stack[i]->print() << endl;
+	string modname=interpreter.stack[i]->print();
+    cout << "importa il modulo " << modname << endl;
+    // carica il modulo, se non ancora presente 
+    contextObj* modctx=theSys.loadModule(modname);
+    if (modctx==nullptr) throw domain_error("import failed: " + modname);
+    // caricato ed eseguito, ora lo aggiunge al contesto corrente
+    interpreter.context->add(theStringIntern.add(modname),theNil,modctx);
   }
   for (int j=0;j<n;j++) {
     interpreter.stack.pop_back();
@@ -1733,6 +1839,11 @@ void pcodeLoad::exec(interp& interpreter) const {
   interpreter.stack.push_back(interpreter.context->load(value));
 }
 
+void pcodeLoadX::exec(interp& interpreter) const {
+  // il contenitore in cima allo stack viene sostituito dal valore del nome richiesto
+  interpreter.stack[interpreter.sp]=interpreter.stack[interpreter.sp]->load(value);
+}
+
 void pcodeSlice::exec(interp& interpreter) const {
   const obj* idx=interpreter.stack[interpreter.sp--];
   obj* cnt=interpreter.stack[interpreter.sp];
@@ -1755,6 +1866,16 @@ void pcodeStoreSlice::exec(interp& interpreter) const {
 
 void pcodeStore::exec(interp& interpreter) const {
   interpreter.context->store(value,interpreter.stack[interpreter.sp]);
+}
+
+void pcodeStoreX::exec(interp& interpreter) const {
+  // layout: [..., contenitore(sp-1), valore(sp)]; il valore resta in cima come STORE
+  obj* val=interpreter.stack[interpreter.sp];
+  obj* cnt=interpreter.stack[interpreter.sp-1];
+  cnt->store(value,val);
+  interpreter.stack[interpreter.sp-1]=val;
+  interpreter.stack.pop_back();
+  interpreter.sp--;
 }
 
 void pcodeGoto::exec(interp& interpreter) const {
@@ -2165,6 +2286,11 @@ int runPcd(const string& fn){
   return r?0:1;
 }
 
+int runModule(const string& fn){
+   int r=theSys.execModule(fn);
+   return r?0:1;
+}
+
 int benchPcd(const string& fn){
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
@@ -2184,7 +2310,9 @@ int bench_cc(){
 }
 
 void releaseSysObjs(){
-  //cout << "--- removing system objects ---\n";   
+  //cout << "--- removing system objects ---\n";
+  theSys.release();
+  // 
   theNil=nullptr;
   theTrue=nullptr;
   theFalse=nullptr;
@@ -2286,7 +2414,7 @@ int main(int argc, char** argv){
     uso(stderr);
     return 1;
   }
-  int rc=0;
+  int rc=-1;
   // D4: l'help esce qui, prima di pcodePathFor(), quindi non deriva il percorso, non
   // carica nessun file e non stampa il rapporto del GC che segue la run.
   if (helpOpzione) {
@@ -2300,7 +2428,10 @@ int main(int argc, char** argv){
   } else {
     // D2: la derivazione resta qui, una volta sola, cosi' la tabella del bench mostra
     // il percorso realmente caricato e non quello digitato.
-    rc=benchOpzione?benchPcd(pcodePathFor(percorsi[0])):runPcd(pcodePathFor(percorsi[0]));
+    if (!benchOpzione)
+      rc=theSys.execModule(percorsi[0]);
+    else 
+      rc=benchPcd(pcodePathFor(percorsi[0]));
   }
   if (gcOpzione) {
     cout << "--- status on exit ---\n";  
@@ -2308,13 +2439,13 @@ int main(int argc, char** argv){
     //cout << "--- collect 0 ---\n";  
     //stdGC().collect(0);
     //stdGC().status();
-    //cout << "--- collect all ---\n";  
-    releaseSysObjs();
-    stdGC().collectall();
+  }
+  releaseSysObjs();
+  stdGC().collectall();
+  if (gcOpzione || stdGC().size()){
     stdGC().status();
-    //cout << "--- status after destruction of system objects ---\n";   
-    //stdGC().collectall();
-    //stdGC().status();
+    cout << "--- status after destruction of system objects ---\n";   
+    stdGC().status();
     cout << "--- final status,locked objs ---\n";
     stdGC().printLocked();
     cout << "--- end ---\n";
