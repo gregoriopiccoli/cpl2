@@ -2,6 +2,9 @@
 Dove possibile usare sempre referenze!
 
 DA FARE: 
+  gestione del programma iniziale come modulo e gestione della path impostata dal programma di partenza
+  verificare il rilascio della memeoria dei programmi di pcode
+  fare l'import di modulo del tipo a.b.c
   provare computed goto -- FATTO almeno in parte ed è più veloce! Ho dovuto anche cambiare la getIntValue dei pcode per evitare una chiamata virtuale
   GC parallelo?
   provare a fare un GC super-semplice mark e sweep, magari è più veloce
@@ -1246,6 +1249,7 @@ public:
   virtual void release(){
 	  if (locked) unlock();
 	  if (prg) prg->release();
+	  delete prg;
 	  prg=nullptr;
   }
 };
@@ -1259,8 +1263,6 @@ public:
   // metodi del sistema 
   sys(): currentDir(".") {}
   virtual ~sys(){release();};
-  string dirOfPath(const string& fn) const;
-  string modulePathFor(const string& name, const string& baseDir) const;
   moduleObj* loadModule(string name);
   int execModule(string name);
   // 
@@ -1272,6 +1274,8 @@ public:
 	}
 	modules.clear();
   }
+  string dirOfPath(const string& fn) const;
+  string modulePathFor(const string& name, const string& baseDir) const;
 };
 sys theSys;
 
@@ -1284,6 +1288,7 @@ string sys::dirOfPath(const string& fn) const {
 }
 
 string sys::modulePathFor(const string& name, const string& baseDir) const {
+  // trasforma una specifica di modulo del tipo a.b.c in una path di caricamento del pcd dalla cartella di default del sistema	
   string path = name;
   for (size_t i = 0; i < path.size(); i++) {
     if (path[i] == '.') path[i] = '/';
@@ -1305,7 +1310,6 @@ public:
   bool stop;
   gc_array_<obj>* stack_gc;
   //
-  explicit interp(contextObj* c, pcodeProgram& p):context{c},prg{&p},stack_gc{new gc_array_<obj>(stack)}{init();}
   explicit interp(contextObj* c, pcodeProgram* p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{init();}
   void init(){
 	sp=-1;pc=0;stop=false;
@@ -2122,7 +2126,7 @@ void pcodeStoreResult::exec(interp& interpreter) const {
 void test_cc(){
   pcodeProgram prg;	
   contextObj* ctx=new contextObj();
-  interp intp(ctx,prg);
+  interp intp(ctx,&prg);
   theStringIntern.add("i");
 
   prg.add(new pcodeIntType());     // 0: INT_TYPE
@@ -2241,7 +2245,7 @@ void fib_cc(interp& intp){
 void test_fib_cc(){
   pcodeProgram prg;	
   contextObj* ctx=new contextObj();
-  interp intp(ctx,prg);
+  interp intp(ctx,&prg);
   //
   lockgc_ptr<obj> c_34(new intObj(34));  
   lockgc_ptr<obj> str1(new strObj("fib(34)="));
@@ -2280,7 +2284,7 @@ string pcodePathFor(const string& arg){
 
 int runPCode(pcodeProgram& prg){
   lockgc_ptr<contextObj> ctx{new contextObj()};
-  interp intp(ctx,prg);
+  interp intp(ctx,&prg);
   intp.run();
   assert(intp.sp==-1);
   return 1;
@@ -2297,10 +2301,23 @@ int runPcd(const string& fn){
   return r?0:1;
 }
 
+string extractModName(const string& fn){
+  string res;
+  size_t p=fn.rfind('/');
+  if (p==string::npos)
+    res=fn;
+  else
+    res=fn.substr(p+1);
+  return res.substr(0,res.length()-4);    
+}
+	
 int runModule(const string& fn){
+   // setta la dierctory di partenza	
    theSys.currentDir = theSys.dirOfPath(fn);
    if (theSys.currentDir.empty()) theSys.currentDir = ".";
-   int r=theSys.execModule(fn);
+   string modname = extractModName(fn);
+   //cout << "path:" << theSys.currentDir << " fn:" << fn << " modname:" << modname << endl;   
+   int r=theSys.execModule(modname);
    return r?0:1;
 }
 
@@ -2444,7 +2461,7 @@ int main(int argc, char** argv){
     // D2: la derivazione resta qui, una volta sola, cosi' la tabella del bench mostra
     // il percorso realmente caricato e non quello digitato.
     if (!benchOpzione)
-      rc=runPcd(pcodePathFor(percorsi[0]));
+      rc=runModule(pcodePathFor(percorsi[0]));
     else 
       rc=benchPcd(pcodePathFor(percorsi[0]));
   }
