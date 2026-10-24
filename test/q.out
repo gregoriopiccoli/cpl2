@@ -1,0 +1,7 @@
+in q1, i:100
+in q1, doppio(10)=20
+------------ arrivato alla fine di q1 ------------
+in q, q1.i:100
+in q, ora q1.i:200
+in q, q1.doppio(5)=10
+------------ arrivato alla fine di q ------------

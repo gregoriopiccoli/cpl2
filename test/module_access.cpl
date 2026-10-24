@@ -1,0 +1,7 @@
+import a_module
+
+? 'x:',a_module.x
+
+a_module.x:=5
+
+? 'x:',a_module.x

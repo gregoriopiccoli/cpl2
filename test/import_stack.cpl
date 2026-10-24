@@ -1,0 +1,3 @@
+import a_module
+var int x:=2
+? x

@@ -456,6 +456,22 @@ int main(int argc,char** argv){
 		liberaElenco(rc.soloCompilazione,rc.nSoloCompilazione);
 		return 1;
 	}
+	{
+		DIR* d2=opendir(dirTest);
+		if (d2!=NULL){
+			struct dirent* e;
+			while((e=readdir(d2))!=NULL){
+				if (strcmp(e->d_name,".")==0||strcmp(e->d_name,"..")==0) continue;
+				if (finisceCon(e->d_name,".cpl")||finisceCon(e->d_name,".pcd")){
+					char s[1024],t[1024];
+					snprintf(s,sizeof s,"%s/%s",dirTest,e->d_name);
+					snprintf(t,sizeof t,"%s/%s",appoggio,e->d_name);
+					copiaFile(s,t);
+				}
+			}
+			closedir(d2);
+		}
+	}
 	// prima i test completi, poi i test di sola compilazione (D5): entrambi gli
 	// elenchi sono gia' ordinati per nome, quindi il giro resta deterministico
 	for (k=0;k<rc.nTest;k++)

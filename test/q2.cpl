@@ -1,0 +1,7 @@
+import q1
+
+? q1
+? q1.i
+? q1.doppio
+
+? '------------ arrivato alla fine di q2 ------------'

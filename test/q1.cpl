@@ -1,0 +1,10 @@
+var int i:=100
+? 'in q1, i:',i
+
+func int doppio(int x)
+  result:=x+x
+end
+
+? 'in q1, doppio(10)=',doppio(10)
+  
+? '------------ arrivato alla fine di q1 ------------'

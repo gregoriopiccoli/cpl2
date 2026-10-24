@@ -1297,11 +1297,11 @@ public:
   vector<obj*> stack;
   int sp,pc,currentSourceLine;
   contextObj* context;
-  pcodeProgram& prg;
+  pcodeProgram* prg;
   bool stop;
   gc_array_<obj>* stack_gc;
   //
-  explicit interp(contextObj* c, pcodeProgram& p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{
+  explicit interp(contextObj* c, pcodeProgram& p):context{c},prg{&p},stack_gc{new gc_array_<obj>(stack)}{
 	sp=-1;pc=0;stop=false;
 	currentSourceLine=0;
 	stack.reserve(20);
@@ -1339,11 +1339,11 @@ public:
 	while(!stop){
 #ifdef PRINT_PCODE_EXECUTION
 	  //int instr=prg->get(pc)->getCode();
-	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " " << prg[pc].print() << endl;
+	  cout << "pc:" << pc << " sp:" << sp << " sz:" << stack.size() << " cap:" << stack.capacity() << " " << (*prg)[pc].print() << endl;
 	  //cout << "pc:" << pc << " sp:" << sp << " " << prg->get(pc)->getCode() << " " << prg->get(pc)->print() << endl;
 #endif
 #ifdef RUN_WITH_SWITCH
-      const pcode& ppp=prg[pc];
+      const pcode& ppp=(*prg)[pc];
       goto *pcodejump[ppp.getCode()];
       p_plus: stack[sp-1]=stack[sp-1]->plus(stack[sp]);stack.pop_back();sp--;goto endpcode;
       p_minus:stack[sp-1]=stack[sp-1]->minus(stack[sp]);stack.pop_back();sp--;goto endpcode;
@@ -1353,11 +1353,11 @@ public:
       p_load:stack.push_back(context->load(ppp.getIntValue()));sp++;goto endpcode;
       p_int_const: stack.push_back(ppp.getObjValue()); sp++; goto endpcode;
       p_store_result:context->store_result(stack[sp]);goto endpcode;
-      p_goto:pc=prg.getLabelPos(ppp.getIntValue());goto endpcode;
+      p_goto:pc=prg->getLabelPos(ppp.getIntValue());goto endpcode;
       p_if_false:{
 		const obj* v=stack[sp--];stack.pop_back();
 		if (v!=theTrue && v!= theFalse) throw out_of_range("if with a non boolean expression");
-        if (v==theFalse) pc=prg.getLabelPos(ppp.getIntValue());
+        if (v==theFalse) pc=prg->getLabelPos(ppp.getIntValue());
 	    }
         goto endpcode;
       p_call:stack[sp-ppp.getIntValue()]->call(ppp.getIntValue(),*this);goto endpcode;
@@ -1368,7 +1368,7 @@ public:
       default_pcode: ppp.exec(*this);
 	  endpcode:
 #else      
-	  prg[pc].exec(*this);
+	  (*prg)[pc].exec(*this);
 #endif	  
 	  pc++;
 	}
@@ -1535,7 +1535,7 @@ public:
   virtual procVars* mkVars()override {return new funcVars(ctx,result_type);}
 };
 
-procObj::procObj(int n, interp& i):ctx{i.context},prg{i.prg}{
+procObj::procObj(int n, interp& i):ctx{i.context},prg{*i.prg}{
   prm=new procParm();
   name=n;
   //prg=&i.prg; // tiene un puntatore al codice
@@ -1555,7 +1555,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   // cout << this->print() << " parametri:" << prm->prmOrder.size() << " parametri passati:" << parmCnt << endl; 	
   // salva lo stato dell'interprete
   int retPc=interpreter.pc;                                 // il program counter attuale
-  const pcodeProgram& retPrg=interpreter.prg;               // il programma che sta eseguendo l'interprete
+  pcodeProgram* retPrg=interpreter.prg;               // il programma che sta eseguendo l'interprete
   contextObj* retCtx=interpreter.context;  // il contesto attuale dell'interprete
   // setta l'interprete allo stato della procedura
   procVars* vars=mkVars();                        // crea il nuovo ambiente delle variabili che ha come contesto di base il modulo dove è stata definita la procedura 
@@ -1564,7 +1564,7 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   // prg e contesto vanno settati prima di initParms, perché initParms può dover
   // valutare le espressioni dei parametri con valore di default
   interpreter.context=vars;                                  // setta le variabili come nuovo contesto dell'interprete
-  interpreter.prg=prg;                                       // setta come programma il pcode della procedura
+  interpreter.prg=&prg;                                       // setta come programma il pcode della procedura
   prm->initParms(vars,interpreter,parmCnt);                  // crea le variabili dalla lista dei parametri
   // ora ha tolto dallo stack i parametri e sono state create delle variabili locali inizalizzate con i valori passati o con i loro valori di default
   interpreter.pc=pc+1;                                       // mette il program counte alla posizione del codice della procedura
@@ -1766,12 +1766,14 @@ void pcodeImport::exec(interp& interpreter) const {
   }
   for (int i=interpreter.sp-n+1;i<=interpreter.sp;i++) {
 	string modname=interpreter.stack[i]->print();
-    cout << "importa il modulo " << modname << endl;
     // carica il modulo, se non ancora presente 
     contextObj* modctx=theSys.loadModule(modname);
     if (modctx==nullptr) throw domain_error("import failed: " + modname);
-    // caricato ed eseguito, ora lo aggiunge al contesto corrente
-    interpreter.context->add(theStringIntern.add(modname),theNil,modctx);
+    // crea il simbolo del modulo con il nome locale (ultimo componente)
+    size_t dot = modname.find_last_of('.');
+    string localName = dot == string::npos ? modname : modname.substr(dot+1);
+    // first-wins
+    interpreter.context->add(theStringIntern.add(localName), theNil, modctx);
   }
   for (int j=0;j<n;j++) {
     interpreter.stack.pop_back();
@@ -1880,7 +1882,7 @@ void pcodeStoreX::exec(interp& interpreter) const {
 
 void pcodeGoto::exec(interp& interpreter) const {
   //cout << "GoTo " << value << " at " << interpreter->prg->getLabelPos(value) << endl;
-  int p=interpreter.prg.getLabelPos(value);
+  int p=interpreter.prg->getLabelPos(value);
   interpreter.pc=p;
 }
 
@@ -1905,8 +1907,8 @@ void pcodeParmDefault::exec(interp& interpreter) const {
   // cerca avanti il primo ENDPARM_DEFAULT: non può esserci annidamento perché
   // l'elemento è un'espressione e le espressioni non dichiarano proc/func
   int e=interpreter.pc+1;
-  while(e<interpreter.prg.size() && interpreter.prg[e].getCode()!=P_ENDPARM_DEFAULT) e++;
-  if (e==interpreter.prg.size()) throw domain_error("PARM_DEFAULT without ENDPARM_DEFAULT ...");
+  while(e<interpreter.prg->size() && (*interpreter.prg)[e].getCode()!=P_ENDPARM_DEFAULT) e++;
+  if (e==interpreter.prg->size()) throw domain_error("PARM_DEFAULT without ENDPARM_DEFAULT ...");
   // PARM_DEFAULT viene eseguito solo in fase di definizione, dove il contesto è il procParm
   static_cast<procParm*>(interpreter.context)->setDefaultExp(value,interpreter.pc+1,e);
   // salta l'espressione: pc sulla posizione di ENDPARM_DEFAULT, il pc++ del loop
@@ -1937,14 +1939,14 @@ void pcodeIfFalse::exec(interp& interpreter) const {
   if (v!=theTrue && v!= theFalse) throw out_of_range("if with a non boolean expression");
   interpreter.sp--;
   interpreter.stack.pop_back();
-  if (v==theFalse) interpreter.pc=interpreter.prg.getLabelPos(value);
+  if (v==theFalse) interpreter.pc=interpreter.prg->getLabelPos(value);
 }
 
 void pcodeIfAnd::exec(interp& interpreter) const {
   const obj* v=interpreter.stack[interpreter.sp];
   if (v!=theTrue && v!= theFalse) throw out_of_range("and with a non boolean expression");
   if (v==theFalse)
-    interpreter.pc=interpreter.prg.getLabelPos(value);
+    interpreter.pc=interpreter.prg->getLabelPos(value);
   else {
     interpreter.sp--;
 	interpreter.stack.pop_back();
@@ -1955,7 +1957,7 @@ void pcodeIfOr::exec(interp& interpreter) const {
   const obj* v=interpreter.stack[interpreter.sp];
   if (v!=theTrue && v!= theFalse) throw out_of_range("or with a non boolean expression");
   if (v==theTrue)
-    interpreter.pc=interpreter.prg.getLabelPos(value);
+    interpreter.pc=interpreter.prg->getLabelPos(value);
   else {
   	interpreter.sp--;
 	interpreter.stack.pop_back();
@@ -2083,9 +2085,9 @@ void makeProcOrFunc(interp& interpreter, int value, obj*& p, obj* type){
   // --- salta il codice della procedura
   pc=interpreter.pc;
   //cout << "cerca fine proc " << pc << endl;
-  int c=interpreter.prg.get(pc++).getCode();
+  int c=interpreter.prg->get(pc++).getCode();
   while (c!=P_ENDPROC && c!=P_ENDFUNC)
-	c=interpreter.prg.get(pc++).getCode();
+	c=interpreter.prg->get(pc++).getCode();
   interpreter.pc=pc-1;
   //cout << "finita dichiarazione: " << p->print() << endl;
 }
@@ -2282,11 +2284,17 @@ int runPCode(pcodeProgram& prg){
 int runPcd(const string& fn){
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
-  if (r) runPCode(prg);
+  if (r) {
+    theSys.currentDir = theSys.dirOfPath(fn);
+    if (theSys.currentDir.empty()) theSys.currentDir = ".";
+    runPCode(prg);
+  }
   return r?0:1;
 }
 
 int runModule(const string& fn){
+   theSys.currentDir = theSys.dirOfPath(fn);
+   if (theSys.currentDir.empty()) theSys.currentDir = ".";
    int r=theSys.execModule(fn);
    return r?0:1;
 }
@@ -2295,11 +2303,13 @@ int benchPcd(const string& fn){
   pcodeProgram prg;
   int r=prg.loadPcd(fn);  
   if (r){
+    theSys.currentDir = theSys.dirOfPath(fn);
+    if (theSys.currentDir.empty()) theSys.currentDir = ".";
     ankerl::nanobench::Bench().run("esegue "+fn, [&] {
 	    runPCode(prg);
     });
   }
-  return r?1:0;
+  return r?0:1;
 }
 
 int bench_cc(){
@@ -2429,7 +2439,7 @@ int main(int argc, char** argv){
     // D2: la derivazione resta qui, una volta sola, cosi' la tabella del bench mostra
     // il percorso realmente caricato e non quello digitato.
     if (!benchOpzione)
-      rc=theSys.execModule(percorsi[0]);
+      rc=runPcd(pcodePathFor(percorsi[0]));
     else 
       rc=benchPcd(pcodePathFor(percorsi[0]));
   }
