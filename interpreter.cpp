@@ -1,9 +1,8 @@
 /*
 Dove possibile usare sempre referenze!
 
-DA FARE: 
-  gestione del programma iniziale come modulo e gestione della path impostata dal programma di partenza
-  verificare il rilascio della memeoria dei programmi di pcode
+DA FARE:
+  la print() di func/proc/class devono mettere il nome del modulo
   fare l'import di modulo del tipo a.b.c
   provare computed goto -- FATTO almeno in parte ed è più veloce! Ho dovuto anche cambiare la getIntValue dei pcode per evitare una chiamata virtuale
   GC parallelo?
@@ -14,6 +13,8 @@ DA FARE:
   Float e operazioni miste tra int e float
    
 FATTO: 
+  gestione del programma iniziale come modulo e gestione della path impostata dal programma di partenza
+  verificare il rilascio della memoria dei programmi di pcode
   provare fib in traduzione c++ -- FATTO e cavolo se corre!
   Fatto il Garbage Collector! 
   Provato a riciclare gli interi ... ci si mette più tempo! Dovrò provare con la garbage collection. OTTIMO!
@@ -1243,8 +1244,9 @@ int pcodeProgram::loadPcd(string fn){
 
 class moduleObj: public contextObj {
   pcodeProgram* prg;	
+  string name;
 public:
-  moduleObj(pcodeProgram* p):contextObj(theBuiltIn){prg=p;}
+  moduleObj(const string n,pcodeProgram* p):contextObj(theBuiltIn){prg=p;name=n;}
   virtual ~moduleObj(){release();}
   virtual void release(){
 	  if (locked) unlock();
@@ -1252,7 +1254,14 @@ public:
 	  delete prg;
 	  prg=nullptr;
   }
+  virtual string print() const override;
+
 };
+
+string moduleObj::print() const {
+  return "<module "+name+">";
+}
+
 
 class sys {
 public:
@@ -1319,7 +1328,7 @@ public:
   ~interp(){stack_gc->unlock();};
   //
   
-//#define RUN_WITH_SWITCH
+#define RUN_WITH_SWITCH
 
   void run() {
 #ifdef RUN_WITH_SWITCH
@@ -1399,7 +1408,7 @@ moduleObj* sys::loadModule(string name) {
     delete prg;
     return nullptr;
   }
-  moduleObj* ctx = new moduleObj(prg);
+  moduleObj* ctx = new moduleObj(name,prg);
   ctx->lock();
   modules[name] = ctx;
   try {
@@ -2312,7 +2321,7 @@ string extractModName(const string& fn){
 }
 	
 int runModule(const string& fn){
-   // setta la dierctory di partenza	
+   // setta la directory di partenza	
    theSys.currentDir = theSys.dirOfPath(fn);
    if (theSys.currentDir.empty()) theSys.currentDir = ".";
    string modname = extractModName(fn);
