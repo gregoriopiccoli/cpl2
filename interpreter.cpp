@@ -1168,8 +1168,6 @@ class procContextObj : public contextObj {
 
 // --- il sistema ---
 
-class interp;
-
 class pcodeProgram {
 protected:	
   vector<pcode*> prg;    // i pcode che costituiscono il programma
@@ -1191,7 +1189,8 @@ public:
   int size() const {return (int)prg.size();}
   void release(){
 	//cout << "elimina i pcode del programma" << endl; 
-	for(auto p:prg) delete p;prg.clear();
+	for(auto p:prg) delete p;
+	prg.clear();
 	labelPos.clear();
   }
 };
@@ -1239,34 +1238,39 @@ int pcodeProgram::loadPcd(string fn){
   return 0;
 };
 
+class moduleObj: public contextObj {
+  pcodeProgram* prg;	
+public:
+  moduleObj(pcodeProgram* p):contextObj(theBuiltIn){prg=p;}
+  virtual ~moduleObj(){release();}
+  virtual void release(){
+	  if (locked) unlock();
+	  if (prg) prg->release();
+	  prg=nullptr;
+  }
+};
+
 class sys {
 public:
   // i moduli caricati
-  unordered_map<string,pcodeProgram*> modulesPcode;
-  unordered_map<string,contextObj*> moduleContexts;
+  unordered_map<string,moduleObj*> modules;
   string currentDir;
   // dei valori che esistono sempre
   // metodi del sistema 
   sys(): currentDir(".") {}
-  ~sys(){release();};
+  virtual ~sys(){release();};
   string dirOfPath(const string& fn) const;
   string modulePathFor(const string& name, const string& baseDir) const;
-  contextObj* loadModule(string name);
+  moduleObj* loadModule(string name);
   int execModule(string name);
   // 
-  void release(){
-	//cout << "elimina i programmi dei moduli" << endl;  
-	for(auto& [k,p]:modulesPcode) {
-		//cout << "elimina pcode di " << k << endl; 
-		delete p;
-	}
-	modulesPcode.clear();
+  virtual void release(){
 	//cout << "elimina i contesti dei moduli" << endl;  
-	for(auto& [k,c]:moduleContexts) {
+	for(auto& [k,c]:modules) {
 		//cout << "elimina " << k << endl;
-		c->unlock(); 
+		c->release(); 
 	}
-	moduleContexts.clear();
+	modules.clear();
   }
 };
 sys theSys;
@@ -1301,7 +1305,9 @@ public:
   bool stop;
   gc_array_<obj>* stack_gc;
   //
-  explicit interp(contextObj* c, pcodeProgram& p):context{c},prg{&p},stack_gc{new gc_array_<obj>(stack)}{
+  explicit interp(contextObj* c, pcodeProgram& p):context{c},prg{&p},stack_gc{new gc_array_<obj>(stack)}{init();}
+  explicit interp(contextObj* c, pcodeProgram* p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{init();}
+  void init(){
 	sp=-1;pc=0;stop=false;
 	currentSourceLine=0;
 	stack.reserve(20);
@@ -1375,11 +1381,11 @@ public:
   }
 };
 
-contextObj* sys::loadModule(string name) {
+moduleObj* sys::loadModule(string name) {
   // cout << "module:" << name << endl;
-  auto it = moduleContexts.find(name);
-  if (it != moduleContexts.end()) {
-    return moduleContexts[name];
+  auto it = modules.find(name);
+  if (it != modules.end()) {
+    return modules[name];
   }
   string oldDir = currentDir;
   string modPath = modulePathFor(name, currentDir);
@@ -1389,14 +1395,13 @@ contextObj* sys::loadModule(string name) {
     delete prg;
     return nullptr;
   }
-  modulesPcode[name] = prg;
-  contextObj* ctx = new contextObj(theBuiltIn);
+  moduleObj* ctx = new moduleObj(prg);
   ctx->lock();
-  moduleContexts[name] = ctx;
+  modules[name] = ctx;
   try {
     currentDir = dirOfPath(modPath);
     if (currentDir.empty()) currentDir = ".";
-    interp intp(ctx, *prg);
+    interp intp(ctx, prg);
     intp.run();
     assert(intp.sp == -1);
     currentDir = oldDir;
@@ -1767,7 +1772,7 @@ void pcodeImport::exec(interp& interpreter) const {
   for (int i=interpreter.sp-n+1;i<=interpreter.sp;i++) {
 	string modname=interpreter.stack[i]->print();
     // carica il modulo, se non ancora presente 
-    contextObj* modctx=theSys.loadModule(modname);
+    moduleObj* modctx=theSys.loadModule(modname);
     if (modctx==nullptr) throw domain_error("import failed: " + modname);
     // crea il simbolo del modulo con il nome locale (ultimo componente)
     size_t dot = modname.find_last_of('.');
