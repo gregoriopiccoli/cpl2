@@ -214,9 +214,16 @@ lives in the free functions `floatPlus` ... `floatNe`, shared by `floatObj` and 
 of `intObj`, which runs only after the int check fails, so `int op int` is unchanged (`/` between
 ints is still integer division). Division by zero follows IEEE (`inf`, `-inf`, `nan`), equality
 is exact. `mod`/`div` with a float operand are still errors, and a float with a non-number
-operand throws `float <op> with a non number`. Promotion happens only inside operators:
-`var float x := 1` and `var int i := 1 + 0.5` are rejected by `--typecheck`, and `case 1` does
-not match a `1.0` selector.
+operand throws `float <op> with a non number`. Outside operators an `int` is promoted only on
+assignment to a name whose declared type requires a float — `float`, `not float`, or a union
+that has `float` and doesn't already accept the int (`var float|str x := 1` holds `1.0`,
+`var int|float x := 1` keeps the int): the value is replaced by a new `floatObj`, **with and
+without** `--typecheck`, in `VAR_STORE`, `STORE`/`STOREX`, parameters and `result`. It is
+`adattaTipo()`, called before `checkTipo()` in `contextObj::add`/`store` and
+`funcVars::store_result`; the elements of a typed array/dict/tuple are never promoted. Nothing
+becomes an int: `var int i := 1 + 0.5` is still rejected by `--typecheck`, `(1 is float)` is
+still `false`, and `case 1` does not match a `1.0` selector. A `for` whose variable is declared
+`float` now fails at `FOR_TEST` (the start is stored as a float).
 
 `is` runs, in both forms `is(e, T)` and `(e is T)` (`<e>`, `<T>`, `IS`: pops the type, replaces
 the value with `true`/`false`). Its rules are `tipoIs()`, deliberately **not** `tipoCompatibile()`

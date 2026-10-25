@@ -75,3 +75,29 @@ end
 ? 7 / 2
 ? (7 / 2 is int)
 ? (1 + 2 is float)
+
+? '-- assegnazione di un int --'
+var float fi := 0
+? fi
+? (fi is float)
+fi := 3
+? fi / 2
+func float meta(float x)
+  result := x / 2
+end
+? meta(3)
+func float uno()
+  result := 1
+end
+? uno()
+var float not g := 2
+? g
+var float|str u := 1
+? u
+var int|float w := 1
+? w
+? (w is int)
+var ? v := 1
+? v
+fi := nil
+? fi

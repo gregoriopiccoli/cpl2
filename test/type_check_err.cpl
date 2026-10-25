@@ -36,3 +36,7 @@ func int! rn()
   result:=nil                                  // rifiutata: result: il valore nil non e' compatibile con il tipo not int
 end
 rn()
+
+var int fl := 1.5                              // rifiutata: il float non diventa int, il valore 1.5 non e' compatibile con il tipo int
+
+var float fs := "a"                            // rifiutata: solo l'int diventa float, il valore a non e' compatibile con il tipo float

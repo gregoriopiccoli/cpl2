@@ -1044,6 +1044,7 @@ lockgc_ptr<obj> theIntType{new intType()};
 lockgc_ptr<obj> theStrType{new strType()};
 lockgc_ptr<obj> theBoolType{new boolType()};
 lockgc_ptr<obj> theFloatType{new floatType()};
+lockgc_ptr<obj> theFloatSonda{new floatObj(0.0)};          // un float qualsiasi: adattaTipo lo usa per chiedere se il tipo accetta un float
 
 const obj* intObj::getBaseType() const {return theIntType;}
 
@@ -1423,6 +1424,8 @@ public:
 // La definizione e' in fondo, dopo la dichiarazione di tutte le classi dei valori:
 // qui serve solo il prototipo perche' lo usano i metodi del contesto
 bool tipoCompatibile(const obj* tipo,const obj* valore);
+// il valore da memorizzare in un nome di quel tipo: un int dove serve un float diventa float
+obj* adattaTipo(const obj* tipo,obj* valore);
 
 class contextObj : public obj {
 protected:
@@ -1460,6 +1463,7 @@ public:
   virtual void add(int intern, obj* type, obj* value) {
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()) throw out_of_range("name already in context");
+	value=adattaTipo(type,value);                         // un int in un float diventa float, anche senza --typecheck
 	checkTipo(intern,type,value);                         // VAR_STORE e inizializzazione dei parametri: il valore deve stare nel tipo
 	objs[intern]=value;
 	types[intern]=type;
@@ -1473,7 +1477,10 @@ public:
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()){
 	  auto ft=types.find(intern);                         // senza voce = senza tipo dichiarato: nessun controllo (come i tipi any)
-	  if (ft!=types.end()) checkTipo(intern,ft->second,value);
+	  if (ft!=types.end()) {
+		value=adattaTipo(ft->second,value);               // un int in un float diventa float, anche senza --typecheck
+		checkTipo(intern,ft->second,value);
+	  }
 	  ff->second=value;	
 	} else {
 	  superlevel->store(intern,value);
@@ -1906,6 +1913,7 @@ public:
   //
   virtual void store_result(obj* value) override {
 	static const int resultIntern=theStringIntern.add("result");  // il nome nel messaggio del check, calcolato alla prima chiamata
+	value=adattaTipo(result_type,value);                    // func float con result:=1 restituisce 1.0
 	checkTipo(resultIntern,result_type,value);              // result:=... deve stare nel tipo di ritorno dichiarato della func
 	result_value=value;
   }
@@ -2032,6 +2040,22 @@ bool tipoCompatibile(const obj* tipo,const obj* valore){
   if (dynamic_cast<const procType*>(tipo) || dynamic_cast<const funcType*>(tipo))
 	return dynamic_cast<const procObj*>(valore)!=nullptr;       // proc e func (una func e' anche un proc)
   return true;                                                   // tipo non riconosciuto: nessun controllo
+}
+
+// --- la promozione int -> float nelle assegnazioni ---
+
+// Un int assegnato a un nome il cui tipo richiede un float diventa un float nuovo con
+// lo stesso valore: la variabile float contiene sempre un float. Il tipo richiede un
+// float se accetta un float ma non l'int cosi' com'e' (float, not float, un'unione con
+// float e senza int); la sonda float fa valere le regole di tipoCompatibile senza
+// duplicarle. Ogni altro valore torna invariato e lo giudica checkTipo.
+// I primi due confronti sono il percorso veloce delle variabili int e senza tipo.
+obj* adattaTipo(const obj* tipo,obj* valore){
+  if (tipo==(const obj*)theNil || tipo==nullptr || tipo==(const obj*)theIntType) return valore;
+  const intObj* i=dynamic_cast<const intObj*>(valore);
+  if (i==nullptr || tipoCompatibile(tipo,valore)) return valore;
+  if (!tipoCompatibile(tipo,theFloatSonda)) return valore;
+  return new floatObj((double)i->value);
 }
 
 // --- le regole di appartenenza dell'operatore is ---
@@ -3018,6 +3042,7 @@ void releaseSysObjs(){
   theStrType=nullptr;
   theBoolType=nullptr;
   theFloatType=nullptr;
+  theFloatSonda=nullptr;
   theBuiltIn=nullptr;
   //
   c_1=nullptr;
