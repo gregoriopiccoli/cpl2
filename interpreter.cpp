@@ -2,7 +2,6 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
-  dict comprehension
   check di tipo in assegnazione ad array e dizionari  
   come fare ! nel tipo or?
   trovare il modo di fare test su errori di compilazione
@@ -17,6 +16,7 @@ DA FARE:
   Float e operazioni miste tra int e float
    
 FATTO: 
+  array & dict comprehension
   fare il check di tipo su "result"
   gestione del programma iniziale come modulo e gestione della path impostata dal programma di partenza
   verificare il rilascio della memoria dei programmi di pcode
