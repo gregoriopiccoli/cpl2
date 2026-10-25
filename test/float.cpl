@@ -1,0 +1,29 @@
+? '-- costanti float --'
+? 3.14
+? 3.140
+? 2.0
+? 7.
+? 0.1
+? 1_000.25
+
+? '-- tipo --'
+? (3.14 is float)
+? (3.14 is int)
+var float x := 0.5
+? x
+
+? '-- meno unario --'
+? -2.5
+? - -0.75
+? (-2.5 is float)
+var float f:=4.5
+? -f
+? f
+
+? '-- la costante non cambia fra un giro e l altro --'
+var int n:=0
+while n<3
+  ? -1.5
+  ? 1.5
+  n:=n+1
+end

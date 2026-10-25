@@ -1,0 +1,24 @@
+-- costanti float --
+3.14
+3.14
+2.0
+7.0
+0.1
+1000.25
+-- tipo --
+true
+false
+0.5
+-- meno unario --
+-2.5
+0.75
+true
+-4.5
+4.5
+-- la costante non cambia fra un giro e l altro --
+-1.5
+1.5
+-1.5
+1.5
+-1.5
+1.5
