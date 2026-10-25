@@ -118,6 +118,7 @@ int initpcodetxt(){
 	pcodetxt[P_FUNC_TYPE]=(char*)"FUNC_TYPE";   // 56
 	pcodetxt[P_PROC_TYPE]=(char*)"PROC_TYPE";   // 57
 	pcodetxt[P_OR_TYPE]=(char*)"OR_TYPE";       // 58
+	pcodetxt[P_NOT_TYPE]=(char*)"NOT_TYPE";     // tipo che rifiuta il valore nil
 
 	// --- variabili ---
 	pcodetxt[P_VAR]=(char*)"VAR";               // 59

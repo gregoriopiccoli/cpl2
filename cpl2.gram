@@ -169,7 +169,7 @@ var_list ::= var_list COMMA ID(value) ASSIGN lexpr. {emit_s(P_VAR_STORE,value);d
 // --- dichiarazione di tipo ---
 
 type ::= btype.
-type ::= btype NOT.                               // tipo che rifiuta il valore nil
+type ::= btype NOT.                               {emit(P_NOT_TYPE);}    // tipo che rifiuta il valore nil
 type ::= btype with_type.                         // prova per tipi dipendenti, sottende una espressione che deve essere valida per poter assegnare  
 type ::= btype NOT with_type.                     // prova per tipi dipendenti, non acetta nil (diventa shortcut per this<>nil) e valuta il valoreche viene assegnato
 type ::= or_type(N).                              {emit_i(P_OR_TYPE,N);}

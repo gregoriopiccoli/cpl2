@@ -75,6 +75,7 @@
 #define P_FUNC_TYPE   56
 #define P_PROC_TYPE   57
 #define P_OR_TYPE     58
+#define P_NOT_TYPE    106
 
 // --- variabili ---
 #define P_VAR         59
@@ -126,6 +127,6 @@
 
 #define P_IMPLEMENTS 105
 
-#define MAX_PCODE    105  // ultimo codice usato da un pcode
+#define MAX_PCODE    106  // ultimo codice usato da un pcode
 
 // --- unused: 

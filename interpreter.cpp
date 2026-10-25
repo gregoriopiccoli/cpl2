@@ -395,6 +395,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeNotType: public pcode {
+public:
+  explicit pcodeNotType(){code=P_NOT_TYPE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeIntType: public pcode {
 public:
   explicit pcodeIntType(){code=P_INT_TYPE;}
@@ -550,6 +556,7 @@ pcode* makePCode(int c,const char* s){
 	case P_PRINT:return new pcodePrint(atoi(s));
 	case P_PCODEEND:return new pcodePCodeEnd(atoi(s));
 	case P_ANY_TYPE:return new pcodeAnyType();
+	case P_NOT_TYPE:return new pcodeNotType();
 	case P_INT_TYPE:return new pcodeIntType();
 	case P_BOOL_TYPE:return new pcodeBoolType();
 	case P_STR_TYPE:return new pcodeStrType();
@@ -912,12 +919,27 @@ public:
     virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:altTypes) {if (o->generation<gen) o->expand(gen);}}
     //
     virtual void addAltType(obj* t){altTypes.push_back(t);}
+    const vector<obj*>& alts() const {return altTypes;}       // le alternative, per il controllo di tipo
     virtual string print() const override {
 		string r="";
 		int p=1;
 		for(obj* t:altTypes) {r+=(p==1?"":"|")+t->print();p=0;}
 		return r;
 	  }
+};
+
+// il tipo marcato con NOT nella dichiarazione: rifiuta il valore nil. Il tipo base
+// resta avvolto dentro, cosi' le regole di compatibilita' si applicano igualmente
+class notType : public obj {
+	obj* t;
+public:
+    //
+    virtual void mark() override {if (!marked) {marked=true;t->mark();}}
+    virtual void expand(int gen) override {if (generation<gen) generation=gen;if (t->generation<gen) t->expand(gen);}
+    //
+    explicit notType(obj* bt){t=bt;}
+    obj* inter() const {return t;}                            // il tipo base avvolto dal NOT
+    virtual string print() const override {return "not "+t->print();}
 };
 
 class procType : public obj {
@@ -1087,6 +1109,12 @@ string dictObj::print() const {
 
 // --- i contenitori con nomi (classi, variabili locali, moduli ...)
 
+// compatibilita' fra il tipo dichiarato di una variabile e il valore che le viene
+// assegnato (check di tipo in STORE/VAR_STORE/inizializzazione dei parametri).
+// La definizione e' in fondo, dopo la dichiarazione di tutte le classi dei valori:
+// qui serve solo il prototipo perche' lo usano i metodi del contesto
+bool tipoCompatibile(const obj* tipo,const obj* valore);
+
 class contextObj : public obj {
 protected:
   contextObj* superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
@@ -1103,15 +1131,26 @@ public:
 	for(auto const& [k,o]:types) {if (o->generation<gen) o->expand(gen);}
   }
   //
+  // il valore che fallisce il check di tipo: il nome in mezzo al messaggio per
+  // dire dove e' successo, e la consegna come fa il container dei builtin col
+  // "name not found": messaggio su stdout e poi l'eccezione
+  void checkTipo(int intern,const obj* tipo,const obj* valore) const {
+	if (!tipoCompatibile(tipo,valore)) {
+	  string err=theStringIntern.get(intern)+": il valore "+valore->print()+" non e' compatibile con il tipo "+tipo->print();
+	  cout << err << endl;
+	  throw domain_error(err);
+	}
+  }
   virtual void add(int intern, obj* type) {
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()) throw out_of_range("name already in context");
-	objs[intern]=theNil;
+	objs[intern]=theNil;                                  // la dichiarazione senza inizializzazione parte nil: il NOT si controllo' alla prima assegnazione
 	types[intern]=type;
   }
   virtual void add(int intern, obj* type, obj* value) {
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()) throw out_of_range("name already in context");
+	checkTipo(intern,type,value);                         // VAR_STORE e inizializzazione dei parametri: il valore deve stare nel tipo
 	objs[intern]=value;
 	types[intern]=type;
   }
@@ -1123,6 +1162,8 @@ public:
   virtual void store(int intern, obj* value) override {
 	auto ff=objs.find(intern);
 	if (ff!=objs.end()){
+	  auto ft=types.find(intern);                         // senza voce = senza tipo dichiarato: nessun controllo (come i tipi any)
+	  if (ft!=types.end()) checkTipo(intern,ft->second,value);
 	  ff->second=value;	
 	} else {
 	  superlevel->store(intern,value);
@@ -1491,6 +1532,10 @@ public:
 	if (ff!=defExp.end()) return ff->second;
 	return {-1,-1};
   }
+  obj* tipoDi(int intern) const {                       // il tipo dichiarato del parametro, per costruire la firma
+	auto ff=types.find(intern);
+	return ff!=types.end()?ff->second:theNil;
+  }
   virtual string print() const override {
 	string s="";
 	for(int i=0;i<(int)prmOrder.size();i++){
@@ -1513,6 +1558,8 @@ public:
   //
   procObj*& operator=(procObj*&) = delete;
   procObj(procObj&) = delete;
+  //
+  procParm* getParm() const {return prm;}               // la lista dei parametri, per risalire alla firma della func
   //
   virtual void mark() override {if (!marked) {prm->mark();ctx->mark();} obj::mark();}
   virtual void expand(int gen) override {
@@ -1632,6 +1679,38 @@ void procParm::initParms(procVars*& vars, interp& i, int parmCnt){
   for(int j=0;j<parmCnt;j++)
     i.stack.pop_back();
   i.sp-=parmCnt;  
+}
+
+// --- le regole di compatibilita' fra il tipo dichiarato e il valore assegnato ---
+
+// Il valore e' compatibile col tipo se ci sta dentro secondo le regole del
+// sistema dei tipi. Ogni ramo di tipo avvolto (not) e di tipo unione ricorre
+// sulle alternative cosi' le stesse regole valgono dentro. I tipi semplici si
+// confrontano col dynamic_cast sul valore: e' il modo in cui gia' lavorano
+// check_int/check_str. I tipi che non sapremmo riconoscere (i nomi utente, per
+// ora) non bloccano niente.
+bool tipoCompatibile(const obj* tipo,const obj* valore){
+  if (tipo==(const obj*)theNil || tipo==nullptr)                 // senza tipo dichiarato (any): accetta qualunque valore
+	return true;
+  if (const orType* t=dynamic_cast<const orType*>(tipo)) {       // tipo unione: basta una alternativa
+	for(const obj* a:t->alts())
+	  if (a!=(const obj*)theNil && tipoCompatibile(a,valore)) return true;
+	return false;
+  }
+  if (const notType* t=dynamic_cast<const notType*>(tipo))       // tipo NOT: rifiuta il valore nil e poi vale il tipo base
+	return valore!=(const obj*)theNil && tipoCompatibile(t->inter(),valore);
+  if (valore==(const obj*)theNil)                                // senza NOT anche un tipo definito accetta il nil
+	return true;
+  if (tipo==(const obj*)theIntType)     return dynamic_cast<const intObj*>(valore)!=nullptr;
+  if (tipo==(const obj*)theStrType)     return dynamic_cast<const strObj*>(valore)!=nullptr;
+  if (tipo==(const obj*)theBoolType)    return dynamic_cast<const boolObj*>(valore)!=nullptr;
+  if (tipo==(const obj*)theFloatType)   return dynamic_cast<const floatObj*>(valore)!=nullptr;
+  if (dynamic_cast<const arrayType*>(tipo)) return dynamic_cast<const arrayObj*>(valore)!=nullptr;
+  if (dynamic_cast<const dictType*>(tipo))  return dynamic_cast<const dictObj*>(valore)!=nullptr;
+  if (dynamic_cast<const tupleType*>(tipo)) return dynamic_cast<const tupleObj*>(valore)!=nullptr;
+  if (dynamic_cast<const procType*>(tipo) || dynamic_cast<const funcType*>(tipo))
+	return dynamic_cast<const procObj*>(valore)!=nullptr;       // proc e func (una func e' anche un proc)
+  return true;                                                   // tipo non riconosciuto: nessun controllo
 }
 // --- riprendo i pcode
 
@@ -2010,6 +2089,11 @@ void pcodeAnyType::exec(interp& interpreter) const {
   interpreter.stack.push_back(theNil);
 }
 
+void pcodeNotType::exec(interp& interpreter) const {
+  // avvolge il tipo gia' in cima allo stack: dopo il NOT il tipo conta come non-nil
+  interpreter.stack[interpreter.sp]=new notType(interpreter.stack[interpreter.sp]);
+}
+
 void pcodeIntType::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(theIntType);
@@ -2099,7 +2183,20 @@ void makeProcOrFunc(interp& interpreter, int value, obj*& p, obj* type){
   //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter.pc <<endl;
   // --- aggiunge la procedura/funzione al contesto attuale
   // -- era: shared_ptr<obj> p(new procObj(value,interpreter));
-  interpreter.context->add(value,type,p);
+  // per una func il nome (value) viene legato alla firma completa (result type + tipi
+  // dei parametri) e non al solo result type: altrimenti il check di scrittura
+  // rifiuterebbe il valore funcObj col tipo int. Il funcType resta in vita perche'
+  // viene messo nella mappa dei tipi del contesto, che lo marca al GC
+  obj* declared=type;
+  funcObj* fo=dynamic_cast<funcObj*>(p);
+  if (type!=(obj*)theNil && fo!=nullptr){
+	procParm* pp=fo->getParm();
+	funcType* ft=new funcType();
+	for(const int& q:pp->prmOrder) ft->addPrmType(pp->tipoDi(q));
+	ft->setRetType(type);
+	declared=ft;
+  }
+  interpreter.context->add(value,declared,p);
   // --- salta il codice della procedura
   pc=interpreter.pc;
   //cout << "cerca fine proc " << pc << endl;

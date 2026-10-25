@@ -6,6 +6,8 @@
    
 */
 
+// check di tipo
+
 var int i
 i:="pippo"
 ? "i=",i
