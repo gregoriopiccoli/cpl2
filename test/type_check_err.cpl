@@ -1,0 +1,28 @@
+/*
+
+   check di tipo: i rami che il runtime deve RIFIUTARE. Test di sola compilazione
+   (nessun .out accanto): le assegnazioni sbagliate fanno terminare il programma,
+   quindi non ci sono output attesi da confrontare; contano soltanto il compilare le
+   forme. La verifica dei rifiuti resta a mano, le attese sono nei commenti.
+
+*/
+
+var int i := 5
+i := "pippo"                                   // rifiutata: il valore pippo non e' compatibile con il tipo int
+
+var int j := "pippo"                           // rifiutata alla inizializzazione
+
+var int not ni
+ni := nil                                      // rifiutata: il tipo not int rifiuta il nil
+
+func int f(int x)
+  result:=x+x
+end
+f("a")                                         // rifiutata alla chiamata: il valore a non e' compatibile col tipo int
+
+func int h(int not x)
+  result:=x+x
+end
+h(nil)                                         // rifiutata alla chiamata: il tipo not int rifiuta il nil
+
+var array[int] a := "pippo"                    // rifiutata: il valore pippo non e' compatibile col tipo array[int]

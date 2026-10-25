@@ -1,13 +1,17 @@
-DA FARE: (12)
+DA FARE: (11)
 
 8. fare parametri posizionali
 9. fare parametri per referenza
 3. pCode delle classi
-11. fare il check di tipo
 10. fare esecuzione di import
 4. la sintassi per i "tipi dipendenti"
 
 FATTO:
+
+11. check di tipo nelle assegnazioni: ogni variabile porta il tipo dichiarato e le
+    scritture (STORE, STOREX, VAR_STORE, legatura dei parametri) verificano la
+    compatibilita' — or/union, `any`/`?`, tipi `not` che rifiutano il nil
+    (change type-checking: `test/type_check.cpl`, `test/type_check_err.cpl`)
 
 7. non da errore quando dovrebbe aggiungere un nome che esiste già 
 6. parametri con valori di default
