@@ -290,10 +290,7 @@ case_const ::= NIL.                                               {emit(P_NIL);}
 foreach_stm ::= foreach_head(N) stm_list END.          {emit_i(P_GOTO,N.start);emit_i(P_LABEL,N.last);emit(P_POP);}
 foreach_head(N) ::= foreach_src(P) EOL.                {N=P;}
 foreach_head(N) ::= foreach_src(P) WITH expr EOL.      {N=P;emit_i(P_IF_FALSE,N.start);}
-foreach_src(N) ::= foreach_in(P) expr.                 {N=P;emit(P_FOREACH_INIT);emit_s(P_FOREACH_VAR,N.name);if(N.key) emit_s(P_FOREACH_KEY,N.key);
-                                                        dispose(&N.name);if(N.key) dispose(&N.key);
-                                                        N.start=sState->labelCnt++;N.last=sState->labelCnt++;
-                                                        emit_i(P_LABEL,N.start);emit_i(P_FOREACH_NEXT,N.last);}
+foreach_src(N) ::= foreach_in(P) expr.                 {N=P;foreachTesta(&N,sState);}
 foreach_in(N) ::= FOR EACH ID(value) IN.               {N.name=value;N.key=NULL;}
 foreach_in(N) ::= FOR EACH ID(value) COMMA ID(chiave) IN. {N.name=value;N.key=chiave;}
 
@@ -457,15 +454,29 @@ par_expr(N) ::= lexpr.                            {N=1;}
 
 // --- costanti ARRAY, DIZIONARI e TUPLE
 
-array_const ::= LSQ RSQ.                          {emit_i(P_ARRAY,0);}
-array_const ::= LSQ array_list(N) RSQ.            {emit_i(P_ARRAY,N);}  
+// lsq e' comune a costante e comprehension, cosi' dopo la '[' non c'e' niente da scegliere;
+// si riduce prima che esca il p-code del contenuto e ne segna l'inizio nel buffer di emit.c
+%type lsq {int}
+lsq(N) ::= LSQ.                                   {N=emit_pos();}
+
+array_const ::= lsq RSQ.                          {emit_i(P_ARRAY,0);}
+array_const ::= lsq array_list(N) RSQ.            {emit_i(P_ARRAY,N);}  
 array_list(N) ::= array_list(P) COMMA expr.       {N=P+1;}
 array_list(N) ::= expr.                           {N=1;}
 
-array_compr ::= LSQ expr FOR EACH ID(value) IN expr WITH expr RSQ.               {emit_s(P_COMMENT,"da fare array comprehension ...");dispose(&value);}
-array_compr ::= LSQ expr FOR EACH ID(value) COMMA ID(key) IN expr WITH expr RSQ. {emit_s(P_COMMENT,"da fare array comprehension ...");dispose(&value);dispose(&key);}
-array_compr ::= LSQ expr FOR EACH ID(value) IN expr RSQ.                         {emit_s(P_COMMENT,"da fare array comprehension ...");dispose(&value);}
-array_compr ::= LSQ expr FOR EACH ID(value) COMMA ID(key) IN expr RSQ.           {emit_s(P_COMMENT,"da fare array comprehension ...");dispose(&value);dispose(&key);}
+// array comprehension: lo stesso ciclo del for each, con il risultato (ARRAY 0) sotto
+// l'iteratore. L'espressione arriva prima della collezione ma va eseguita nel ciclo: alla
+// fine il suo p-code [S,H.mark) viene spostato in fondo, dopo la testa e il with.
+%type compr_in   {foreachloop}
+%type compr_src  {foreachloop}
+%type compr_head {foreachloop}
+
+array_compr ::= lsq(S) expr compr_head(H) RSQ.    {emit_rotate(S,H.mark);emit(P_COMPR_APPEND);
+                                                   emit_i(P_GOTO,H.start);emit_i(P_LABEL,H.last);emit(P_POP);}
+compr_head(N) ::= compr_src(P).                   {N=P;}
+compr_head(N) ::= compr_src(P) WITH expr.         {N=P;emit_i(P_IF_FALSE,N.start);}
+compr_src(N) ::= compr_in(P) expr.                {N=P;foreachTesta(&N,sState);}
+compr_in(N) ::= foreach_in(P).                    {N=P;N.mark=emit_pos();emit_i(P_ARRAY,0);}
 
 dict_const ::= LBR RBR.                           {emit_i(P_DICT,0);}
 dict_const ::= LBR dict_list(N) RBR.              {emit_i(P_DICT,N);}

@@ -370,11 +370,28 @@ typedef struct foreachloop {
 	int last;           // label di uscita
 	char* name;         // variabile del valore
 	char* key;          // variabile della chiave, NULL se assente
+	int mark;           // comprehension: posizione nel buffer della fine dell'espressione
 } foreachloop;
 		
 #include "cli.c"
 #include "pcodes.c"
 #include "emit.c"
+
+// testa del ciclo for each, comune allo statement e alla comprehension: la collezione e'
+// gia' sullo stack, la trasforma in iteratore, registra le variabili (liberandone i nomi),
+// assegna le due label e apre il ciclo
+void foreachTesta(foreachloop* n,parserState* sState){
+	emit(P_FOREACH_INIT);
+	emit_s(P_FOREACH_VAR,n->name);
+	if (n->key) emit_s(P_FOREACH_KEY,n->key);
+	dispose(&n->name);
+	if (n->key) dispose(&n->key);
+	n->start=sState->labelCnt++;
+	n->last=sState->labelCnt++;
+	emit_i(P_LABEL,n->start);
+	emit_i(P_FOREACH_NEXT,n->last);
+}
+
 #include "cpl2.c"
 
 int stackLevel(yyParser* p){
@@ -433,6 +450,8 @@ int parse(FILE* f){
     Parse(pParser, 0, sToken, &sState);
     //stkl=stackLevel(pParser);
     ParseFree(pParser, free );
+    // il p-code e' stato accumulato in memoria (vedi emit.c): ora va su emit_out
+    emit_flush();
     return sState.errors;
 }
 

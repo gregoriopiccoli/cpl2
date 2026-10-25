@@ -58,6 +58,10 @@ make                # -> interpreter, compiler, asm, runtest   (no clean/test ta
   failed compile just stops early and leaves the p-code without `PCODEEND`.
 - All diagnostics go through `diag()` in `parser.c` (including the `%syntax_error` action in
   `cpl2.gram`); the p-code destination is the global `emit_out` in `emit.c`.
+- The emit functions don't write straight to `emit_out`: they append to an in-memory buffer that
+  `parse()` writes out with `emit_flush()` at the end of each source. `emit_pos()` and
+  `emit_rotate(from,mid)` let a grammar action move already-emitted p-code (the array
+  comprehension uses it). Anything that writes to `emit_out` directly would land out of order.
 - `.pcd` header must be exactly `#cpl20.0.1` — hardcoded in `parse()` (`parser.c`) and again in
   `pcodeProgram::loadPcd` (`interpreter.cpp`). Bump both together.
 - File format: one p-code per line, first char = `pcode + 31`, rest of line = operand (int or
@@ -152,7 +156,8 @@ Debug switches in `interpreter.cpp`:
   then the lemon-generated `cpl2.c`. `cpl2.h` holds only `TOK_*` codes; the hand-written lexer in
   `parser.c` (`getTokenCodeFromString`) assigns them.
 - Grammar actions in `cpl2.gram` emit p-code directly through `emit()/emit_i()/emit_s()` in
-  `emit.c`. `emit.c` and `pcodes.c` are shared with the interpreter.
+  `emit.c`. `emit.c` and `pcodes.c` are shared with the interpreter. The `for each` loop head is
+  emitted by `foreachTesta()` in `parser.c`, shared by the statement and the array comprehension.
 - `interpreter.cpp` `#include`s `gc.cpp` (generational mark & sweep; tunables at the top of
   `gc.cpp`) and `pcodes.h`/`pcodes.c`. `nanobench.h` is vendored.
 - `cli.c` is shared by **both** binaries and is `#include`d into the two translation units, the
@@ -191,12 +196,12 @@ entries have the values swapped (`P_ABSTRACT`=85, `P_EVENT`=78). Trust `pcodes.h
 
 ## Don't assume a construct runs
 
-Only 72 of the 115 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
+Only 73 of the 116 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
 to `pcodeNotImpl`, which prints `not impl!` and throws `domain_error`. These compile without
 errors and then blow up at runtime: `from`/`FROM`, `class`/`end`/`end class`, `abstract`,
 `event`/`emitevent`, `try`/`catch`/`raise`, `pre`/`post`/`assert`, float/date/time/tuple constants
 and types, `is`, the `and`/`or` pcodes, `P_IF_TRUE`, and slice. The grammar also
-emits `P_COMMENT` (`"da fare ..."`) for array/dict comprehensions — likewise unimplemented.
+emits `P_COMMENT` (`"da fare ..."`) for dict comprehensions — likewise unimplemented.
 
 `switch` runs. The selector is evaluated once and stays on the stack; each `case` constant is
 `<const>` + `CASE Lbody` (pops the constant, jumps if equal, keeps the selector; a constant of a
@@ -229,6 +234,14 @@ the key) and the **dict visiting order is unspecified** — the hash map's. The 
 when the loop starts, so keys added in the body are not visited while values are read at visit
 time; arrays are visited live by position. Any other value is a runtime error. A future
 `break`/`return` must pop the iterator too.
+
+Array comprehensions run (`[e for each v[,k] in x [with cond]]`) and reuse the `for each` loop:
+`ARRAY 0` (the result), the collection, the same loop head, `[<cond> IF_FALSE Ltest]`, `<e>`,
+`COMPR_APPEND` (appends the top value to the array under the iterator and pops it), `GOTO Ltest`,
+`LABEL Lend`, `POP` — the result stays on the stack. The parser emits `e` before the collection,
+so the `array_compr` action moves its p-code into the loop with `emit_rotate()`; the start is
+marked by the `lsq` nonterminal shared with `array_const`. Variables follow the `for each` rules
+(declared in the current context, keep their last value); the result is an untyped array.
 
 `import` without `from` loads and executes modules: the dotted name is mapped to a `.pcd` path
 by replacing `.` with `/` and appending `.pcd`, searched relative to the directory of the p-code
@@ -279,6 +292,11 @@ make && ./runtest              # run every test in test/  (the default directory
 - Full tests run before compile-only ones, each group in name order, so two consecutive runs report
   the same outcome. Tests run in normal mode, never with `--bench`, so a nanobench table never
   enters the comparison.
+- Full tests always run with **type checking on**: the command is `./interpreter --typecheck`,
+  the only option `runtest` passes (no `--bench`, no `--gc`) and there is no switch to turn it
+  off. An assignment the check rejects aborts the program with a non-zero exit, so the test fails
+  as "esecuzione fallita" before any comparison — which is why the rejection cases stay in the
+  compile-only `test/type_check_err.cpl` and are verified by hand.
 
 **`--test`/`-t` is not this suite.** The interpreter's `--test` branch runs a fixed sequence of
 interpreter self-checks (`test_cc_translation()`) and measures inside nanobench; it reads no

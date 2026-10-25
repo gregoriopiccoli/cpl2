@@ -56,6 +56,7 @@
 #define P_FOREACH_VAR  113 // registra nell'iteratore la variabile (locale) del valore
 #define P_FOREACH_KEY  114 // registra nell'iteratore la variabile (locale) della chiave
 #define P_FOREACH_NEXT 115 // salta alla label se finito, altrimenti assegna valore e chiave
+#define P_COMPR_APPEND 116 // comprehension: aggiunge il valore in cima all'array sotto l'iteratore
 
 // -- dichiarazioni ---
 #define P_FUNC        41
@@ -136,6 +137,6 @@
 
 #define P_IMPLEMENTS 105
 
-#define MAX_PCODE    115  // ultimo codice usato da un pcode
+#define MAX_PCODE    116  // ultimo codice usato da un pcode
 
 // --- unused: 

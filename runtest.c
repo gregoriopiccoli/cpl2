@@ -2,7 +2,8 @@
 //
 // Un test e' un file .cpl della directory dei test. Se ha accanto un .out con
 // lo stesso nome di base e' un test completo (D1): il sorgente si compila con
-// ./compiler, il p-code prodotto si esegue con ./interpreter catturando il solo
+// ./compiler, il p-code prodotto si esegue con ./interpreter --typecheck (il
+// check di tipo nelle assegnazioni sempre acceso) catturando il solo
 // standard output, e quel contenuto si confronta byte per byte con il .out
 // (D3). Se il .out manca, e' un test di sola compilazione: si compila con
 // ./compiler e basta, mai eseguito, ma entra lo stesso nel rapporto. Un .out
@@ -377,7 +378,10 @@ static void eseguiTest(const char* dirTest,const char* appoggio,const char* nome
 	}
 
 	// esecuzione con ./interpreter in modalita' normale e senza nessuna opzione
-	// di misura (D4): la tabella di nanobench non entra mai nel confronto
+	// di misura (D4): la tabella di nanobench non entra mai nel confronto. Il
+	// check di tipo invece e' sempre acceso (--typecheck): e' l'unica opzione
+	// passata, cosi' i test girano nella modalita' piu' rigorosa e un'assegnazione
+	// rifiutata fa fallire il test con il codice di uscita dell'interprete
 	if (access("./interpreter",X_OK)!=0){
 		snprintf(motivo,sizeof motivo,"binario ./interpreter non eseguibile: %s",strerror(errno));
 		fallito(rap,nome,motivo);
@@ -386,7 +390,7 @@ static void eseguiTest(const char* dirTest,const char* appoggio,const char* nome
 	snprintf(catturato,sizeof catturato,"%s/%s.stdout",appoggio,nome);
 	// il .pcd glielo si da senza estensione: e' l'interprete ad aggiungere
 	// ".pcd", sempre sul file appena prodotto dal compilatore (D2, 3.2)
-	snprintf(cmd,sizeof cmd,"./interpreter '%s/%s'",appoggio,nome);
+	snprintf(cmd,sizeof cmd,"./interpreter --typecheck '%s/%s'",appoggio,nome);
 	rc=eseguiCatturando(cmd,catturato);
 	if (rc!=0){
 		if (rc<0) snprintf(motivo,sizeof motivo,"esecuzione terminata in modo anomalo");

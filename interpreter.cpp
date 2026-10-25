@@ -2,6 +2,8 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
+  dict comprehension
+  check di tipo in assegnazione ad array e dizionari  
   come fare ! nel tipo or?
   trovare il modo di fare test su errori di compilazione
   la print() di func/proc/class devono mettere il nome del modulo
@@ -411,6 +413,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeComprAppend: public pcode {
+public:
+  pcodeComprAppend(){code=P_COMPR_APPEND;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeIfAnd: public ipcode {
 public:
   explicit pcodeIfAnd(int v):ipcode(v){code=P_IF_AND;}
@@ -617,6 +625,7 @@ pcode* makePCode(int c,const char* s){
 	case P_FOREACH_VAR:return new pcodeForeachVar(s);
 	case P_FOREACH_KEY:return new pcodeForeachKey(s);
 	case P_FOREACH_NEXT:return new pcodeForeachNext(atoi(s));
+	case P_COMPR_APPEND:return new pcodeComprAppend();
 	case P_IF_AND:return new pcodeIfAnd(atoi(s));
 	case P_IF_OR:return new pcodeIfOr(atoi(s));
 	case P_NOT:return new pcodeNot();
@@ -2318,6 +2327,15 @@ void pcodeForeachNext::exec(interp& interpreter) const {
   }
   interpreter.context->store(it->nomeValore,v);
   if (it->nomeChiave>=0) interpreter.context->store(it->nomeChiave,k);
+}
+
+// array comprehension: il risultato sta sotto l'iteratore, il valore calcolato in cima.
+// Solo il compilatore emette questa sequenza e il risultato viene sempre da ARRAY 0.
+// layout: [..., risultato(sp-2), iteratore(sp-1), valore(sp)] -> [..., risultato, iteratore]
+void pcodeComprAppend::exec(interp& interpreter) const {
+  static_cast<arrayObj*>(interpreter.stack[interpreter.sp-2])->append(interpreter.stack[interpreter.sp]);
+  interpreter.stack.pop_back();
+  interpreter.sp--;
 }
 
 void pcodeIfAnd::exec(interp& interpreter) const {

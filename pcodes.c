@@ -99,6 +99,7 @@ int initpcodetxt(){
 	pcodetxt[P_FOREACH_VAR]=(char*)"FOREACH_VAR"; // 113
 	pcodetxt[P_FOREACH_KEY]=(char*)"FOREACH_KEY"; // 114
 	pcodetxt[P_FOREACH_NEXT]=(char*)"FOREACH_NEXT"; // 115
+	pcodetxt[P_COMPR_APPEND]=(char*)"COMPR_APPEND"; // 116
 	
     // -- dichiarazioni ---	
 	pcodetxt[P_FUNC]=(char*)"FUNC";         // 41

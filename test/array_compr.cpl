@@ -1,0 +1,65 @@
+-- array comprehension: [e for each v[,k] in collezione [with condizione]]
+
+var int x,y,k,j
+var any v
+var str s
+var array[int] a
+var array[str] r
+
+? '-- identita e espressione calcolata --'
+? [x for each x in [1,2,3]]
+? [x*x for each x in [1,2,3]]
+
+? '-- assegnazione a una variabile array --'
+a:=[x for each x in [1,2,3]]
+? a
+
+? '-- collezione vuota --'
+? [x for each x in []]
+
+? '-- tupla e dizionario --'
+? [v for each v in |1,2|]
+? [x for each x in {"alfa":100}]
+
+? '-- seconda variabile: indici --'
+? [k for each x,k in [7,8,9]]
+
+? '-- with --'
+? [x for each x in [1,2,3] with x>1]
+? [x for each x in [1,2,3] with x>5]
+
+? '-- espressione non valutata sugli elementi scartati --'
+func int f(int i)
+  ? 'f ',i
+  result:=i
+end
+? [f(x) for each x in [1,2,3] with x>1]
+
+? '-- collezione valutata una volta --'
+func array[int] lista()
+  ? 'chiamata'
+  result:=[1,2]
+end
+? [x for each x in lista()]
+
+? '-- variabile dopo la comprehension --'
+x:=0
+a:=[x for each x in [1,2,3]]
+? x
+x:=7
+a:=[x for each x in []]
+? x
+
+? '-- annidate --'
+? [[x*y for each y in [1,2]] for each x in [1,2]]
+? [x+1 for each x in [x*10 for each x in [1,2]]]
+
+? '-- su due righe --'
+? [x*2
+   for each x in [1,2]]
+
+? '-- molte allocazioni (GC) --'
+for j:=1 to 2000
+  r:=[s+'y' for each s in ['a','b','c']]
+end
+? r

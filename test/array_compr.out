@@ -1,0 +1,32 @@
+-- identita e espressione calcolata --
+[1,2,3]
+[1,4,9]
+-- assegnazione a una variabile array --
+[1,2,3]
+-- collezione vuota --
+[]
+-- tupla e dizionario --
+[1,2]
+[100]
+-- seconda variabile: indici --
+[0,1,2]
+-- with --
+[2,3]
+[]
+-- espressione non valutata sugli elementi scartati --
+f 2
+f 3
+[2,3]
+-- collezione valutata una volta --
+chiamata
+[1,2]
+-- variabile dopo la comprehension --
+3
+7
+-- annidate --
+[[1,2],[2,4]]
+[11,21]
+-- su due righe --
+[2,4]
+-- molte allocazioni (GC) --
+[ay,by,cy]

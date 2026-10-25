@@ -1,0 +1,40 @@
+/*
+
+   statement for each: i casi che il runtime deve RIFIUTARE. Test di sola compilazione
+   (nessun .out accanto): il primo for each sbagliato fa terminare il programma, quindi non
+   ci sono output attesi da confrontare; conta soltanto che le forme compilino. La
+   verifica dei rifiuti resta a mano (un caso per sorgente), le attese sono nei commenti.
+   In nessun caso il corpo viene eseguito.
+
+*/
+
+var int v,k
+var str c
+
+for each v,k in |1,2|                          // rifiutato: k: le tuple non hanno chiave
+  ? 'corpo'
+end
+
+for each v in 5                                // rifiutato: for each su un valore non iterabile: 5
+  ? 'corpo'
+end
+
+for each c in 'abc'                            // rifiutato: for each su un valore non iterabile: abc
+  ? 'corpo'
+end
+
+for each j in [1,2]                            // rifiutato: j: la variabile del for each deve essere dichiarata nel contesto corrente
+  ? 'corpo'
+end
+
+proc p()
+  var int w
+  for each w,k in [1]                          // rifiutato: k e' del modulo, non del contesto della proc
+    ? 'corpo'
+  end
+end
+p()
+
+for each v in [1] with v                       // rifiutato: if with a non boolean expression
+  ? 'corpo'
+end
