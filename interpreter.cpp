@@ -467,6 +467,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeIs: public pcode {
+public:
+  explicit pcodeIs(){code=P_IS;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeIntType: public pcode {
 public:
   explicit pcodeIntType(){code=P_INT_TYPE;}
@@ -476,6 +482,12 @@ public:
 class pcodeBoolType: public pcode {
 public:
   explicit pcodeBoolType(){code=P_BOOL_TYPE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeFloatType: public pcode {
+public:
+  explicit pcodeFloatType(){code=P_FLOAT_TYPE;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -633,8 +645,10 @@ pcode* makePCode(int c,const char* s){
 	case P_PCODEEND:return new pcodePCodeEnd(atoi(s));
 	case P_ANY_TYPE:return new pcodeAnyType();
 	case P_NOT_TYPE:return new pcodeNotType();
+	case P_IS:return new pcodeIs();
 	case P_INT_TYPE:return new pcodeIntType();
 	case P_BOOL_TYPE:return new pcodeBoolType();
+	case P_FLOAT_TYPE:return new pcodeFloatType();
 	case P_STR_TYPE:return new pcodeStrType();
 	case P_ARRAY_TYPE:return new pcodeArrayType();
 	case P_DICT_TYPE:return new pcodeDictType();
@@ -962,6 +976,7 @@ public:
     virtual void expand(int gen) override {if (generation<gen) generation=gen;if (atype->generation<gen) atype->expand(gen);}
     //
     arrayType(obj* t){atype=t;};
+    const obj* elem() const {return atype;}                    // il tipo degli elementi, per is
     virtual string print() const override {string r="array["+atype->print()+"]";return r;}	
 };
 
@@ -973,6 +988,7 @@ public:
     virtual void expand(int gen) override {if (generation<gen) generation=gen;if (dtype->generation<gen) dtype->expand(gen);}
     //
     dictType(obj* t){dtype=t;};
+    const obj* elem() const {return dtype;}                    // il tipo dei valori, per is
     virtual string print() const override {string r="array["+dtype->print()+"]";return r;}	
 };
 
@@ -985,6 +1001,7 @@ public:
     virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:types) {if (o->generation<gen) o->expand(gen);}}
     //
     virtual void addSubType(obj* t){types.push_back(t);}    
+    const vector<obj*>& tipi() const {return types;}           // i tipi posizione per posizione, per is
     virtual string print() const override {
 		string r="tuple[";
 		int p=1;
@@ -1096,6 +1113,7 @@ public:
   virtual string print() const override;
   //
   obj* sliceidx(int idx){return a[idx];}
+  const vector<obj*>& elementi() const {return a;}           // gli elementi in sola lettura, per is
   void storesliceidx(int idx, obj*& v){a[idx]=v;}
   //void append(const obj*& v){a.push_back(v);}
   void resize(int sz){int oldsz=a.size();a.resize(sz);for(int i=oldsz;i<sz;i++) a[i]=theNil;}
@@ -1139,6 +1157,7 @@ public:
   void setelem(int idx,obj* value){a[idx]=value;}
   int size() const {return a.size();}
   obj* elem(int idx) const {return a[idx];}
+  const vector<obj*>& elementi() const {return a;}           // gli elementi in sola lettura, per is
   //
   virtual string print() const override;
 };
@@ -1181,6 +1200,7 @@ public:
   // per il for each: le chiavi nell'ordine (non specificato) della hash map, e la ricerca che non inserisce
   void chiavi(vector<string>& k) const {k.reserve(map.size());for(const auto& [key,o]:map) k.push_back(key);}
   obj* trova(const string& key) const {auto ff=map.find(key);return ff==map.end()?nullptr:ff->second;}
+  const unordered_map<string,obj*>& elementi() const {return map;} // chiavi e valori in sola lettura, per is
 };
 
 string dictObj::print() const {
@@ -1905,6 +1925,86 @@ bool tipoCompatibile(const obj* tipo,const obj* valore){
 	return dynamic_cast<const procObj*>(valore)!=nullptr;       // proc e func (una func e' anche un proc)
   return true;                                                   // tipo non riconosciuto: nessun controllo
 }
+
+// --- le regole di appartenenza dell'operatore is ---
+
+// is risponde "il valore e' di questo tipo" e ha regole sue, diverse da quelle
+// di tipoCompatibile (che restano quelle delle assegnazioni):
+//  - nil appartiene solo ad any (?) e alle unioni che hanno any fra le
+//    alternative: (nil is int) e' false anche se var int i := nil e' accettato;
+//  - i contenitori si guardano in profondita': ogni elemento dell'array, ogni
+//    valore del dict, l'arita' e ogni posizione della tupla;
+//  - un contenitore puo' contenere se stesso (a[0]:=a): le coppie valore/tipo
+//    in corso di verifica stanno in visita e una coppia che si ripresenta vale
+//    true, il ciclo da solo non porta controesempi;
+//  - un tipo che non sappiamo riconoscere e' un errore, non una risposta.
+// proc e func si riconoscono come in tipoCompatibile, senza confrontare la firma.
+static bool tipoIs(const obj* tipo,const obj* valore,vector<pair<const obj*,const obj*>>& visita);
+
+// scende in un contenitore: la coppia resta in visita finche' non e' finito il controllo dei figli
+template<typename F> static bool tipoIsDentro(const obj* tipo,const obj* valore,vector<pair<const obj*,const obj*>>& visita,F figli){
+  for(const auto& [v,t]:visita)
+	if (v==valore && t==tipo) return true;                       // gia' in verifica: struttura ciclica
+  visita.emplace_back(valore,tipo);
+  bool r=figli();
+  visita.pop_back();
+  return r;
+}
+
+static bool tipoIs(const obj* tipo,const obj* valore,vector<pair<const obj*,const obj*>>& visita){
+  if (tipo==(const obj*)theNil)                                  // any: accetta qualunque valore, nil compreso
+	return true;
+  if (const orType* t=dynamic_cast<const orType*>(tipo)) {       // tipo unione: basta una alternativa, any compreso
+	for(const obj* a:t->alts())
+	  if (tipoIs(a,valore,visita)) return true;
+	return false;
+  }
+  if (const notType* t=dynamic_cast<const notType*>(tipo))       // tipo NOT: niente nil e poi vale il tipo base
+	return valore!=(const obj*)theNil && tipoIs(t->inter(),valore,visita);
+  bool riconosciuto=tipo==(const obj*)theIntType || tipo==(const obj*)theStrType || tipo==(const obj*)theBoolType ||
+	tipo==(const obj*)theFloatType || dynamic_cast<const arrayType*>(tipo) || dynamic_cast<const dictType*>(tipo) ||
+	dynamic_cast<const tupleType*>(tipo) || dynamic_cast<const procType*>(tipo) || dynamic_cast<const funcType*>(tipo);
+  if (!riconosciuto) throw domain_error("is: "+tipo->print()+" non e' un tipo");
+  if (valore==(const obj*)theNil)                                // nil non e' di nessun tipo definito
+	return false;
+  if (tipo==(const obj*)theIntType)     return dynamic_cast<const intObj*>(valore)!=nullptr;
+  if (tipo==(const obj*)theStrType)     return dynamic_cast<const strObj*>(valore)!=nullptr;
+  if (tipo==(const obj*)theBoolType)    return dynamic_cast<const boolObj*>(valore)!=nullptr;
+  if (tipo==(const obj*)theFloatType)   return dynamic_cast<const floatObj*>(valore)!=nullptr;
+  if (const arrayType* t=dynamic_cast<const arrayType*>(tipo)) {
+	const arrayObj* a=dynamic_cast<const arrayObj*>(valore);
+	if (a==nullptr) return false;
+	return tipoIsDentro(tipo,valore,visita,[&]{
+	  for(const obj* e:a->elementi()) if (!tipoIs(t->elem(),e,visita)) return false;
+	  return true;});
+  }
+  if (const dictType* t=dynamic_cast<const dictType*>(tipo)) {
+	const dictObj* d=dynamic_cast<const dictObj*>(valore);
+	if (d==nullptr) return false;
+	return tipoIsDentro(tipo,valore,visita,[&]{
+	  for(const auto& [k,e]:d->elementi()) if (!tipoIs(t->elem(),e,visita)) return false;
+	  return true;});
+  }
+  if (const tupleType* t=dynamic_cast<const tupleType*>(tipo)) {
+	const tupleObj* u=dynamic_cast<const tupleObj*>(valore);
+	if (u==nullptr || u->elementi().size()!=t->tipi().size()) return false;
+	return tipoIsDentro(tipo,valore,visita,[&]{
+	  for(size_t i=0;i<t->tipi().size();i++) if (!tipoIs(t->tipi()[i],u->elementi()[i],visita)) return false;
+	  return true;});
+  }
+  return dynamic_cast<const procObj*>(valore)!=nullptr;          // proc e func: resta solo questo caso
+}
+
+// IS: in cima il tipo, sotto il valore; al loro posto resta il booleano
+void pcodeIs::exec(interp& interpreter) const {
+  const obj* tipo=interpreter.stack[interpreter.sp];
+  const obj* valore=interpreter.stack[interpreter.sp-1];
+  vector<pair<const obj*,const obj*>> visita;
+  bool r=tipoIs(tipo,valore,visita);
+  interpreter.stack.pop_back();
+  interpreter.sp--;
+  interpreter.stack[interpreter.sp]=(r?theTrue:theFalse);
+}
 // --- riprendo i pcode
 
 void pcodePlus::exec(interp& interpreter) const {
@@ -2449,6 +2549,11 @@ void pcodeIntType::exec(interp& interpreter) const {
 void pcodeBoolType::exec(interp& interpreter) const {
   interpreter.sp++;
   interpreter.stack.push_back(theBoolType);
+}
+
+void pcodeFloatType::exec(interp& interpreter) const {
+  interpreter.sp++;
+  interpreter.stack.push_back(theFloatType);
 }
 
 void pcodeStrType::exec(interp& interpreter) const {

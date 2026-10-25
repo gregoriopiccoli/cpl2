@@ -1,0 +1,92 @@
+/*
+
+   operatore is: (<expr> is <tipo>) e is(<expr>, <tipo>) valgono true o false.
+   Le regole sono quelle di is, non quelle del check di assegnazione: nil sta
+   solo in any (?), i contenitori si guardano elemento per elemento.
+
+   Il caso d'errore salta i test automatici (interrompe il programma) e si
+   verifica a mano:
+
+   var int mytype := 3  /  ? (1 is mytype)  -> is: 3 non e' un tipo
+
+*/
+
+-- le due forme
+? is(1, int)
+? ("alfa" is int)
+var int i := 3
+if (i is int)
+  ? 'si'
+else
+  ? 'no'
+end
+
+-- tipi semplici
+? (1 is int)
+? ("a" is str)
+? (true is bool)
+? (1 is str)
+? ("1" is int)
+? (true is int)
+? (1 is float)
+var float x
+? (x is float)
+
+-- nil sta solo in any
+? (nil is int)
+? (nil is array[int])
+? (nil is any)
+? (nil is ?)
+? (nil is int|?)
+var int n := nil
+? (n is int)
+
+-- any, not e unione
+? (1 is ?)
+? ("a" is any)
+? ([1] is ?)
+? (1 is int not)
+? (nil is int not)
+? ("a" is int not)
+? (1 is ? not)
+? (nil is ? not)
+? (1 is int|str)
+? ("a" is int|str)
+? (true is int|str)
+
+-- array
+? ([1,2,3] is array[int])
+? ([1,"a"] is array[int])
+? ([1,"a"] is array[int|str])
+? ([] is array[str])
+? ([1,nil] is array[int])
+? ([1,nil] is array[?])
+? ([[1],[2,3]] is array[array[int]])
+? ([[1],["x"]] is array[array[int]])
+? (1 is array[int])
+? (|1,2| is array[int])
+
+-- dizionari
+? ({"a":1,"b":2} is dict[int])
+? ({"a":1,"b":"x"} is dict[int])
+? ({} is dict[int])
+? ([1] is dict[int])
+
+-- tuple
+? (|1,"a",true| is tuple[int,str,bool])
+? (|1,"a"| is tuple[str,int])
+? (|1,2| is tuple[int])
+? (|1| is tuple[int,int])
+? ([1,2] is tuple[int,int])
+
+-- proc e func
+func int f(int x)
+  result:=x
+end
+? (f is (int:int))
+? (1 is (int:int))
+
+-- un array che contiene se stesso
+var array[?] a := [1]
+a[0] := a
+? (a is array[array[?]|int])

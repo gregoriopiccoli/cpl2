@@ -196,11 +196,22 @@ entries have the values swapped (`P_ABSTRACT`=85, `P_EVENT`=78). Trust `pcodes.h
 
 ## Don't assume a construct runs
 
-Only 73 of the 116 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
+Only 75 of the 116 defined pcodes are implemented in `makePCode()`. The remaining 41 fall through
 to `pcodeNotImpl`, which prints `not impl!` and throws `domain_error`. These compile without
 errors and then blow up at runtime: `from`/`FROM`, `class`/`end`/`end class`, `abstract`,
 `event`/`emitevent`, `try`/`catch`/`raise`, `pre`/`post`/`assert`, float/date/time/tuple constants
-and types, `is`, the `and`/`or` pcodes, `P_IF_TRUE`, and slice.
+and types (except the `float` type, `FLOAT_TYPE`, which runs — a float value still can't be built),
+the `and`/`or` pcodes, `P_IF_TRUE`, and slice.
+
+`is` runs, in both forms `is(e, T)` and `(e is T)` (`<e>`, `<T>`, `IS`: pops the type, replaces
+the value with `true`/`false`). Its rules are `tipoIs()`, deliberately **not** `tipoCompatibile()`
+(the assignment check, unchanged): `nil` belongs only to `any`/`?` (and to a union that has `any`
+among its alternatives), so `(nil is int)` is `false` even though `var int i := nil` is accepted;
+containers are checked **deeply** — every array element, every dict value (keys are not checked),
+tuple arity and every position; a container that contains itself is handled (a value/type pair
+already being checked counts as `true`); proc/func types accept any proc/func, signatures are not
+compared. An operand that is not a type (a name used as type compiles to `LOAD`, so
+`var int mytype := 3` then `(1 is mytype)`) throws `domain_error` (`is: 3 non e' un tipo`).
 
 `switch` runs. The selector is evaluated once and stays on the stack; each `case` constant is
 `<const>` + `CASE Lbody` (pops the constant, jumps if equal, keeps the selector; a constant of a
