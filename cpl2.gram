@@ -238,23 +238,34 @@ for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr EOL stm_list END.             
 for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr STEP expr EOL stm_list END.    {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
 
 // --- switch statement ---
+// il selettore resta sullo stack durante i CASE; ogni corpo (e l'else, anche implicito)
+// parte con un POP che lo toglie. Lend viaggia sulla lista, Lbody nasce con la prima
+// costante del case, Lnext alla fine dei suoi test.
 
-switch_stm ::= SWITCH expr EOL case_list case_else END.                          {emit_s(P_COMMENT,"da fare switch ...");}
+%type switch_case_list {int}
+%type case_head        {int}
+%type case_test        {int}
 
-case_list ::= .
-case_list ::= case_list case_case.
-case_else ::=.
-case_else ::= ELSE EOL stm_list.
+switch_stm ::= switch_case_list(N) case_else END.                {emit_i(P_LABEL,N);}
 
-case_case ::= CASE case_const_list EOL stm_list.
+switch_case_list(N) ::= SWITCH expr EOL.                          {N=sState->labelCnt++;}
+switch_case_list(N) ::= switch_case_list(P) case_head(H) stm_list. {N=P;emit_i(P_GOTO,N);emit_i(P_LABEL,H);}
 
-case_const_list ::= case_const.
-case_const_list ::= case_const_list COMMA case_const.
+case_head(N) ::= case_test(T) EOL.                                {N=sState->labelCnt++;emit_i(P_GOTO,N);emit_i(P_LABEL,T);emit(P_POP);}
 
-case_const ::= INT_CONST.
-case_const ::= STR_CONST.
-case_const ::= TRUE.
-case_const ::= FALSE.
+case_test(N) ::= CASE case_const.                                 {N=sState->labelCnt++;emit_i(P_CASE,N);}
+case_test(N) ::= case_test(P) COMMA case_const.                   {N=P;emit_i(P_CASE,N);}
+
+case_else ::= .                                                   {emit(P_POP);}
+case_else ::= else_tok stm_list.
+else_tok ::= ELSE EOL.                                            {emit(P_POP);}
+
+case_const ::= INT_CONST(value).                                  {emit_s(P_INT_CONST,value);dispose(&value);}
+case_const ::= MINUS INT_CONST(value).                            {char n[64];snprintf(n,sizeof(n),"-%s",value);emit_s(P_INT_CONST,n);dispose(&value);}
+case_const ::= STR_CONST(value).                                  {emit_s(P_STR_CONST,value);dispose(&value);}
+case_const ::= TRUE.                                              {emit(P_TRUE);}
+case_const ::= FALSE.                                             {emit(P_FALSE);}
+case_const ::= NIL.                                               {emit(P_NIL);}
 
 // --- for each statement ---
 

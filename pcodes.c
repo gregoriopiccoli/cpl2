@@ -90,6 +90,7 @@ int initpcodetxt(){
 	pcodetxt[P_IF_AND]=(char*)"IF_AND";   // 39
 	pcodetxt[P_CALL]=(char*)"CALL";       // 40
 	pcodetxt[P_POP]=(char*)"POP";         // 44
+	pcodetxt[P_CASE]=(char*)"CASE";       // 107
 	
     // -- dichiarazioni ---	
 	pcodetxt[P_FUNC]=(char*)"FUNC";         // 41

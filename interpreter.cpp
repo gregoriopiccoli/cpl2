@@ -2,6 +2,7 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
+  come fare ! nel tipo or?
   trovare il modo di fare test su errori di compilazione
   la print() di func/proc/class devono mettere il nome del modulo
   fare l'import di modulo del tipo a.b.c
@@ -356,6 +357,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeCase: public ipcode {
+public:
+  explicit pcodeCase(int v):ipcode(v){code=P_CASE;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeIfAnd: public ipcode {
 public:
   explicit pcodeIfAnd(int v):ipcode(v){code=P_IF_AND;}
@@ -553,6 +560,7 @@ pcode* makePCode(int c,const char* s){
 	case P_FUNC:return new pcodeFunc(s);
 	case P_ENDFUNC:return new pcodeEndFunc();
 	case P_IF_FALSE:return new pcodeIfFalse(atoi(s));
+	case P_CASE:return new pcodeCase(atoi(s));
 	case P_IF_AND:return new pcodeIfAnd(atoi(s));
 	case P_IF_OR:return new pcodeIfOr(atoi(s));
 	case P_NOT:return new pcodeNot();
@@ -2050,6 +2058,17 @@ void pcodeIfFalse::exec(interp& interpreter) const {
   interpreter.sp--;
   interpreter.stack.pop_back();
   if (v==theFalse) interpreter.pc=interpreter.prg->getLabelPos(value);
+}
+
+// switch: in cima la costante del case, sotto il selettore che resta sullo stack.
+// Tipi diversi (o selettore nil) non corrispondono e non danno errore.
+void pcodeCase::exec(interp& interpreter) const {
+  const obj* c=interpreter.stack[interpreter.sp];
+  interpreter.sp--;
+  interpreter.stack.pop_back();
+  const obj* sel=interpreter.stack[interpreter.sp];
+  if (typeid(*sel)==typeid(*c) && sel->eq(c)==theTrue)
+    interpreter.pc=interpreter.prg->getLabelPos(value);
 }
 
 void pcodeIfAnd::exec(interp& interpreter) const {

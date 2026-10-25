@@ -47,6 +47,7 @@
 #define P_IF_AND      39
 #define P_CALL        40
 #define P_POP         44
+#define P_CASE       107   // confronta la costante del case con il selettore e salta
 
 // -- dichiarazioni ---
 #define P_FUNC        41
@@ -127,6 +128,6 @@
 
 #define P_IMPLEMENTS 105
 
-#define MAX_PCODE    106  // ultimo codice usato da un pcode
+#define MAX_PCODE    107  // ultimo codice usato da un pcode
 
 // --- unused: 

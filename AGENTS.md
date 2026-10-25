@@ -188,12 +188,18 @@ entries have the values swapped (`P_ABSTRACT`=85, `P_EVENT`=78). Trust `pcodes.h
 
 ## Don't assume a construct runs
 
-Only 62 of the 105 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
+Only 64 of the 107 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
 to `pcodeNotImpl`, which prints `not impl!` and throws `domain_error`. These compile without
 errors and then blow up at runtime: `from`/`FROM`, `class`/`end`/`end class`, `abstract`,
 `event`/`emitevent`, `try`/`catch`/`raise`, `pre`/`post`/`assert`, float/date/time/tuple constants
 and types, `is`, the `and`/`or` pcodes, `P_IF_TRUE`, and slice. The grammar also
 emits `P_COMMENT` (`"da fare ..."`) for array/dict comprehensions — likewise unimplemented.
+
+`switch` runs. The selector is evaluated once and stays on the stack; each `case` constant is
+`<const>` + `CASE Lbody` (pops the constant, jumps if equal, keeps the selector; a constant of a
+different type, or a `nil` selector, simply doesn't match), then `GOTO Lnext`; every body and the
+`else` (implicit when absent) start with `POP`, every body ends with `GOTO Lend`. No fall-through,
+first matching `case` wins. `case -1` emits a single `INT_CONST -1`, not `UMINUS`.
 
 `import` without `from` loads and executes modules: the dotted name is mapped to a `.pcd` path
 by replacing `.` with `/` and appending `.pcd`, searched relative to the directory of the p-code
