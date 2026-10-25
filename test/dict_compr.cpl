@@ -1,0 +1,84 @@
+-- dict comprehension: {k:v for each x,y in collezione [with c]}
+--                     {k:v for each x:y in prima : seconda [with c]}  (visita parallela)
+-- i dizionari con piu' chiavi si leggono per chiave: l'ordine di stampa non e' specificato
+
+var int x,y,k,j,i
+var any v
+var str s,t
+var dict[int] d
+var dict[any] e
+var dict[str] r
+
+? '-- indice come chiave --'
+? {k:x for each x,k in [7]}
+
+? '-- chiave e valore calcolati --'
+d:={k*10:x*2 for each x,k in [1,2,3]}
+? d["0"],' ',d["10"],' ',d["20"]
+
+? '-- dizionario come collezione --'
+? {s:i+1 for each i,s in {"alfa":100}}
+
+? '-- assegnazione a dict[int] --'
+d:={k:x for each x,k in [1,2]}
+? d["0"],' ',d["1"]
+
+? '-- collezione vuota --'
+? {k:x for each x,k in []}
+
+? '-- chiave intera letta con una stringa --'
+d:={k:x for each x,k in [5,6]}
+? d["0"],' ',d[1]
+
+? '-- chiave ripetuta --'
+? {"c":x for each x,k in [1,2,3]}
+
+? '-- visita parallela --'
+d:={s:x for each x:s in [1,2,3] : ["alfa","beta","gamma"]}
+? d["alfa"],d["beta"],d["gamma"]
+? {s:x for each x:s in [9] : ["uno"]}
+e:={s:v for each v:s in |1,"due"| : ["a","b"]}
+? e["a"],' ',e["b"]
+? {s:x for each x:s in [] : []}
+
+? '-- with --'
+? {k:x for each x,k in [1,2,3] with x>2}
+? {s:x for each x:s in [1,2,3] : ["a","b","c"] with x=2}
+? {k:x for each x,k in [1,2,3] with x>5}
+
+? '-- collezione valutata una volta --'
+func array[int] lista()
+  ? 'chiamata'
+  result:=[1,2]
+end
+d:={k:x for each x,k in lista()}
+? d["0"],' ',d["1"]
+
+? '-- ordine fra chiave e valore --'
+func str f(str a)
+  ? 'f ',a
+  result:=a
+end
+? {f("k"):f("v") for each x,k in [1]}
+
+? '-- variabili dopo la comprehension --'
+x:=0
+d:={k:x for each x,k in [1,2,3]}
+? x,' ',k
+x:=7
+d:={k:x for each x,k in []}
+? x
+
+? '-- annidate --'
+e:={k:{j:x*y for each y,j in [1,2]} for each x,k in [5]}
+? e["0"]["0"],' ',e["0"]["1"]
+
+? '-- su due righe --'
+? {k:x
+   for each x,k in [4]}
+
+? '-- molte allocazioni (GC) --'
+for j:=1 to 2000
+  r:={s+'k':t+'v' for each s:t in [s+'a' for each s in ['a','b','c']] : ['x','y','z']}
+end
+? r["aak"],r["bak"],r["cak"]

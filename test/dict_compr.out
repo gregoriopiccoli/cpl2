@@ -1,0 +1,39 @@
+-- indice come chiave --
+{0:7}
+-- chiave e valore calcolati --
+2 4 6
+-- dizionario come collezione --
+{alfa:101}
+-- assegnazione a dict[int] --
+1 2
+-- collezione vuota --
+{}
+-- chiave intera letta con una stringa --
+5 6
+-- chiave ripetuta --
+{c:3}
+-- visita parallela --
+123
+{uno:9}
+1 due
+{}
+-- with --
+{2:3}
+{b:2}
+{}
+-- collezione valutata una volta --
+chiamata
+1 2
+-- ordine fra chiave e valore --
+f k
+f v
+{k:v}
+-- variabili dopo la comprehension --
+3 2
+7
+-- annidate --
+5 10
+-- su due righe --
+{0:4}
+-- molte allocazioni (GC) --
+xvyvzv

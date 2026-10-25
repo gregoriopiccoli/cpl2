@@ -157,7 +157,7 @@ Debug switches in `interpreter.cpp`:
   `parser.c` (`getTokenCodeFromString`) assigns them.
 - Grammar actions in `cpl2.gram` emit p-code directly through `emit()/emit_i()/emit_s()` in
   `emit.c`. `emit.c` and `pcodes.c` are shared with the interpreter. The `for each` loop head is
-  emitted by `foreachTesta()` in `parser.c`, shared by the statement and the array comprehension.
+  emitted by `foreachTesta()` in `parser.c`, shared by the statement and both comprehensions.
 - `interpreter.cpp` `#include`s `gc.cpp` (generational mark & sweep; tunables at the top of
   `gc.cpp`) and `pcodes.h`/`pcodes.c`. `nanobench.h` is vendored.
 - `cli.c` is shared by **both** binaries and is `#include`d into the two translation units, the
@@ -200,8 +200,7 @@ Only 73 of the 116 defined pcodes are implemented in `makePCode()`. The remainin
 to `pcodeNotImpl`, which prints `not impl!` and throws `domain_error`. These compile without
 errors and then blow up at runtime: `from`/`FROM`, `class`/`end`/`end class`, `abstract`,
 `event`/`emitevent`, `try`/`catch`/`raise`, `pre`/`post`/`assert`, float/date/time/tuple constants
-and types, `is`, the `and`/`or` pcodes, `P_IF_TRUE`, and slice. The grammar also
-emits `P_COMMENT` (`"da fare ..."`) for dict comprehensions — likewise unimplemented.
+and types, `is`, the `and`/`or` pcodes, `P_IF_TRUE`, and slice.
 
 `switch` runs. The selector is evaluated once and stays on the stack; each `case` constant is
 `<const>` + `CASE Lbody` (pops the constant, jumps if equal, keeps the selector; a constant of a
@@ -242,6 +241,21 @@ Array comprehensions run (`[e for each v[,k] in x [with cond]]`) and reuse the `
 so the `array_compr` action moves its p-code into the loop with `emit_rotate()`; the start is
 marked by the `lsq` nonterminal shared with `array_const`. Variables follow the `for each` rules
 (declared in the current context, keep their last value); the result is an untyped array.
+
+Dict comprehensions run in two forms, both with exactly two variables (the one-variable rules are
+commented out in `cpl2.gram`, so `{k:v for each x in a}` is a syntax error):
+`{ke:ve for each v,k in x [with cond]}` (value and key of the `for each` on `x`; a tuple is an
+error, it has no key) and the parallel form `{ke:ve for each v:w in A : B [with cond]}` (`v` gets
+the elements of `A`, `w` those of `B`, position by position). Same shape as the array
+comprehension: `DICT 0`, the collection(s), the loop head, `[<cond> IF_FALSE Ltest]`, `<ke>`,
+`<ve>`, `COMPR_APPEND 2` (stores the pair into the dict under the iterator via `storeslice`, so
+the key is `print()`ed like in `DICT n` and a repeated key keeps the last value), `GOTO Ltest`,
+`LABEL Lend`, `POP`. The start is marked by `lbr`, shared with `dict_const`. No new pcode: the
+parallel form emits `FOREACH_INIT 2`, which replaces the two collections on top with one
+`zipIter` whose value comes from `A` and whose "key" is the element of `B`, so
+`FOREACH_VAR`/`FOREACH_KEY`/`FOREACH_NEXT` are unchanged; when only one of the two runs out,
+`FOREACH_NEXT` raises a runtime error (different lengths). Without an operand both
+`FOREACH_INIT` and `COMPR_APPEND` keep their old meaning, so existing p-code is byte-identical.
 
 `import` without `from` loads and executes modules: the dotted name is mapped to a `.pcd` path
 by replacing `.` with `/` and appending `.pcd`, searched relative to the directory of the p-code

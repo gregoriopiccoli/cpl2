@@ -371,17 +371,18 @@ typedef struct foreachloop {
 	char* name;         // variabile del valore
 	char* key;          // variabile della chiave, NULL se assente
 	int mark;           // comprehension: posizione nel buffer della fine dell'espressione
+	int n;              // numero di collezioni: 1, o 2 per la visita parallela (dict comprehension)
 } foreachloop;
 		
 #include "cli.c"
 #include "pcodes.c"
 #include "emit.c"
 
-// testa del ciclo for each, comune allo statement e alla comprehension: la collezione e'
-// gia' sullo stack, la trasforma in iteratore, registra le variabili (liberandone i nomi),
+// testa del ciclo for each, comune allo statement e alle comprehension: la collezione (o le
+// due della visita parallela, n==2) e' gia' sullo stack, la trasforma in iteratore, registra le variabili (liberandone i nomi),
 // assegna le due label e apre il ciclo
 void foreachTesta(foreachloop* n,parserState* sState){
-	emit(P_FOREACH_INIT);
+	if (n->n==2) emit_i(P_FOREACH_INIT,2); else emit(P_FOREACH_INIT);
 	emit_s(P_FOREACH_VAR,n->name);
 	if (n->key) emit_s(P_FOREACH_KEY,n->key);
 	dispose(&n->name);

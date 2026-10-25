@@ -389,9 +389,9 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
-class pcodeForeachInit: public pcode {
+class pcodeForeachInit: public ipcode {
 public:
-  pcodeForeachInit(){code=P_FOREACH_INIT;}
+  explicit pcodeForeachInit(int v):ipcode(v){code=P_FOREACH_INIT;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -413,9 +413,9 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
-class pcodeComprAppend: public pcode {
+class pcodeComprAppend: public ipcode {
 public:
-  pcodeComprAppend(){code=P_COMPR_APPEND;}
+  explicit pcodeComprAppend(int v):ipcode(v){code=P_COMPR_APPEND;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -621,11 +621,11 @@ pcode* makePCode(int c,const char* s){
 	case P_FOR_DOWNTO:return new pcodeForDownto(s);
 	case P_FOR_TEST:return new pcodeForTest(atoi(s));
 	case P_FOR_NEXT:return new pcodeForNext(s);
-	case P_FOREACH_INIT:return new pcodeForeachInit();
+	case P_FOREACH_INIT:return new pcodeForeachInit(atoi(s));
 	case P_FOREACH_VAR:return new pcodeForeachVar(s);
 	case P_FOREACH_KEY:return new pcodeForeachKey(s);
 	case P_FOREACH_NEXT:return new pcodeForeachNext(atoi(s));
-	case P_COMPR_APPEND:return new pcodeComprAppend();
+	case P_COMPR_APPEND:return new pcodeComprAppend(atoi(s));
 	case P_IF_AND:return new pcodeIfAnd(atoi(s));
 	case P_IF_OR:return new pcodeIfOr(atoi(s));
 	case P_NOT:return new pcodeNot();
@@ -1270,6 +1270,22 @@ public:
 	}
 	return false;
   }
+};
+
+// visita parallela (FOREACH_INIT 2): il valore viene dal primo iteratore, la "chiave" e' il
+// valore del secondo; i due interni non calcolano chiavi. Se ne finisce uno solo e' un errore
+class zipIter : public iterObj {
+  iterObj* a;
+  iterObj* b;
+public:
+  zipIter(iterObj* aa,iterObj* bb):a{aa},b{bb}{}
+  virtual void mark() override {if (!marked) {marked=true;a->mark();b->mark();}}
+  virtual void expand(int gen) override {
+	if (generation<gen) generation=gen;
+	if (a->generation<gen) a->expand(gen);
+	if (b->generation<gen) b->expand(gen);
+  }
+  virtual bool next(obj*& valore,obj*& chiave,interp& interpreter) override;
 };
 
 // --- i contenitori con nomi (classi, variabili locali, moduli ...)
@@ -2283,14 +2299,37 @@ void pcodeForNext::exec(interp& interpreter) const {
 // finale); le variabili sono controllate una volta sola, quando vengono registrate.
 
 // layout: [..., collezione(sp)] -> [..., iteratore(sp)]
+static iterObj* nuovoIter(obj* c){
+  if (arrayObj* a=dynamic_cast<arrayObj*>(c)) return new arrayIter(a);
+  if (dictObj* d=dynamic_cast<dictObj*>(c)) return new dictIter(d);
+  if (tupleObj* t=dynamic_cast<tupleObj*>(c)) return new tupleIter(t);
+  forErrore("for each su un valore non iterabile: "+c->print());
+  return nullptr;
+}
+
+bool zipIter::next(obj*& valore,obj*& chiave,interp& interpreter){
+  obj* k=nullptr;
+  bool ha=a->next(valore,k,interpreter);
+  bool hb=b->next(chiave,k,interpreter);
+  if (ha!=hb) forErrore("for each parallelo su collezioni di lunghezze diverse");
+  return ha;
+}
+
+// operando 0: [..., collezione] -> [..., iteratore]
+// operando 2: [..., prima, seconda] -> [..., iteratore parallelo]
 void pcodeForeachInit::exec(interp& interpreter) const {
-  obj* c=interpreter.stack[interpreter.sp];
-  iterObj* it=nullptr;
-  if (arrayObj* a=dynamic_cast<arrayObj*>(c)) it=new arrayIter(a);
-  else if (dictObj* d=dynamic_cast<dictObj*>(c)) it=new dictIter(d);
-  else if (tupleObj* t=dynamic_cast<tupleObj*>(c)) it=new tupleIter(t);
-  else forErrore("for each su un valore non iterabile: "+c->print());
-  interpreter.stack[interpreter.sp]=it;
+  if (value==2) {
+	iterObj* a=nuovoIter(interpreter.stack[interpreter.sp-1]);
+	interpreter.stack[interpreter.sp-1]=a;                // gia' sullo stack, raggiungibile dal GC
+	iterObj* b=nuovoIter(interpreter.stack[interpreter.sp]);
+	interpreter.stack[interpreter.sp]=b;
+	zipIter* z=new zipIter(a,b);
+	interpreter.stack.pop_back();
+	interpreter.sp--;
+	interpreter.stack[interpreter.sp]=z;
+	return;
+  }
+  interpreter.stack[interpreter.sp]=nuovoIter(interpreter.stack[interpreter.sp]);
 }
 
 static iterObj* foreachIter(interp& interpreter){
@@ -2329,10 +2368,19 @@ void pcodeForeachNext::exec(interp& interpreter) const {
   if (it->nomeChiave>=0) interpreter.context->store(it->nomeChiave,k);
 }
 
-// array comprehension: il risultato sta sotto l'iteratore, il valore calcolato in cima.
-// Solo il compilatore emette questa sequenza e il risultato viene sempre da ARRAY 0.
-// layout: [..., risultato(sp-2), iteratore(sp-1), valore(sp)] -> [..., risultato, iteratore]
+// comprehension: il risultato sta sotto l'iteratore, quanto calcolato in cima.
+// Solo il compilatore emette questa sequenza e il risultato viene sempre da ARRAY 0 / DICT 0.
+// operando 0 (array): [..., risultato(sp-2), iteratore(sp-1), valore(sp)] -> [..., risultato, iteratore]
+// operando 2 (dict):  [..., risultato(sp-3), iteratore(sp-2), chiave(sp-1), valore(sp)] -> [..., risultato, iteratore]
 void pcodeComprAppend::exec(interp& interpreter) const {
+  if (value==2) {
+	// storeslice converte la chiave con print() come DICT n, e un doppione sovrascrive
+	interpreter.stack[interpreter.sp-3]->storeslice(interpreter.stack[interpreter.sp-1],interpreter.stack[interpreter.sp]);
+	interpreter.stack.pop_back();
+	interpreter.stack.pop_back();
+	interpreter.sp-=2;
+	return;
+  }
   static_cast<arrayObj*>(interpreter.stack[interpreter.sp-2])->append(interpreter.stack[interpreter.sp]);
   interpreter.stack.pop_back();
   interpreter.sp--;
