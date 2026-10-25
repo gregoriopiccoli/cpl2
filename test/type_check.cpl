@@ -11,6 +11,7 @@
    var int not ni      /  ni := nil         -> il valore nil non e' compatibile con il tipo not int
    func int f(int x)   /  f("a")            -> il valore a non e' compatibile con il tipo int
    func int f(int not x) / f(nil)           -> il valore nil non e' compatibile con il tipo not int
+   func int f()        /  result:="pippo"   -> result: il valore pippo non e' compatibile con il tipo int
 
 */
 
@@ -59,6 +60,27 @@ func str saluto(str nome)
   result:="ciao "+nome
 end
 ? "saluto=",saluto("gina")
+
+// --- result: il valore assegnato deve stare nel tipo di ritorno della func
+func int|str segno(int x)
+  if x>0
+    result:=x
+  else
+    result:="zero"
+  end
+end
+? "segno(3)=",segno(3)
+? "segno(0)=",segno(0)
+
+func int vuota()
+  result:=nil
+end
+? "vuota()=",vuota()
+
+func ? qualsiasi()
+  result:="ciao"
+end
+? "qualsiasi()=",qualsiasi()
 
 // --- variabile func: il tipo dichiarato e' la firma, il valore e' la func
 var (int:(int)) g := doppio

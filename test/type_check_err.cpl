@@ -26,3 +26,13 @@ end
 h(nil)                                         // rifiutata alla chiamata: il tipo not int rifiuta il nil
 
 var array[int] a := "pippo"                    // rifiutata: il valore pippo non e' compatibile col tipo array[int]
+
+func int r()
+  result:="pippo"                              // rifiutata: result: il valore pippo non e' compatibile con il tipo int
+end
+r()
+
+func int! rn()
+  result:=nil                                  // rifiutata: result: il valore nil non e' compatibile con il tipo not int
+end
+rn()

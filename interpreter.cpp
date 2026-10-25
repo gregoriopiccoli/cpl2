@@ -2,7 +2,6 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
-  fare il check di tipo su "result"
   trovare il modo di fare test su errori di compilazione
   la print() di func/proc/class devono mettere il nome del modulo
   fare l'import di modulo del tipo a.b.c
@@ -15,6 +14,7 @@ DA FARE:
   Float e operazioni miste tra int e float
    
 FATTO: 
+  fare il check di tipo su "result"
   gestione del programma iniziale come modulo e gestione della path impostata dal programma di partenza
   verificare il rilascio della memoria dei programmi di pcode
   provare fib in traduzione c++ -- FATTO e cavolo se corre!
@@ -1596,7 +1596,11 @@ public:
 	procVars::expand(gen);
   }  
   //
-  virtual void store_result(obj* value) override {result_value=value;}
+  virtual void store_result(obj* value) override {
+	static const int resultIntern=theStringIntern.add("result");  // il nome nel messaggio del check, calcolato alla prima chiamata
+	checkTipo(resultIntern,result_type,value);              // result:=... deve stare nel tipo di ritorno dichiarato della func
+	result_value=value;
+  }
   virtual obj* getResult() override {return result_value;}
 };
 
