@@ -640,6 +640,7 @@ public:
   virtual string print() const override {return to_string(value);}
   virtual obj* plus(const obj* o) const override;
   virtual obj* minus(const obj* o) const override;
+  virtual obj* uminus() const override;
   virtual obj* mult(const obj* o) const override;
   virtual obj* div(const obj* o) const override;
   virtual obj* idiv(const obj* o) const override;
@@ -692,6 +693,13 @@ obj* intObj::minus(const obj* o) const {
   const intObj* oo=check_int(o,"integer - with a non integer");
   if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;stdGC().addRecycled(v);intrecycle++;return v;}
   return new intObj(value-oo->value);
+}
+
+obj* intObj::uminus() const {
+  // negazione in aritmetica senza segno: -INT_MIN fa il giro senza comportamento indefinito
+  int r=(int)(0u-(unsigned)value);
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=r;stdGC().addRecycled(v);intrecycle++;return v;}
+  return new intObj(r);
 }
 
 obj* intObj::mult(const obj* o) const {
