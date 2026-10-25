@@ -91,6 +91,10 @@ int initpcodetxt(){
 	pcodetxt[P_CALL]=(char*)"CALL";       // 40
 	pcodetxt[P_POP]=(char*)"POP";         // 44
 	pcodetxt[P_CASE]=(char*)"CASE";       // 107
+	pcodetxt[P_FOR_TO]=(char*)"FOR_TO";   // 108
+	pcodetxt[P_FOR_DOWNTO]=(char*)"FOR_DOWNTO"; // 109
+	pcodetxt[P_FOR_TEST]=(char*)"FOR_TEST"; // 110
+	pcodetxt[P_FOR_NEXT]=(char*)"FOR_NEXT"; // 111
 	
     // -- dichiarazioni ---	
 	pcodetxt[P_FUNC]=(char*)"FUNC";         // 41

@@ -363,6 +363,30 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeForTo: public interningpcode {
+public:
+  explicit pcodeForTo(const string& v):interningpcode(v){code=P_FOR_TO;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeForDownto: public interningpcode {
+public:
+  explicit pcodeForDownto(const string& v):interningpcode(v){code=P_FOR_DOWNTO;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeForTest: public ipcode {
+public:
+  explicit pcodeForTest(int v):ipcode(v){code=P_FOR_TEST;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeForNext: public interningpcode {
+public:
+  explicit pcodeForNext(const string& v):interningpcode(v){code=P_FOR_NEXT;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeIfAnd: public ipcode {
 public:
   explicit pcodeIfAnd(int v):ipcode(v){code=P_IF_AND;}
@@ -561,6 +585,10 @@ pcode* makePCode(int c,const char* s){
 	case P_ENDFUNC:return new pcodeEndFunc();
 	case P_IF_FALSE:return new pcodeIfFalse(atoi(s));
 	case P_CASE:return new pcodeCase(atoi(s));
+	case P_FOR_TO:return new pcodeForTo(s);
+	case P_FOR_DOWNTO:return new pcodeForDownto(s);
+	case P_FOR_TEST:return new pcodeForTest(atoi(s));
+	case P_FOR_NEXT:return new pcodeForNext(s);
 	case P_IF_AND:return new pcodeIfAnd(atoi(s));
 	case P_IF_OR:return new pcodeIfOr(atoi(s));
 	case P_NOT:return new pcodeNot();
@@ -1189,6 +1217,8 @@ public:
 	  superlevel->store(intern,value);
     }
   }
+  // il nome e' dichiarato in questo livello? non risale il superlevel (variabile del for)
+  bool isLocal(int intern) const {return objs.find(intern)!=objs.end();}
   virtual string print() const override {
 	string s="container ";
 	for(auto& [k,t]:types){
@@ -2077,6 +2107,58 @@ void pcodeCase::exec(interp& interpreter) const {
   const obj* sel=interpreter.stack[interpreter.sp];
   if (typeid(*sel)==typeid(*c) && sel->eq(c)==theTrue)
     interpreter.pc=interpreter.prg->getLabelPos(value);
+}
+
+// for: fine e passo restano sullo stack per tutto il ciclo, la variabile sta nel contesto
+// corrente e viene riletta a ogni giro. Gli errori come checkTipo: messaggio e poi l'eccezione.
+static void forErrore(const string& err){
+  cout << err << endl;
+  throw domain_error(err);
+}
+
+// layout: [..., inizio(sp-2), fine(sp-1), passo(sp)] -> [..., fine, passo]; la variabile vale inizio
+static void forInit(interp& interpreter,int nome,bool crescente){
+  string n=theStringIntern.get(nome);
+  if (!interpreter.context->isLocal(nome)) forErrore(n+": la variabile del for deve essere dichiarata nel contesto corrente");
+  obj* inizio=interpreter.stack[interpreter.sp-2];
+  const intObj* fine=dynamic_cast<const intObj*>(interpreter.stack[interpreter.sp-1]);
+  const intObj* passo=dynamic_cast<const intObj*>(interpreter.stack[interpreter.sp]);
+  if (dynamic_cast<const intObj*>(inizio)==nullptr || fine==nullptr || passo==nullptr)
+    forErrore(n+": inizio, fine e passo del for devono essere int");
+  if (crescente && passo->value<=0) forErrore(n+": il passo del for con to deve essere positivo");
+  if (!crescente && passo->value>=0) forErrore(n+": il passo del for con downto deve essere negativo");
+  interpreter.context->store(nome,inizio);
+  interpreter.stack[interpreter.sp-2]=interpreter.stack[interpreter.sp-1];
+  interpreter.stack[interpreter.sp-1]=interpreter.stack[interpreter.sp];
+  interpreter.sp--;
+  interpreter.stack.pop_back();
+}
+
+void pcodeForTo::exec(interp& interpreter) const {
+  forInit(interpreter,value,true);
+}
+
+void pcodeForDownto::exec(interp& interpreter) const {
+  forInit(interpreter,value,false);
+}
+
+// layout: [..., fine(sp-2), passo(sp-1), valore(sp)] -> [..., fine, passo]; il verso lo da' il segno del passo
+void pcodeForTest::exec(interp& interpreter) const {
+  const intObj* v=dynamic_cast<const intObj*>(interpreter.stack[interpreter.sp]);
+  interpreter.sp--;
+  interpreter.stack.pop_back();
+  if (v==nullptr) forErrore("la variabile del for deve essere int");
+  const intObj* fine=static_cast<const intObj*>(interpreter.stack[interpreter.sp-1]);
+  const intObj* passo=static_cast<const intObj*>(interpreter.stack[interpreter.sp]);
+  if (passo->value>0 ? v->value>fine->value : v->value<fine->value)
+    interpreter.pc=interpreter.prg->getLabelPos(value);
+}
+
+// layout: [..., fine, passo(sp)] invariato; variabile := variabile + passo
+void pcodeForNext::exec(interp& interpreter) const {
+  obj* v=interpreter.context->load(value);
+  if (dynamic_cast<const intObj*>(v)==nullptr) forErrore(theStringIntern.get(value)+": la variabile del for deve essere int");
+  interpreter.context->store(value,v->plus(interpreter.stack[interpreter.sp]));
 }
 
 void pcodeIfAnd::exec(interp& interpreter) const {

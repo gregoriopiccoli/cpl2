@@ -358,6 +358,12 @@ typedef struct ifelseif {
 	int start;
 	int last;
 } ifelseif;
+
+typedef struct forloop {
+	int start;          // label del test
+	int last;           // label di uscita
+	char* name;         // variabile di ciclo, liberata alla fine del for
+} forloop;
 		
 #include "cli.c"
 #include "pcodes.c"

@@ -48,6 +48,10 @@
 #define P_CALL        40
 #define P_POP         44
 #define P_CASE       107   // confronta la costante del case con il selettore e salta
+#define P_FOR_TO     108   // inizializza il for crescente: variabile locale, int, passo > 0
+#define P_FOR_DOWNTO 109   // inizializza il for decrescente: variabile locale, int, passo < 0
+#define P_FOR_TEST   110   // salta alla label se la variabile ha superato la fine
+#define P_FOR_NEXT   111   // somma il passo alla variabile del for
 
 // -- dichiarazioni ---
 #define P_FUNC        41
@@ -128,6 +132,6 @@
 
 #define P_IMPLEMENTS 105
 
-#define MAX_PCODE    107  // ultimo codice usato da un pcode
+#define MAX_PCODE    111  // ultimo codice usato da un pcode
 
 // --- unused: 

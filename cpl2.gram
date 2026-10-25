@@ -232,10 +232,19 @@ if_expr(N) ::= expr EOL.                          {N=sState->labelCnt++;emit_i(P
 
 // --- for statement ---
 
-for_stm ::= FOR ID(value) ASSIGN expr TO expr EOL stm_list END.                  {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
-for_stm ::= FOR ID(value) ASSIGN expr TO expr STEP expr EOL stm_list END.        {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
-for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr EOL stm_list END.              {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
-for_stm ::= FOR ID(value) ASSIGN expr DOWNTO expr STEP expr EOL stm_list END.    {emit_s(P_COMMENT,"da fare for ...");dispose(&value);}
+// fine e passo restano sullo stack per tutto il ciclo (tolti dai due POP finali), la
+// variabile e' nel contesto corrente; il passo assente diventa 1 per to e -1 per downto.
+// for_init porta il nome della variabile fino a FOR_NEXT, che lo libera.
+
+%type for_init {forloop}
+%type for_head {forloop}
+
+for_stm ::= for_head(N) stm_list END.                             {emit_s(P_FOR_NEXT,N.name);emit_i(P_GOTO,N.start);emit_i(P_LABEL,N.last);emit(P_POP);emit(P_POP);dispose(&N.name);}
+for_head(N) ::= for_init(P) EOL.                                  {N=P;N.start=sState->labelCnt++;N.last=sState->labelCnt++;emit_i(P_LABEL,N.start);emit_s(P_LOAD,N.name);emit_i(P_FOR_TEST,N.last);}
+for_init(N) ::= FOR ID(value) ASSIGN expr TO expr.                {emit_s(P_INT_CONST,"1");emit_s(P_FOR_TO,value);N.name=value;}
+for_init(N) ::= FOR ID(value) ASSIGN expr TO expr STEP expr.      {emit_s(P_FOR_TO,value);N.name=value;}
+for_init(N) ::= FOR ID(value) ASSIGN expr DOWNTO expr.            {emit_s(P_INT_CONST,"-1");emit_s(P_FOR_DOWNTO,value);N.name=value;}
+for_init(N) ::= FOR ID(value) ASSIGN expr DOWNTO expr STEP expr.  {emit_s(P_FOR_DOWNTO,value);N.name=value;}
 
 // --- switch statement ---
 // il selettore resta sullo stack durante i CASE; ogni corpo (e l'else, anche implicito)

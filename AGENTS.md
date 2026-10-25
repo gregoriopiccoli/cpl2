@@ -183,23 +183,37 @@ Debug switches in `interpreter.cpp`:
 4. `interpreter.cpp` — a `pcodeXXX` class overriding `exec()` **and** a `case P_XXX:` in
    `makePCode()`. Only add it to `pcodejump[]` if it is genuinely hot.
 
+The Makefile rule is `asm: asm.c` only, so `make` does **not** rebuild `asm` after a `pcodes.h`/
+`pcodes.c` edit: `touch asm.c && make`, or the stale `asm` turns the new mnemonics into pcode 0.
+
 The trailing `// 78` numeric comments in `pcodes.c` are hand-written and already stale — two
 entries have the values swapped (`P_ABSTRACT`=85, `P_EVENT`=78). Trust `pcodes.h`.
 
 ## Don't assume a construct runs
 
-Only 64 of the 107 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
+Only 68 of the 111 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
 to `pcodeNotImpl`, which prints `not impl!` and throws `domain_error`. These compile without
 errors and then blow up at runtime: `from`/`FROM`, `class`/`end`/`end class`, `abstract`,
 `event`/`emitevent`, `try`/`catch`/`raise`, `pre`/`post`/`assert`, float/date/time/tuple constants
 and types, `is`, the `and`/`or` pcodes, `P_IF_TRUE`, and slice. The grammar also
-emits `P_COMMENT` (`"da fare ..."`) for array/dict comprehensions — likewise unimplemented.
+emits `P_COMMENT` (`"da fare ..."`) for array/dict comprehensions and `for each` — likewise unimplemented.
 
 `switch` runs. The selector is evaluated once and stays on the stack; each `case` constant is
 `<const>` + `CASE Lbody` (pops the constant, jumps if equal, keeps the selector; a constant of a
 different type, or a `nil` selector, simply doesn't match), then `GOTO Lnext`; every body and the
 `else` (implicit when absent) start with `POP`, every body ends with `GOTO Lend`. No fall-through,
 first matching `case` wins. `case -1` emits a single `INT_CONST -1`, not `UMINUS`.
+
+`for` runs (`to`/`downto`, with or without `step`). Start, end and step are evaluated once, in that
+order (a missing step is `INT_CONST 1` for `to`, `INT_CONST -1` for `downto`), then
+`FOR_TO i`/`FOR_DOWNTO i` checks that `i` is declared **in the current context** (not just visible
+from a superlevel — the `for` never declares it), that all three are `int` and that the step sign
+matches the direction (step 0 is an error), stores the start in `i` and leaves end and step on the
+stack. The loop is `LABEL Ltest`, `LOAD i`, `FOR_TEST Lend` (pops the value, jumps out once it is
+past the end in the step's direction), body, `FOR_NEXT i` (`i:=i+step`), `GOTO Ltest`, `LABEL Lend`,
+`POP`, `POP`. `i` is re-read every iteration, so assigning it in the body affects the loop; after the
+loop it holds the first value past the end. Errors print on stdout and throw `domain_error`. Any
+future statement that leaves a loop early (`break`, `return`) must pop end and step itself.
 
 `import` without `from` loads and executes modules: the dotted name is mapped to a `.pcd` path
 by replacing `.` with `/` and appending `.pcd`, searched relative to the directory of the p-code
