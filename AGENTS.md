@@ -191,12 +191,12 @@ entries have the values swapped (`P_ABSTRACT`=85, `P_EVENT`=78). Trust `pcodes.h
 
 ## Don't assume a construct runs
 
-Only 68 of the 111 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
+Only 72 of the 115 defined pcodes are implemented in `makePCode()`. The remaining 43 fall through
 to `pcodeNotImpl`, which prints `not impl!` and throws `domain_error`. These compile without
 errors and then blow up at runtime: `from`/`FROM`, `class`/`end`/`end class`, `abstract`,
 `event`/`emitevent`, `try`/`catch`/`raise`, `pre`/`post`/`assert`, float/date/time/tuple constants
 and types, `is`, the `and`/`or` pcodes, `P_IF_TRUE`, and slice. The grammar also
-emits `P_COMMENT` (`"da fare ..."`) for array/dict comprehensions and `for each` — likewise unimplemented.
+emits `P_COMMENT` (`"da fare ..."`) for array/dict comprehensions — likewise unimplemented.
 
 `switch` runs. The selector is evaluated once and stays on the stack; each `case` constant is
 `<const>` + `CASE Lbody` (pops the constant, jumps if equal, keeps the selector; a constant of a
@@ -216,6 +216,19 @@ past the end in the step's direction), body, `FOR_NEXT i` (`i:=i+step`), `GOTO L
 `POP`, `POP`. `i` is re-read every iteration, so assigning it in the body affects the loop; after the
 loop it holds the first value past the end. Errors print on stdout and throw `domain_error`. Any
 future statement that leaves a loop early (`break`, `return`) must pop end and step itself.
+
+`for each` runs on arrays, dicts and tuples (`for each v[,k] in x [with cond]`). The collection is
+evaluated once and `FOREACH_INIT` replaces it on the stack with an internal iterator;
+`FOREACH_VAR v` / `FOREACH_KEY k` check that each name is declared **in the current context** (same
+rule as `for`) and register it in the iterator; the loop is `LABEL Ltest`, `FOREACH_NEXT Lend`
+(jumps out when finished, otherwise stores value and key straight into the context, with the
+`--typecheck` rules of `STORE`), `[<cond> IF_FALSE Ltest]` for `with` (a filter), body,
+`GOTO Ltest`, `LABEL Lend`, `POP`. Array keys are the 0-based `int` index; tuples have no key
+(`FOREACH_KEY` on a tuple is an error); dict keys are always `str` (the dict stores `print()` of
+the key) and the **dict visiting order is unspecified** — the hash map's. The dict's keys are copied
+when the loop starts, so keys added in the body are not visited while values are read at visit
+time; arrays are visited live by position. Any other value is a runtime error. A future
+`break`/`return` must pop the iterator too.
 
 `import` without `from` loads and executes modules: the dotted name is mapped to a `.pcd` path
 by replacing `.` with `/` and appending `.pcd`, searched relative to the directory of the p-code

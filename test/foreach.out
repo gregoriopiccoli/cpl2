@@ -1,0 +1,68 @@
+-- array --
+1
+2
+3
+-- array con indice --
+a[0]=1
+a[1]=2
+a[2]=3
+-- array vuoto --
+fine
+-- dizionario senza chiave --
+2 valori, totale 300
+-- dizionario con chiave --
+d["alfa"]=100
+-- dizionario vuoto --
+fine
+-- chiave non stringa --
+1!uno
+-- chiave aggiunta nel corpo non visitata --
+a
+-- valore cambiato prima della visita --
+ok
+-- tupla --
+1
+2
+t
+-- with sul valore --
+2
+3
+-- with sulla chiave --
+10
+30
+-- collezione valutata una sola volta --
+1
+2
+3
+chiamata
+1
+2
+-- assegnazione all indice nel corpo --
+1
+2
+3
+-- variabili dopo il ciclo --
+8
+1
+4
+-- for each annidati --
+10
+20
+20
+40
+-- stessa collezione annidata --
+11
+12
+21
+22
+-- for each dentro un for --
+1
+10
+2
+20
+-- for each in una procedura con variabile locale --
+1
+2
+3
+-- for each con molte allocazioni nel corpo --
+6

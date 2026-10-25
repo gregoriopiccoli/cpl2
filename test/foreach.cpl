@@ -1,0 +1,166 @@
+-- statement for each: array, dizionari e tuple, con indice/chiave e con il filtro with.
+-- L'ordine di visita dei dizionari non e' specificato: con piu' chiavi si controllano
+-- somme e conteggi, le stampe di chiave e valore usano dizionari con una chiave sola.
+
+var int i,k,n,tot
+var str s
+var any v
+var array[int] a
+var dict[int] d
+var tuple[int,int,str] t
+
+? '-- array --'
+for each i in [1,2,3]
+  ? i
+end
+
+? '-- array con indice --'
+a:=[1,2,3]
+for each i,k in a
+  ? 'a[',k,']=',i
+end
+
+? '-- array vuoto --'
+for each i in []
+  ? i
+end
+? 'fine'
+
+? '-- dizionario senza chiave --'
+d:={"alfa":100,"beta":200}
+tot:=0
+n:=0
+for each i in d
+  tot:=tot+i
+  n:=n+1
+end
+? n,' valori, totale ',tot
+
+? '-- dizionario con chiave --'
+d:={"alfa":100}
+for each i,s in d
+  ? 'd["',s,'"]=',i
+end
+
+? '-- dizionario vuoto --'
+for each i in {}
+  ? i
+end
+? 'fine'
+
+? '-- chiave non stringa --'
+for each v,s in {1:'uno'}
+  ? s+'!',v
+end
+
+? '-- chiave aggiunta nel corpo non visitata --'
+d:={"a":1}
+for each i,s in d
+  ? s
+  d["b"]:=2
+end
+
+? '-- valore cambiato prima della visita --'
+d:={"a":1,"b":2}
+tot:=0
+for each i,s in d
+  tot:=tot+i
+  d["a"]:=10
+  d["b"]:=20
+end
+if tot=21
+  ? 'ok'
+elseif tot=12
+  ? 'ok'
+else
+  ? tot
+end
+
+? '-- tupla --'
+t:=|1,2,"t"|
+for each v in t
+  ? v
+end
+
+? '-- with sul valore --'
+for each i in [1,2,3] with i>1
+  ? i
+end
+
+? '-- with sulla chiave --'
+for each i,k in [10,20,30] with k<>1
+  ? i
+end
+
+? '-- collezione valutata una sola volta --'
+a:=[1,2,3]
+for each i in a
+  ? i
+  a:=[9]
+end
+
+func array[int] lista()
+  ? 'chiamata'
+  result:=[1,2]
+end
+for each i in lista()
+  ? i
+end
+
+? '-- assegnazione all indice nel corpo --'
+for each i,k in [1,2,3]
+  ? i
+  k:=10
+end
+
+? '-- variabili dopo il ciclo --'
+for each i,k in [7,8]
+end
+? i
+? k
+i:=4
+for each i in []
+end
+? i
+
+? '-- for each annidati --'
+for each i in [1,2]
+  for each k in [10,20]
+    ? i*k
+  end
+end
+
+? '-- stessa collezione annidata --'
+a:=[1,2]
+for each i in a
+  for each k in a
+    ? i,k
+  end
+end
+
+? '-- for each dentro un for --'
+for n:=1 to 2
+  for each i in [n,n*10]
+    ? i
+  end
+end
+
+? '-- for each in una procedura con variabile locale --'
+proc elenca(array[int] x)
+  var int e
+  for each e in x
+    ? e
+  end
+end
+elenca([1,2])
+elenca([3])
+
+? '-- for each con molte allocazioni nel corpo --'
+n:=0
+for each i in [1,2,3]
+  for k:=1 to 20000
+    s:='x'+'y'
+  end
+  n:=n+i
+end
+? n

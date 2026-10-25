@@ -1,0 +1,61 @@
+var int i:=3
+
+? 'statement IF'
+if i=0
+  ? 0
+elseif i=1
+  ? 1
+elseif i=2
+  ? 2
+else
+  ? 'non è 0,1,o 2'
+end
+
+i:=-2
+? 'statement CASE'
+switch i
+  case 0
+    ? 0
+  case 1
+    ? 1
+  case 2
+    ? 2
+  case -1
+    ? -1
+  case -2,-3
+    ? '-2 o -3'    
+  case nil
+    ? nil
+  case "alfa","beta"
+    ? '"alfa" o "beta"'
+  else
+    ? 'non è 0,1 o 2'
+end  
+
+? 'statement WHILE'
+i:=0
+while i<10
+  i:=i+1
+  ? i
+end  
+
+? 'statement FOR'
+for i:=1 to 10 
+  ? i
+end
+for i:=1 to 10 step 2
+  ? i
+end
+for i:=10 downto 1
+  ? i
+end    
+for i:=10 downto 1 step -2
+  ? i
+end    
+
+/* da fare!
+? 'statement FOR-EACH'
+for each i in [1,2,3]
+  ? i
+end  
+*/

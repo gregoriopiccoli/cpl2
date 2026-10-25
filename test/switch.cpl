@@ -1,0 +1,157 @@
+-- statement switch: un solo ramo eseguito, nessun fall-through, else opzionale
+
+proc prova(int i)
+  switch i
+    case 0
+      ? 'zero'
+    case 1
+      ? 'uno'
+    case 2
+      ? 'due'
+  end
+end
+
+? '-- case singolo, nessun fall-through --'
+prova(1)
+prova(0)
+prova(2)
+? '-- nessun match senza else --'
+prova(7)
+
+? '-- costanti negative --'
+-- (UMINUS sugli int non e' implementato: i valori negativi si ottengono per sottrazione)
+var int n:=0-1
+switch n
+  case 0
+    ? '0'
+  case -1
+    ? '-1'
+  case -2
+    ? '-2'
+end
+n:=0-2
+switch n
+  case 0,-2
+    ? 'zero o meno due'
+  else
+    ? 'altro'
+end
+
+? '-- case con piu costanti --'
+var int x:=3
+switch x
+  case 1,2,3
+    ? 'piccolo'
+  else
+    ? 'grande'
+end
+
+? '-- selettore stringa --'
+var str s:="b"
+switch s
+  case 'a','b',"c"
+    ? 'abc'
+  else
+    ? 'altro'
+end
+
+? '-- selettore booleano --'
+var bool b:=false
+switch b
+  case true
+    ? 'vero'
+  case false
+    ? 'falso'
+end
+
+? '-- vince il primo case --'
+var int i:=2
+switch i
+  case 1,2
+    ? 'A'
+  case 2
+    ? 'B'
+end
+
+? '-- else --'
+i:=7
+switch i
+  case 0
+    ? 0
+  case 1
+    ? 1
+  else
+    ? 'altro'
+end
+
+? '-- solo else --'
+switch i
+  else
+    ? 'solo else'
+end
+
+? '-- case misti int e stringa --'
+var any m:="a"
+switch m
+  case 1,2,3
+    ? 'numero'
+  case 'a','b',"c"
+    ? 'lettera'
+end
+m:=2
+switch m
+  case 1,2,3
+    ? 'numero'
+  case 'a','b',"c"
+    ? 'lettera'
+end
+
+? '-- selettore nil --'
+m:=nil
+switch m
+  case 1
+    ? 'uno'
+  else
+    ? 'nil va in else'
+end
+
+? '-- selettore valutato una volta --'
+func int sel()
+  ? 'chiamata'
+  result:=99
+end
+switch sel()
+  case 1,2
+    ? 'a'
+  case 3,4
+    ? 'b'
+  case 5,6
+    ? 'c'
+end
+
+? '-- switch annidati --'
+proc annidato(int a, int b)
+  switch a
+    case 1
+      switch b
+        case 1
+          ? '1-1'
+        else
+          ? '1-altro'
+      end
+    case 2
+      switch b
+        case 1
+          ? '2-1'
+      end
+      ? '2-fine'
+    else
+      ? 'a-altro'
+  end
+end
+annidato(1,1)
+annidato(1,5)
+annidato(2,1)
+annidato(2,5)
+annidato(9,9)
+? 'fine'

@@ -52,6 +52,10 @@
 #define P_FOR_DOWNTO 109   // inizializza il for decrescente: variabile locale, int, passo < 0
 #define P_FOR_TEST   110   // salta alla label se la variabile ha superato la fine
 #define P_FOR_NEXT   111   // somma il passo alla variabile del for
+#define P_FOREACH_INIT 112 // sostituisce la collezione in cima allo stack con un iteratore
+#define P_FOREACH_VAR  113 // registra nell'iteratore la variabile (locale) del valore
+#define P_FOREACH_KEY  114 // registra nell'iteratore la variabile (locale) della chiave
+#define P_FOREACH_NEXT 115 // salta alla label se finito, altrimenti assegna valore e chiave
 
 // -- dichiarazioni ---
 #define P_FUNC        41
@@ -132,6 +136,6 @@
 
 #define P_IMPLEMENTS 105
 
-#define MAX_PCODE    111  // ultimo codice usato da un pcode
+#define MAX_PCODE    115  // ultimo codice usato da un pcode
 
 // --- unused: 

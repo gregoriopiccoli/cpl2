@@ -1,0 +1,38 @@
+/*
+
+   statement for: i casi che il runtime deve RIFIUTARE. Test di sola compilazione
+   (nessun .out accanto): il primo for sbagliato fa terminare il programma, quindi non
+   ci sono output attesi da confrontare; conta soltanto che le forme compilino. La
+   verifica dei rifiuti resta a mano (un caso per sorgente), le attese sono nei commenti.
+   In nessun caso il corpo viene eseguito.
+
+*/
+
+for j:=1 to 3                                  // rifiutato: j: la variabile del for deve essere dichiarata nel contesto corrente
+  ? 'corpo'
+end
+
+var int i
+
+proc p()
+  for i:=1 to 3                                // rifiutato: i e' del modulo, non del contesto della proc
+    ? 'corpo'
+  end
+end
+p()
+
+for i:=1 to 10 step 0                          // rifiutato: il passo del for con to deve essere positivo
+  ? 'corpo'
+end
+
+for i:=1 to 10 step -1                         // rifiutato: il passo del for con to deve essere positivo
+  ? 'corpo'
+end
+
+for i:=10 downto 1 step 2                      // rifiutato: il passo del for con downto deve essere negativo
+  ? 'corpo'
+end
+
+for i:=1 to 'dieci'                            // rifiutato: inizio, fine e passo del for devono essere int
+  ? 'corpo'
+end

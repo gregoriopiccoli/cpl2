@@ -1,0 +1,18 @@
+-- piu unario su costanti --
+5
+7
+-- combinato con il meno unario --
+-3
+-3
+-- piu unario su espressioni --
+5
+10
+-- la variabile non cambia --
+4
+4
+-- nessun controllo di tipo --
+a
+true
+-- piu unario nei case dello switch --
+1
+zero o due

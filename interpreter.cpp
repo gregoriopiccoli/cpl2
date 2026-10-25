@@ -387,6 +387,30 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeForeachInit: public pcode {
+public:
+  pcodeForeachInit(){code=P_FOREACH_INIT;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeForeachVar: public interningpcode {
+public:
+  explicit pcodeForeachVar(const string& v):interningpcode(v){code=P_FOREACH_VAR;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeForeachKey: public interningpcode {
+public:
+  explicit pcodeForeachKey(const string& v):interningpcode(v){code=P_FOREACH_KEY;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeForeachNext: public ipcode {
+public:
+  explicit pcodeForeachNext(int v):ipcode(v){code=P_FOREACH_NEXT;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeIfAnd: public ipcode {
 public:
   explicit pcodeIfAnd(int v):ipcode(v){code=P_IF_AND;}
@@ -589,6 +613,10 @@ pcode* makePCode(int c,const char* s){
 	case P_FOR_DOWNTO:return new pcodeForDownto(s);
 	case P_FOR_TEST:return new pcodeForTest(atoi(s));
 	case P_FOR_NEXT:return new pcodeForNext(s);
+	case P_FOREACH_INIT:return new pcodeForeachInit();
+	case P_FOREACH_VAR:return new pcodeForeachVar(s);
+	case P_FOREACH_KEY:return new pcodeForeachKey(s);
+	case P_FOREACH_NEXT:return new pcodeForeachNext(atoi(s));
 	case P_IF_AND:return new pcodeIfAnd(atoi(s));
 	case P_IF_OR:return new pcodeIfOr(atoi(s));
 	case P_NOT:return new pcodeNot();
@@ -1100,6 +1128,8 @@ public:
 	    }
 	  };
   void setelem(int idx,obj* value){a[idx]=value;}
+  int size() const {return a.size();}
+  obj* elem(int idx) const {return a[idx];}
   //
   virtual string print() const override;
 };
@@ -1139,6 +1169,9 @@ public:
   //
   obj* loadkey(const string& key){return map[key];}
   obj* storekey(const string& key, obj* value){map[key]=value;return value;}
+  // per il for each: le chiavi nell'ordine (non specificato) della hash map, e la ricerca che non inserisce
+  void chiavi(vector<string>& k) const {k.reserve(map.size());for(const auto& [key,o]:map) k.push_back(key);}
+  obj* trova(const string& key) const {auto ff=map.find(key);return ff==map.end()?nullptr:ff->second;}
 };
 
 string dictObj::print() const {
@@ -1153,6 +1186,82 @@ string dictObj::print() const {
     res="{}";  
   return res;
 }
+
+// --- gli iteratori del for each
+
+// stanno solo sullo stack, fra FOREACH_INIT e il POP di fine ciclo; i nomi delle
+// variabili li registrano FOREACH_VAR/FOREACH_KEY (-1 = nessuna variabile).
+// next() restituisce false a collezione finita; la chiave la calcola solo se serve.
+// In futuro i generatori saranno un'altra implementazione (per questo next riceve l'interprete).
+class iterObj : public obj {
+public:
+  int nomeValore=-1,nomeChiave=-1;
+  virtual bool haChiave() const {return true;}
+  virtual bool next(obj*& valore,obj*& chiave,interp& interpreter)=0;
+  virtual string print() const override {return "<iteratore>";}
+};
+
+static intObj* nuovoInt(int v){
+  if (theIntCache.size()>0) {intObj* r=theIntCache.get();r->value=v;stdGC().addRecycled(r);intrecycle++;return r;}
+  return new intObj(v);
+}
+
+// array: visita viva per posizione, la lunghezza e' riletta a ogni passo
+class arrayIter : public iterObj {
+  arrayObj* a;
+  int pos=0;
+public:
+  explicit arrayIter(arrayObj* aa):a{aa}{}
+  virtual void mark() override {if (!marked) {marked=true;a->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;if (a->generation<gen) a->expand(gen);}
+  virtual bool next(obj*& valore,obj*& chiave,interp&) override {
+	if (pos>=a->len()) return false;
+	valore=a->sliceidx(pos);
+	if (nomeChiave>=0) chiave=nuovoInt(pos);
+	pos++;
+	return true;
+  }
+};
+
+class tupleIter : public iterObj {
+  tupleObj* t;
+  int pos=0;
+public:
+  explicit tupleIter(tupleObj* tt):t{tt}{}
+  virtual void mark() override {if (!marked) {marked=true;t->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;if (t->generation<gen) t->expand(gen);}
+  virtual bool haChiave() const override {return false;}
+  virtual bool next(obj*& valore,obj*&,interp&) override {
+	if (pos>=t->size()) return false;
+	valore=t->elem(pos++);
+	return true;
+  }
+};
+
+// dizionario: le chiavi sono copiate all'inizio (un rehash invaliderebbe un iteratore
+// della hash map), il valore e' quello del momento della visita
+class dictIter : public iterObj {
+  dictObj* d;
+  vector<string> k;
+  size_t pos=0;
+public:
+  explicit dictIter(dictObj* dd):d{dd}{d->chiavi(k);}
+  virtual void mark() override {if (!marked) {marked=true;d->mark();}}
+  virtual void expand(int gen) override {if (generation<gen) generation=gen;if (d->generation<gen) d->expand(gen);}
+  virtual bool next(obj*& valore,obj*& chiave,interp&) override {
+	while (pos<k.size()) {
+	  obj* v=d->trova(k[pos]);
+	  if (v!=nullptr) {
+		valore=v;
+		if (nomeChiave>=0) chiave=new strObj(k[pos]);
+		pos++;
+		return true;
+	  }
+	  pos++;                                              // chiave che non c'e' piu': saltata
+	}
+	return false;
+  }
+};
 
 // --- i contenitori con nomi (classi, variabili locali, moduli ...)
 
@@ -2159,6 +2268,56 @@ void pcodeForNext::exec(interp& interpreter) const {
   obj* v=interpreter.context->load(value);
   if (dynamic_cast<const intObj*>(v)==nullptr) forErrore(theStringIntern.get(value)+": la variabile del for deve essere int");
   interpreter.context->store(value,v->plus(interpreter.stack[interpreter.sp]));
+}
+
+// for each: l'iteratore resta in cima allo stack per tutto il ciclo (lo toglie il POP
+// finale); le variabili sono controllate una volta sola, quando vengono registrate.
+
+// layout: [..., collezione(sp)] -> [..., iteratore(sp)]
+void pcodeForeachInit::exec(interp& interpreter) const {
+  obj* c=interpreter.stack[interpreter.sp];
+  iterObj* it=nullptr;
+  if (arrayObj* a=dynamic_cast<arrayObj*>(c)) it=new arrayIter(a);
+  else if (dictObj* d=dynamic_cast<dictObj*>(c)) it=new dictIter(d);
+  else if (tupleObj* t=dynamic_cast<tupleObj*>(c)) it=new tupleIter(t);
+  else forErrore("for each su un valore non iterabile: "+c->print());
+  interpreter.stack[interpreter.sp]=it;
+}
+
+static iterObj* foreachIter(interp& interpreter){
+  return static_cast<iterObj*>(interpreter.stack[interpreter.sp]);
+}
+
+static void foreachLocale(interp& interpreter,int nome){
+  if (!interpreter.context->isLocal(nome))
+    forErrore(theStringIntern.get(nome)+": la variabile del for each deve essere dichiarata nel contesto corrente");
+}
+
+// layout: [..., iteratore(sp)] invariato
+void pcodeForeachVar::exec(interp& interpreter) const {
+  foreachLocale(interpreter,value);
+  foreachIter(interpreter)->nomeValore=value;
+}
+
+// layout: [..., iteratore(sp)] invariato
+void pcodeForeachKey::exec(interp& interpreter) const {
+  foreachLocale(interpreter,value);
+  iterObj* it=foreachIter(interpreter);
+  if (!it->haChiave()) forErrore(theStringIntern.get(value)+": le tuple non hanno chiave");
+  it->nomeChiave=value;
+}
+
+// layout: [..., iteratore(sp)] invariato; salta alla label a collezione finita
+void pcodeForeachNext::exec(interp& interpreter) const {
+  iterObj* it=foreachIter(interpreter);
+  obj* v=nullptr;
+  obj* k=nullptr;
+  if (!it->next(v,k,interpreter)) {
+	interpreter.pc=interpreter.prg->getLabelPos(value);
+	return;
+  }
+  interpreter.context->store(it->nomeValore,v);
+  if (it->nomeChiave>=0) interpreter.context->store(it->nomeChiave,k);
 }
 
 void pcodeIfAnd::exec(interp& interpreter) const {

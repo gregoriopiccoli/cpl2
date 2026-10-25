@@ -1,0 +1,76 @@
+-- to --
+1
+2
+3
+4
+5
+-- to step 2 --
+1
+3
+5
+7
+9
+-- downto --
+5
+4
+3
+2
+1
+-- downto step -2 --
+10
+8
+6
+4
+2
+-- inizio uguale alla fine --
+3
+-- il passo raggiunge esattamente la fine --
+0
+3
+6
+9
+-- zero iterazioni --
+fine
+-- valore dopo un ciclo vuoto --
+1
+-- valore dopo un ciclo completo --
+11
+-- fine valutata una sola volta --
+1
+2
+3
+chiamata
+1
+2
+3
+-- assegnazione alla variabile nel corpo --
+1
+6
+-- for annidati --
+1
+2
+3
+2
+4
+6
+3
+6
+9
+-- for in una procedura con variabile locale --
+1
+2
+1
+2
+3
+-- parametro come variabile di ciclo --
+2
+1
+-- for con if e switch --
+uno
+due
+3
+2
+1
+altro
+1
+2

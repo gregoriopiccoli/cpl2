@@ -1,0 +1,38 @@
+-- piu' unario: convenzione della grammatica, nessun p-code e nessun controllo di tipo
+
+? '-- piu unario su costanti --'
+? +5
+? + +7
+
+? '-- combinato con il meno unario --'
+? -+3
+? +-3
+
+? '-- piu unario su espressioni --'
+? 3 + +2
+? +(2+3)*2
+
+? '-- la variabile non cambia --'
+var int i:=4
+? +i
+? i
+
+? '-- nessun controllo di tipo --'
+? +'a'
+? +true
+
+? '-- piu unario nei case dello switch --'
+var int n:=1
+switch n
+  case 0
+    ? '0'
+  case +1
+    ? '1'
+end
+n:=2
+switch n
+  case 0,+2
+    ? 'zero o due'
+  else
+    ? 'altro'
+end

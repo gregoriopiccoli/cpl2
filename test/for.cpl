@@ -1,0 +1,117 @@
+-- statement for: to/downto con e senza step, la variabile di ciclo deve essere locale
+
+var int i
+var int j
+var int n
+
+? '-- to --'
+for i:=1 to 5
+  ? i
+end
+? '-- to step 2 --'
+for i:=1 to 10 step 2
+  ? i
+end
+? '-- downto --'
+for i:=5 downto 1
+  ? i
+end
+? '-- downto step -2 --'
+for i:=10 downto 1 step -2
+  ? i
+end
+
+? '-- inizio uguale alla fine --'
+for i:=3 to 3
+  ? i
+end
+? '-- il passo raggiunge esattamente la fine --'
+for i:=0 to 9 step 3
+  ? i
+end
+
+? '-- zero iterazioni --'
+for i:=5 to 1
+  ? i
+end
+for i:=1 downto 5
+  ? i
+end
+? 'fine'
+? '-- valore dopo un ciclo vuoto --'
+? i
+
+? '-- valore dopo un ciclo completo --'
+for i:=1 to 10
+end
+? i
+
+? '-- fine valutata una sola volta --'
+n:=3
+for i:=1 to n
+  ? i
+  n:=10
+end
+
+func int fino()
+  ? 'chiamata'
+  result:=3
+end
+for i:=1 to fino()
+  ? i
+end
+
+? '-- assegnazione alla variabile nel corpo --'
+for i:=1 to 10
+  ? i
+  i:=i+4
+end
+
+? '-- for annidati --'
+for i:=1 to 3
+  for j:=1 to 3
+    ? i*j
+  end
+end
+
+? '-- for in una procedura con variabile locale --'
+proc conta(int m)
+  var int k
+  for k:=1 to m
+    ? k
+  end
+end
+conta(2)
+conta(3)
+
+? '-- parametro come variabile di ciclo --'
+proc giu(int p)
+  for p:=p downto 1
+    ? p
+  end
+end
+giu(2)
+
+? '-- for con if e switch --'
+for i:=1 to 4
+  if i=2
+    ? 'due'
+  else
+    switch i
+      case 1
+        ? 'uno'
+      case 3
+        for j:=3 downto 1 step -1
+          ? j
+        end
+      else
+        ? 'altro'
+    end
+  end
+end
+
+if true
+  for i:=1 to 2
+    ? i
+  end
+end

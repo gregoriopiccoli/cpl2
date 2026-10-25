@@ -1,0 +1,21 @@
+? '-- meno unario su costanti --'
+? -5
+? - -7
+? -0
+
+? '-- meno unario su espressioni --'
+? -(2+3)
+? 3 - -2
+? -2*3
+
+? '-- la variabile non cambia --'
+var int i:=4
+? -i
+? i
+
+? '-- la costante non cambia fra un giro e l altro --'
+var int n:=0
+while n<3
+  ? -5
+  n:=n+1
+end

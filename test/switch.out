@@ -1,0 +1,35 @@
+-- case singolo, nessun fall-through --
+uno
+zero
+due
+-- nessun match senza else --
+-- costanti negative --
+-1
+zero o meno due
+-- case con piu costanti --
+piccolo
+-- selettore stringa --
+abc
+-- selettore booleano --
+falso
+-- vince il primo case --
+A
+-- else --
+altro
+-- solo else --
+solo else
+-- case misti int e stringa --
+lettera
+numero
+-- selettore nil --
+nil va in else
+-- selettore valutato una volta --
+chiamata
+-- switch annidati --
+1-1
+1-altro
+2-1
+2-fine
+2-fine
+a-altro
+fine

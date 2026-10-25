@@ -1,0 +1,15 @@
+-- meno unario su costanti --
+-5
+7
+0
+-- meno unario su espressioni --
+-5
+5
+-6
+-- la variabile non cambia --
+-4
+4
+-- la costante non cambia fra un giro e l altro --
+-5
+-5
+-5

@@ -364,6 +364,13 @@ typedef struct forloop {
 	int last;           // label di uscita
 	char* name;         // variabile di ciclo, liberata alla fine del for
 } forloop;
+
+typedef struct foreachloop {
+	int start;          // label del test
+	int last;           // label di uscita
+	char* name;         // variabile del valore
+	char* key;          // variabile della chiave, NULL se assente
+} foreachloop;
 		
 #include "cli.c"
 #include "pcodes.c"
