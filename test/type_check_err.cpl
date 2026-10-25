@@ -20,7 +20,7 @@ func int f(int x)
 end
 f("a")                                         // rifiutata alla chiamata: il valore a non e' compatibile col tipo int
 
-func int h(int not x)
+func int h(int! x)
   result:=x+x
 end
 h(nil)                                         // rifiutata alla chiamata: il tipo not int rifiuta il nil

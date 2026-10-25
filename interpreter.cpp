@@ -2,6 +2,8 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
+  fare il check di tipo su "result"
+  trovare il modo di fare test su errori di compilazione
   la print() di func/proc/class devono mettere il nome del modulo
   fare l'import di modulo del tipo a.b.c
   provare computed goto -- FATTO almeno in parte ed è più veloce! Ho dovuto anche cambiare la getIntValue dei pcode per evitare una chiamata virtuale
@@ -37,6 +39,7 @@ using namespace std;
 
 void showIntCache();
 static int gcOpzione=0;
+static int tipocheckOpzione=0;  // accende il check di tipo nelle assegnazioni: l'interruttore e' l'opzione --typecheck/-c
 
 #include "gc.cpp"
 #include "cli.c"
@@ -1135,6 +1138,7 @@ public:
   // dire dove e' successo, e la consegna come fa il container dei builtin col
   // "name not found": messaggio su stdout e poi l'eccezione
   void checkTipo(int intern,const obj* tipo,const obj* valore) const {
+	if (!tipocheckOpzione) return;                        // senza --typecheck/-c il runtime assegna senza controllare
 	if (!tipoCompatibile(tipo,valore)) {
 	  string err=theStringIntern.get(intern)+": il valore "+valore->print()+" non e' compatibile con il tipo "+tipo->print();
 	  cout << err << endl;
@@ -1314,6 +1318,7 @@ public:
   sys(): currentDir(".") {}
   virtual ~sys(){release();};
   moduleObj* loadModule(string name);
+  void unloadModules();
   int execModule(string name);
   // 
   virtual void release(){
@@ -1464,6 +1469,10 @@ moduleObj* sys::loadModule(string name) {
     throw;
   }
   return ctx;
+}
+
+void sys::unloadModules(){
+  release();
 }
 
 int sys::execModule(string name){
@@ -2428,16 +2437,11 @@ int runModule(const string& fn){
 }
 
 int benchPcd(const string& fn){
-  pcodeProgram prg;
-  theSys.currentDir = theSys.dirOfPath(fn);
-  if (theSys.currentDir.empty()) theSys.currentDir = ".";
-  int r=prg.loadPcd(fn);  
-  if (r){
-    ankerl::nanobench::Bench().run("esegue "+fn, [&] {
-	    runPcd(fn);
-    });
-  }
-  return r?0:1;
+  ankerl::nanobench::Bench().run("esegue "+fn, [&] {
+	runModule(fn);
+	theSys.unloadModules();
+  });
+  return 0;
 }
 
 int bench_cc(){
@@ -2489,12 +2493,13 @@ void test_cc_translation(){
 static int benchOpzione=0;
 static int helpOpzione=0;
 static int testOpzione=0;
-#define N_OPT 4
+#define N_OPT 5
 static const cliOpzione tabOpzioni[N_OPT]={
   {"bench",'b',NULL,"misura il file invece di eseguirlo una volta",CLI_OPZIONE,&benchOpzione},
   {"help",'h',NULL,"stampa queste istruzioni d'uso",CLI_OPZIONE,&helpOpzione},
   {"test",'t',NULL,"esegue i test standard",CLI_OPZIONE,&testOpzione},
-  {"gc",'g',NULL,"stampa il report del garbage collector",CLI_OPZIONE,&gcOpzione}
+  {"gc",'g',NULL,"stampa il report del garbage collector",CLI_OPZIONE,&gcOpzione},
+  {"typecheck",'c',NULL,"accende il check di tipo nelle assegnazioni",CLI_OPZIONE,&tipocheckOpzione}
 };
 
 // D8 (libera): l'elenco delle opzioni non e' scritto a mano, arriva dalla stessa
@@ -2533,6 +2538,7 @@ int main(int argc, char** argv){
   helpOpzione=0;
   testOpzione=0;
   gcOpzione=0;
+  tipocheckOpzione=0;
   cliInizia(&sc,argc,argv);
   nPercorsi=cliScansiona(&sc,tabOpzioni,N_OPT,percorsi,N_OPT);
   if (sc.errore!=CLI_ERRORE_NESSUNO) {
