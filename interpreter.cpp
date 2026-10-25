@@ -35,6 +35,7 @@ FATTO:
 #include <unordered_map>
 #include <vector>
 #include <cassert>
+#include <charconv>
 //#include <deque>
 //#include <memory>
 
@@ -235,6 +236,15 @@ class pcodeStrConst: public spcode {
 public:
   explicit pcodeStrConst(const string& v);
   virtual ~pcodeStrConst() override {theValue=nullptr;}
+  virtual void exec(interp& interpreter) const override;
+  virtual obj* getObjValue() const override {return theValue;}
+};
+
+class pcodeFloatConst: public spcode {
+  lockgc_ptr<obj> theValue;	
+public:
+  explicit pcodeFloatConst(const string& v);
+  virtual ~pcodeFloatConst() override {theValue=nullptr;}
   virtual void exec(interp& interpreter) const override;
   virtual obj* getObjValue() const override {return theValue;}
 };
@@ -599,6 +609,7 @@ pcode* makePCode(int c,const char* s){
 	case P_POP:return new pcodePop();
 	case P_INT_CONST:return new pcodeIntConst(atoi(s));
 	case P_STR_CONST:return new pcodeStrConst(s);
+	case P_FLOAT_CONST:return new pcodeFloatConst(s);
 	case P_IMPORTID:return new pcodeImportId(s);
 	case P_IMPORTIDX:return new pcodeImportIdx(s);
 	case P_IMPORT:return new pcodeImport(atoi(s));
@@ -925,10 +936,23 @@ obj* boolObj::ne(const obj* o) const {
 
 class floatObj: public obj {
 public:
-    float value;
-    explicit floatObj(float f){value=f;};
-    virtual string print() const override {return to_string(value);}
+    double value;
+    explicit floatObj(double f){value=f;};
+    virtual string print() const override;
+    virtual obj* uminus() const override {return new floatObj(-value);}  // sempre un oggetto nuovo: la costante e' condivisa
+    //
+    virtual const obj* getBaseType() const override;
 };
+
+// la forma piu' corta che riletta da' lo stesso double; senza punto ne' esponente
+// si aggiunge .0, cosi' un float non si confonde mai con un intero (2.0 e non 2)
+string floatObj::print() const {
+  char buf[64];
+  auto [fine,ec]=to_chars(buf,buf+sizeof(buf),value);
+  string r(buf,fine);
+  if (r.find_first_of(".eEinfa")==string::npos) r+=".0";
+  return r;
+}
 
 // --- i tipi di base
 
@@ -960,6 +984,11 @@ lockgc_ptr<obj> theFloatType{new floatType()};
 const obj* intObj::getBaseType() const {return theIntType;}
 
 const obj* boolObj::getBaseType() const {return theBoolType;}
+
+const obj* floatObj::getBaseType() const {return theFloatType;}
+
+// l'operando e' il testo della costante come lo scrive il lexer (cifre.cifre, senza _)
+pcodeFloatConst::pcodeFloatConst(const string& v):spcode(v),theValue{new floatObj(strtod(v.c_str(),nullptr))}{code=P_FLOAT_CONST;}
 
 const intObj* intObj::check_int(const obj* o,const char* msg) const {
   if (o->getBaseType()!=theIntType) throw domain_error(msg);
@@ -2126,6 +2155,11 @@ void pcodeIntConst::exec(interp& interpreter) const {
 void pcodeStrConst::exec(interp& interpreter) const {
   interpreter.sp++;
   //interpreter.stack.push_back(new strObj(value));
+  interpreter.stack.push_back(theValue);
+}
+
+void pcodeFloatConst::exec(interp& interpreter) const {
+  interpreter.sp++;
   interpreter.stack.push_back(theValue);
 }
 

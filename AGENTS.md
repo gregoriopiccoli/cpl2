@@ -196,12 +196,19 @@ entries have the values swapped (`P_ABSTRACT`=85, `P_EVENT`=78). Trust `pcodes.h
 
 ## Don't assume a construct runs
 
-Only 75 of the 116 defined pcodes are implemented in `makePCode()`. The remaining 41 fall through
+Only 76 of the 116 defined pcodes are implemented in `makePCode()`. The remaining 40 fall through
 to `pcodeNotImpl`, which prints `not impl!` and throws `domain_error`. These compile without
 errors and then blow up at runtime: `from`/`FROM`, `class`/`end`/`end class`, `abstract`,
-`event`/`emitevent`, `try`/`catch`/`raise`, `pre`/`post`/`assert`, float/date/time/tuple constants
-and types (except the `float` type, `FLOAT_TYPE`, which runs — a float value still can't be built),
+`event`/`emitevent`, `try`/`catch`/`raise`, `pre`/`post`/`assert`, date/time/tuple constants
+and types (except the `float` type, `FLOAT_TYPE`, and float constants, which run),
 the `and`/`or` pcodes, `P_IF_TRUE`, and slice.
+
+Float constants run: `FLOAT_CONST 3.14` pushes a `floatObj` (a `double`) built once at load time
+with `strtod`, shared like the `INT_CONST` constant. It prints the shortest form that reads back
+to the same value, with `.0` appended when there is neither a dot nor an exponent (`3.140` ->
+`3.14`, `2.0` -> `2.0`, `7.` -> `7.0`). `UMINUS` works on floats and returns a new value; every
+other float operation (`+ - * /`, comparisons, mixed int/float) still throws
+`... not implemented`, and there is no promotion (`var float x := 1` is rejected by `--typecheck`).
 
 `is` runs, in both forms `is(e, T)` and `(e is T)` (`<e>`, `<T>`, `IS`: pops the type, replaces
 the value with `true`/`false`). Its rules are `tipoIs()`, deliberately **not** `tipoCompatibile()`
