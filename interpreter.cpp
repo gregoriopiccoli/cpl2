@@ -2,7 +2,8 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
-  assegnazione di int a float
+  tipi definiti dall'utente
+  operazioni negli array
   check di tipo profondo nella is per proc/func
   check di tipo in assegnazione ad array e dizionari  
   come fare ! nel tipo or?
@@ -18,6 +19,7 @@ DA FARE:
   Float e operazioni miste tra int e float
    
 FATTO: 
+  assegnazione di int a float
   iniziato il tipo float
   array & dict comprehension
   fare il check di tipo su "result"
