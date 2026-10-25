@@ -271,6 +271,7 @@ else_tok ::= ELSE EOL.                                            {emit(P_POP);}
 
 case_const ::= INT_CONST(value).                                  {emit_s(P_INT_CONST,value);dispose(&value);}
 case_const ::= MINUS INT_CONST(value).                            {char n[64];snprintf(n,sizeof(n),"-%s",value);emit_s(P_INT_CONST,n);dispose(&value);}
+case_const ::= PLUS INT_CONST(value).                             {emit_s(P_INT_CONST,value);dispose(&value);}
 case_const ::= STR_CONST(value).                                  {emit_s(P_STR_CONST,value);dispose(&value);}
 case_const ::= TRUE.                                              {emit(P_TRUE);}
 case_const ::= FALSE.                                             {emit(P_FALSE);}
@@ -397,7 +398,7 @@ mterm ::= mterm IDIV fact.                        {emit(P_IDIV);}
 
 fact ::= NOT fact.                                {emit(P_NOT);} 
 fact ::= MINUS fact.                              {emit(P_UMINUS);} 
-fact ::= PLUS fact.                               // {printf("UPLUS\n");} non serve!
+fact ::= PLUS fact.                               // + unario: convenzione della grammatica, nessun p-code e nessun controllo di tipo (a differenza di UMINUS)
 fact ::= iif_fact.
 fact ::= INT_CONST(value).                        {emit_s(P_INT_CONST,value);dispose(&value);}
 fact ::= STR_CONST(value).                        {emit_s(P_STR_CONST,value);dispose(&value);}

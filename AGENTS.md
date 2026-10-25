@@ -202,7 +202,9 @@ emits `P_COMMENT` (`"da fare ..."`) for array/dict comprehensions and `for each`
 `<const>` + `CASE Lbody` (pops the constant, jumps if equal, keeps the selector; a constant of a
 different type, or a `nil` selector, simply doesn't match), then `GOTO Lnext`; every body and the
 `else` (implicit when absent) start with `POP`, every body ends with `GOTO Lend`. No fall-through,
-first matching `case` wins. `case -1` emits a single `INT_CONST -1`, not `UMINUS`.
+first matching `case` wins. `case -1` emits a single `INT_CONST -1`, not `UMINUS`; `case +1`
+emits plain `INT_CONST 1` (unary plus emits no p-code anywhere; in a `case` only an integer
+may follow it).
 
 `for` runs (`to`/`downto`, with or without `step`). Start, end and step are evaluated once, in that
 order (a missing step is `INT_CONST 1` for `to`, `INT_CONST -1` for `downto`), then
