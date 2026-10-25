@@ -2,6 +2,8 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
+  assegnazione di int a float
+  check di tipo profondo nella is per proc/func
   check di tipo in assegnazione ad array e dizionari  
   come fare ! nel tipo or?
   trovare il modo di fare test su errori di compilazione
@@ -16,6 +18,7 @@ DA FARE:
   Float e operazioni miste tra int e float
    
 FATTO: 
+  iniziato il tipo float
   array & dict comprehension
   fare il check di tipo su "result"
   gestione del programma iniziale come modulo e gestione della path impostata dal programma di partenza
@@ -748,7 +751,21 @@ public:
   //
   //const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
   const intObj* check_int(const obj* o,const char* msg) const;
+  bool is_int(const obj* o) const;
+  double to_float(const obj* o,const char* msg) const;  // l'operando float di int op float, altrimenti msg
 };
+
+// definite dopo floatObj: int op float promuove l'int e calcola come float op float
+static obj* floatPlus(double a,double b);
+static obj* floatMinus(double a,double b);
+static obj* floatMult(double a,double b);
+static obj* floatDiv(double a,double b);
+static obj* floatEq(double a,double b);
+static obj* floatLt(double a,double b);
+static obj* floatLe(double a,double b);
+static obj* floatGe(double a,double b);
+static obj* floatGt(double a,double b);
+static obj* floatNe(double a,double b);
 
 class intCache {
   vector<intObj*> ints;
@@ -774,13 +791,15 @@ bool intObj::reclaim(){
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
 
 obj* intObj::plus(const obj* o) const {
-  const intObj* oo=check_int(o,"integer + with a non integer");
+  if (!is_int(o)) return floatPlus(value,to_float(o,"integer + with a non integer"));
+  const intObj* oo=static_cast<const intObj*>(o);
   if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;stdGC().addRecycled(v);intrecycle++;return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
-  const intObj* oo=check_int(o,"integer - with a non integer");
+  if (!is_int(o)) return floatMinus(value,to_float(o,"integer - with a non integer"));
+  const intObj* oo=static_cast<const intObj*>(o);
   if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;stdGC().addRecycled(v);intrecycle++;return v;}
   return new intObj(value-oo->value);
 }
@@ -793,12 +812,14 @@ obj* intObj::uminus() const {
 }
 
 obj* intObj::mult(const obj* o) const {
-  const intObj* oo=check_int(o,"integer * with a non integer");
+  if (!is_int(o)) return floatMult(value,to_float(o,"integer * with a non integer"));
+  const intObj* oo=static_cast<const intObj*>(o);
   return new intObj(value*oo->value);
 }
 
 obj* intObj::div(const obj* o) const {
-  const intObj* oo=check_int(o,"integer / with a non integer");
+  if (!is_int(o)) return floatDiv(value,to_float(o,"integer / with a non integer"));
+  const intObj* oo=static_cast<const intObj*>(o);
   return new intObj(value/oo->value);
 }
 
@@ -865,32 +886,38 @@ obj* nilObj::eq(const obj* o) const {
 }
 
 obj* intObj::eq(const obj* o) const {
-  const intObj* oo=check_int(o,"int op = with a non int");
+  if (!is_int(o)) return floatEq(value,to_float(o,"int op = with a non int"));
+  const intObj* oo=static_cast<const intObj*>(o);
   return (value == oo->value?theTrue:theFalse);
 }
 
 obj* intObj::lt(const obj* o) const {
-  const intObj* oo=check_int(o,"int op < with a non int");
+  if (!is_int(o)) return floatLt(value,to_float(o,"int op < with a non int"));
+  const intObj* oo=static_cast<const intObj*>(o);
   return (value < oo->value?theTrue:theFalse);
 }
 
 obj* intObj::le(const obj* o) const {
-  const intObj* oo=check_int(o,"int op < with a non int");
+  if (!is_int(o)) return floatLe(value,to_float(o,"int op < with a non int"));
+  const intObj* oo=static_cast<const intObj*>(o);
   return (value <= oo->value?theTrue:theFalse);
 }
 
 obj* intObj::ge(const obj* o) const {
-  const intObj* oo=check_int(o,"int op < with a non int");
+  if (!is_int(o)) return floatGe(value,to_float(o,"int op < with a non int"));
+  const intObj* oo=static_cast<const intObj*>(o);
   return (value >= oo->value?theTrue:theFalse);
 }
 
 obj* intObj::gt(const obj* o) const {
-  const intObj* oo=check_int(o,"int op < with a non int");
+  if (!is_int(o)) return floatGt(value,to_float(o,"int op < with a non int"));
+  const intObj* oo=static_cast<const intObj*>(o);
   return (value > oo->value?theTrue:theFalse);
 }
 
 obj* intObj::ne(const obj* o) const {
-  const intObj* oo=check_int(o,"int op < with a non int");
+  if (!is_int(o)) return floatNe(value,to_float(o,"int op < with a non int"));
+  const intObj* oo=static_cast<const intObj*>(o);
   return (value != oo->value?theTrue:theFalse);
 }
 
@@ -940,9 +967,46 @@ public:
     explicit floatObj(double f){value=f;};
     virtual string print() const override;
     virtual obj* uminus() const override {return new floatObj(-value);}  // sempre un oggetto nuovo: la costante e' condivisa
+    virtual obj* plus(const obj* o) const override;
+    virtual obj* minus(const obj* o) const override;
+    virtual obj* mult(const obj* o) const override;
+    virtual obj* div(const obj* o) const override;
+    virtual obj* eq(const obj* o) const override;
+    virtual obj* lt(const obj* o) const override;
+    virtual obj* le(const obj* o) const override;
+    virtual obj* ge(const obj* o) const override;
+    virtual obj* gt(const obj* o) const override;
+    virtual obj* ne(const obj* o) const override;
+    // mod e idiv restano quelli di obj: sono operazioni intere
     //
     virtual const obj* getBaseType() const override;
+    //
+    double check_num(const obj* o,const char* msg) const;
 };
+
+// il calcolo in double, unico per float op float, float op int e int op float;
+// l'aritmetica crea sempre un oggetto nuovo, la divisione per zero segue IEEE (inf, nan)
+static obj* floatPlus(double a,double b){return new floatObj(a+b);}
+static obj* floatMinus(double a,double b){return new floatObj(a-b);}
+static obj* floatMult(double a,double b){return new floatObj(a*b);}
+static obj* floatDiv(double a,double b){return new floatObj(a/b);}
+static obj* floatEq(double a,double b){return (a==b?theTrue:theFalse);}
+static obj* floatLt(double a,double b){return (a<b?theTrue:theFalse);}
+static obj* floatLe(double a,double b){return (a<=b?theTrue:theFalse);}
+static obj* floatGe(double a,double b){return (a>=b?theTrue:theFalse);}
+static obj* floatGt(double a,double b){return (a>b?theTrue:theFalse);}
+static obj* floatNe(double a,double b){return (a!=b?theTrue:theFalse);}
+
+obj* floatObj::plus(const obj* o) const {return floatPlus(value,check_num(o,"float + with a non number"));}
+obj* floatObj::minus(const obj* o) const {return floatMinus(value,check_num(o,"float - with a non number"));}
+obj* floatObj::mult(const obj* o) const {return floatMult(value,check_num(o,"float * with a non number"));}
+obj* floatObj::div(const obj* o) const {return floatDiv(value,check_num(o,"float / with a non number"));}
+obj* floatObj::eq(const obj* o) const {return floatEq(value,check_num(o,"float = with a non number"));}
+obj* floatObj::lt(const obj* o) const {return floatLt(value,check_num(o,"float < with a non number"));}
+obj* floatObj::le(const obj* o) const {return floatLe(value,check_num(o,"float <= with a non number"));}
+obj* floatObj::ge(const obj* o) const {return floatGe(value,check_num(o,"float >= with a non number"));}
+obj* floatObj::gt(const obj* o) const {return floatGt(value,check_num(o,"float > with a non number"));}
+obj* floatObj::ne(const obj* o) const {return floatNe(value,check_num(o,"float <> with a non number"));}
 
 // la forma piu' corta che riletta da' lo stesso double; senza punto ne' esponente
 // si aggiunge .0, cosi' un float non si confonde mai con un intero (2.0 e non 2)
@@ -987,12 +1051,27 @@ const obj* boolObj::getBaseType() const {return theBoolType;}
 
 const obj* floatObj::getBaseType() const {return theFloatType;}
 
+// un float resta com'e', un int viene promosso a double, il resto e' un errore
+double floatObj::check_num(const obj* o,const char* msg) const {
+  const obj* t=o->getBaseType();
+  if (t==theFloatType) return static_cast<const floatObj*>(o)->value;
+  if (t==theIntType) return (double)static_cast<const intObj*>(o)->value;
+  throw domain_error(msg);
+}
+
 // l'operando e' il testo della costante come lo scrive il lexer (cifre.cifre, senza _)
 pcodeFloatConst::pcodeFloatConst(const string& v):spcode(v),theValue{new floatObj(strtod(v.c_str(),nullptr))}{code=P_FLOAT_CONST;}
 
 const intObj* intObj::check_int(const obj* o,const char* msg) const {
   if (o->getBaseType()!=theIntType) throw domain_error(msg);
   return static_cast<const intObj*>(o);
+}
+
+bool intObj::is_int(const obj* o) const {return o->getBaseType()==theIntType;}
+
+double intObj::to_float(const obj* o,const char* msg) const {
+  if (o->getBaseType()!=theFloatType) throw domain_error(msg);
+  return static_cast<const floatObj*>(o)->value;
 }
 
 // --- i tipi composti

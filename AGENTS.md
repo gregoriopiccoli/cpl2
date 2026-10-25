@@ -206,9 +206,17 @@ the `and`/`or` pcodes, `P_IF_TRUE`, and slice.
 Float constants run: `FLOAT_CONST 3.14` pushes a `floatObj` (a `double`) built once at load time
 with `strtod`, shared like the `INT_CONST` constant. It prints the shortest form that reads back
 to the same value, with `.0` appended when there is neither a dot nor an exponent (`3.140` ->
-`3.14`, `2.0` -> `2.0`, `7.` -> `7.0`). `UMINUS` works on floats and returns a new value; every
-other float operation (`+ - * /`, comparisons, mixed int/float) still throws
-`... not implemented`, and there is no promotion (`var float x := 1` is rejected by `--typecheck`).
+`3.14`, `2.0` -> `2.0`, `7.` -> `7.0`). `UMINUS` works on floats and returns a new value.
+`+ - * /` and the six comparisons `= < <= >= > <>` run on floats and on mixed `int`/`float`
+operands in either order: the int is promoted to `double`, arithmetic gives a new `floatObj`
+(`2 * 1.5` -> `3.0`), comparisons give `true`/`false` (`1 = 1.0` is `true`). The computation
+lives in the free functions `floatPlus` ... `floatNe`, shared by `floatObj` and the float branch
+of `intObj`, which runs only after the int check fails, so `int op int` is unchanged (`/` between
+ints is still integer division). Division by zero follows IEEE (`inf`, `-inf`, `nan`), equality
+is exact. `mod`/`div` with a float operand are still errors, and a float with a non-number
+operand throws `float <op> with a non number`. Promotion happens only inside operators:
+`var float x := 1` and `var int i := 1 + 0.5` are rejected by `--typecheck`, and `case 1` does
+not match a `1.0` selector.
 
 `is` runs, in both forms `is(e, T)` and `(e is T)` (`<e>`, `<T>`, `IS`: pops the type, replaces
 the value with `true`/`false`). Its rules are `tipoIs()`, deliberately **not** `tipoCompatibile()`
