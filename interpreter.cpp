@@ -2876,13 +2876,14 @@ void pcodeClass::exec(interp& interpreter) const {
 }
 
 void pcodeInherit::exec(interp& interpreter) const {
-  cout << "inherith " << value << endl;	
+  cout << "inherit " << value << endl;	
 }
 
 void pcodeEndClass::exec(interp& interpreter) const {
   cout << "end declaring class " << endl;
   // ripristina il contaner del modulo
   interpreter.context=interpreter.saved_ctx;
+  // DA FARE: qui bisogna verificare se i metodi sono coerenti con le superclassi (no due nomi uguali)
 }
 
 void pcodeStoreResult::exec(interp& interpreter) const {
