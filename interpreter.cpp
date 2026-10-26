@@ -566,6 +566,19 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+
+class pcodeClass: public interningpcode {
+public:
+  explicit pcodeClass(const string& v):interningpcode(v){code=P_CLASS;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeInherit: public ipcode {
+public:
+  explicit pcodeInherit(int v):ipcode(v){code=P_INHERIT;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeEndParm: public pcode {
 public:
   pcodeEndParm(){code=P_ENDPARM;}
@@ -587,6 +600,12 @@ public:
 class pcodeEndFunc: public pcode {
 public:
   pcodeEndFunc(){code=P_ENDFUNC;}
+  virtual void exec(interp& interpreter) const override;
+};
+
+class pcodeEndClass: public pcode {
+public:
+  pcodeEndClass(){code=P_ENDCLASS;}
   virtual void exec(interp& interpreter) const override;
 };
 
@@ -643,6 +662,9 @@ pcode* makePCode(int c,const char* s){
 	case P_ENDPROC:return new pcodeEndProc();
 	case P_FUNC:return new pcodeFunc(s);
 	case P_ENDFUNC:return new pcodeEndFunc();
+	case P_CLASS:return new pcodeClass(s);
+	case P_INHERIT: return new pcodeInherit(atoi(s));
+	case P_ENDCLASS: return new pcodeEndClass();
 	case P_IF_FALSE:return new pcodeIfFalse(atoi(s));
 	case P_CASE:return new pcodeCase(atoi(s));
 	case P_FOR_TO:return new pcodeForTo(s);
@@ -1436,7 +1458,7 @@ protected:
   unordered_map<int,obj*> types;
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
-  explicit contextObj(contextObj* sl):superlevel{sl}{}   // il costruttore che specifica quale è il contesto che fa da superlevel
+  explicit contextObj(contextObj* sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
   //
   virtual void mark() override {if (!marked) {marked=true;for(auto const& [k,o]:objs) o->mark();for(auto const& [k,o]:types) o->mark();}}
   virtual void expand(int gen) override {
@@ -1671,6 +1693,31 @@ string sys::modulePathFor(const string& name, const string& baseDir) const {
   return baseDir + "/" + path;
 }
 
+class classObj: public contextObj {
+protected:
+  vector<classObj*> baseClasses;
+  int name;
+public:
+   explicit classObj(int n, interp& i);
+   virtual obj* load(int intern) override;
+};
+
+obj* classObj::load(int intern) {
+  return nullptr;
+}
+
+// istanza di una class, oggetto creato "lazy"?
+class instanceObj: public contextObj {
+  classObj* theClass;
+public:
+   virtual obj* load(int intern) override;
+};
+
+obj* instanceObj::load(int intern) {
+  // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
+  return nullptr;
+}
+
 //#define PRINT_PCODE_EXECUTION
 
 class interp {
@@ -1681,6 +1728,7 @@ public:
   pcodeProgram* prg;
   bool stop;
   gc_array_<obj>* stack_gc;
+  contextObj* saved_ctx; 
   //
   explicit interp(contextObj* c, pcodeProgram* p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{init();}
   void init(){
@@ -2011,6 +2059,11 @@ void procParm::initParms(procVars*& vars, interp& i, int parmCnt){
     i.stack.pop_back();
   i.sp-=parmCnt;  
 }
+
+classObj::classObj(int n, interp& i):contextObj{i.context}{
+  name=n;
+}
+
 
 // --- le regole di compatibilita' fra il tipo dichiarato e il valore assegnato ---
 
@@ -2810,6 +2863,26 @@ void pcodeFunc::exec(interp& interpreter) const {
   obj* f=new funcObj(value,interpreter,t);//f->lock();
   makeProcOrFunc(interpreter,value,f,t);
   t->unlock();
+}
+
+void pcodeClass::exec(interp& interpreter) const {
+  cout << "declaring class " << theStringIntern.get(value) << endl;
+  classObj* c=new classObj(value,interpreter);
+  // aggiunge l'oggetto al modulo (container corrente)
+  interpreter.context->add(value,c,c); // il tipo è la classe stessa
+  // sostituisce il container corrente in modo che variabili, procedure e funzioni vengano aggiunte alla classe	
+  interpreter.saved_ctx=interpreter.context;
+  interpreter.context=c;
+}
+
+void pcodeInherit::exec(interp& interpreter) const {
+  cout << "inherith " << value << endl;	
+}
+
+void pcodeEndClass::exec(interp& interpreter) const {
+  cout << "end declaring class " << endl;
+  // ripristina il contaner del modulo
+  interpreter.context=interpreter.saved_ctx;
 }
 
 void pcodeStoreResult::exec(interp& interpreter) const {

@@ -109,7 +109,7 @@ classcmd_list ::= classcmd_list classcmd.
 
 classcmd ::= funcdecl EOL.
 classcmd ::= procdecl EOL.
-classcmd ::= vardecl EOL.
+classcmd ::= vardecl EOL.                         {emit(P_POP);}
 classcmd ::= enum EOL.
 classcmd ::= invariant_stm EOL.
 classcmd ::= EOL.
