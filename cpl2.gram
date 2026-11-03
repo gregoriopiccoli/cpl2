@@ -426,6 +426,9 @@ fact ::= dict_compr.
 fact ::= IS LPAR expr COMMA type RPAR.            {emit(P_IS);}
 fact ::= LPAR expr IS type RPAR.                  {emit(P_IS);}
 
+// prima prova per programmi incompleti, questo diventa il punto in cui un agente può sviluppare il programma
+fact ::= MINUS QUESTIONMARK fact.
+
 // --- codice per la iif ---
 
 iif_fact ::= iif_then(N) expr RPAR.               {emit_i(P_LABEL,N);}
