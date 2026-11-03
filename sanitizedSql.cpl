@@ -1,0 +1,15 @@
+
+func bool isSanitizedSql(str s)
+  -- funzione che verifica se una stringa è una frase SQL sanitizzata
+end
+
+-- tipo che impone dei controlli ad ogni assegnazione (non ad ogni operazione ...)
+type str with isSanitizedSql(this) sanitizedSql
+
+func sanitizedSql sanitize(str s)
+  -- torna una stringa che è la frase SQL sanitizzata
+end
+
+var sanitizedSql s
+
+
