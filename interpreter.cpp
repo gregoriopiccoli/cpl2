@@ -554,6 +554,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeToDo: public spcode {
+public:
+  explicit pcodeToDo(const string& v):spcode(v){code=P_TODO;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeProc: public interningpcode {
 public:
   explicit pcodeProc(const string& v):interningpcode(v){code=P_PROC;}
@@ -696,6 +702,7 @@ pcode* makePCode(int c,const char* s){
 	case P_FUNC_TYPE:return new pcodeFuncType(atoi(s));
 	case P_LINE:return new pcodeLine(atoi(s));
 	case P_STORE_RESULT:return new pcodeStoreResult();
+	case P_TODO:return new pcodeToDo(s);
   }
   return new pcodeNotImpl(c,s);
 }
@@ -2820,6 +2827,11 @@ void pcodeLine::exec(interp& interpreter) const {
 void pcodeNotImpl::exec(interp& interpreter) const {
   cout << "pcode:" << code << " " << pcodetxt[code] << " value:" << value << " not impl!" << endl;
   throw domain_error("pcode not implemented");
+}
+
+void pcodeToDo::exec(interp& interpreter) const {
+  cout << "ToDo: " << value << " (not yet implemented!)" << endl;
+  throw domain_error("program not implemented");
 }
 
 void makeProcOrFunc(interp& interpreter, int value, obj*& p, obj* type){

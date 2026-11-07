@@ -180,6 +180,8 @@ int initpcodetxt(){
 	
 	pcodetxt[P_IMPLEMENTS]=(char*)"IMPLEMENTS"; // 105
     
+    pcodetxt[P_TODO]=(char*)"TODO"; //117
+    
     return 1;
 }
 

@@ -427,7 +427,7 @@ fact ::= IS LPAR expr COMMA type RPAR.            {emit(P_IS);}
 fact ::= LPAR expr IS type RPAR.                  {emit(P_IS);}
 
 // prima prova per programmi incompleti, questo diventa il punto in cui un agente può sviluppare il programma
-fact ::= MINUS QUESTIONMARK fact.
+fact ::= MINUS QUESTIONMARK STR_CONST(value).     {emit_s(P_TODO,value);dispose(&value);}
 
 // --- codice per la iif ---
 
