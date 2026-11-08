@@ -1961,8 +1961,10 @@ public:
 
 class funcObj: public procObj {
 protected:
+  friend class methFuncObj;
   obj* result_type;
 public:  
+  funcObj(pcodeProgram& p,obj* t):procObj(p),result_type{t}{}
   funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{/*result_type->lock();*/}
   virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual procVars* mkVars()override {return new funcVars(ctx,result_type);}
@@ -2099,21 +2101,15 @@ void classObj::call(int parmCnt,interp& interpreter){
 
 class methObj: public procObj {
 public:
-  explicit methObj(instanceObj* i, const procObj* p):procObj{p->prg}{
-    name=p->name;
-    pc=p->pc;
-    ctx=i;
-    prm=p->prm;  
-  }
-  virtual string print() const {return "<meth "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  explicit methObj(instanceObj* i, const procObj* p):procObj{p->prg}{name=p->name;pc=p->pc;ctx=i;prm=p->prm;}
+  virtual string print() const {return "<methp "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
 };
 
-/*
 class methFuncObj: public funcObj {
 public:
-  explicit methFuncObj(instanceObj* i, funcObj* f){}
+  explicit methFuncObj(instanceObj* i, const funcObj* f):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;ctx=i;prm=f->prm;}
+  virtual string print() const {return "<methf "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
 };
-*/
 
 obj* instanceObj::load(int intern) {
   // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
@@ -2127,7 +2123,7 @@ obj* instanceObj::load(int intern) {
 	switch (res->procType()){
 	  case 0:objs[intern]=res;break;
 	  case 1:res=new methObj(this,dynamic_cast<const procObj*>(res));objs[intern]=res;break;
-	  case 2:break;
+	  case 2:res=new methFuncObj(this,dynamic_cast<const funcObj*>(res));objs[intern]=res;break;
     }
 	auto ft=theClass->types.find(intern);
 	// qui bisogna mettere il tipo della variabile

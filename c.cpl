@@ -20,6 +20,9 @@ class ccc
     ? 'i:',i,' a:',a
     i:=i+1
   end
+  func int f(int x)
+    result:=x+i
+  end  
 end
 
 ? ccc
@@ -34,8 +37,10 @@ var ? c:=ccc()
 c.i:=100                           // qui assegna all'oggetto lazy "i" che è già stato creato nell'instanza quando è stato letto
 c.j:=200                           // qui crea l'oggetto lazy "j" che non era mai stato letto nell'istanza 
 ? 'c.i:',c.i,'=100 ccc.i:',ccc.i,'=12 c.j:',c.j,'=200'
-? 'c.p:',c.p,'=<meth p() -- pcode>'
+? 'c.p:',c.p,'=<methp p() -- pcode>'
+? 'c.f:',c.f,'=<methf int f(int x) -- pcode>'
 c.p()                              // siccome non esiste ancora la procedura legata all'istanza, questa chiamata si comporta come se fosse di classe ERRORE
 ? 'c.i:',c.i,'=101 ccc.i:',ccc.i,'=12'
+? 'c.f(2):',c.f(2),'=103'
 ? c
 
