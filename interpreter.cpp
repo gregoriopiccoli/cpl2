@@ -1715,25 +1715,61 @@ public:
    virtual obj* load(int intern) override;
    virtual void call(int parmCnt,interp& interpreter) override; // crea un istanza di questa classe nello stack dell'interprete
    virtual string print() const override {return "<class "+theStringIntern.get(name)+">";}
-   
 };
 	
 // istanza di una class, oggetto creato "lazy"?
 class instanceObj: public contextObj {
   classObj* theClass;
 public:
-   instanceObj(classObj* c){theClass=c;}
-   virtual obj* load(int intern) override;
-   virtual string print() const override {return "<instance of "+theStringIntern.get(theClass->name)+">";}
+  instanceObj(classObj* c){theClass=c;}
+  virtual obj* load(int intern) override;
+  virtual void store(int intern, obj* value) override;
+  // 
+  virtual string print() const override {
+    string s="";
+	for(auto& [k,t]:types){
+	  s+=","+t->print()+" "+theStringIntern.get(k)+" ("+objs.at(k)->print()+")";
+	}
+	return "<instance of "+theStringIntern.get(theClass->name)+"> ("+s+")" ;
+  }
 };
 
-obj* classObj::load(int intern) {
-  return theNil;
+obj* classObj::load(int intern) {  
+  return contextObj::load(intern);
 }
 
 obj* instanceObj::load(int intern) {
   // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
-  return theNil;
+  auto ff=objs.find(intern);  
+  if (ff!=objs.end()) return ff->second; // oggetto trovato nell'instanza
+  // --- non ha trovato l'oggetto nell'istanza, potrebbe essere nella classe
+  auto fu=theClass->objs.find(intern);  
+  if (fu!=theClass->objs.end()){ 
+	// trovato nella classe, crea nell'instanza
+	objs[intern]=fu->second; // qui bisogna creare le procedure/funzioni legate all'istanza
+	auto ft=theClass->types.find(intern);
+	// qui bisogna mettere il tipo della variabile
+	types[intern]=ft->second;
+	return fu->second;
+  }
+  string err=theStringIntern.get(intern)+" name not found in istance of class "+theStringIntern.get(theClass->name);
+  cout << err << endl;
+  throw out_of_range(err);
+}
+
+void instanceObj::store(int intern, obj* value){
+  auto ff=objs.find(intern);
+  if (ff==objs.end()) {
+	// il nome non è già noto, prova a crearlo dalla classe
+	auto fu=theClass->objs.find(intern);
+	if (fu!=theClass->objs.end()) {
+	  // trovato nella classe, lo creo sul posto
+	  objs[intern]=fu->second;
+	  types[intern]=theClass->types[intern];	
+	}
+  } 
+  // il nome ora c'è, si salva come da contenitore
+  contextObj::store(intern,value);
 }
 
 // --- il ciclo di esecuzione dei pcode ---
