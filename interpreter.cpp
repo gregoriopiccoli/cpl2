@@ -2105,7 +2105,7 @@ public:
     ctx=i;
     prm=p->prm;  
   }
-  virtual string print(){return "<method "+theStringIntern.get(name)+" >";}
+  virtual string print() const {return "<meth "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
 };
 
 /*
@@ -2121,21 +2121,25 @@ obj* instanceObj::load(int intern) {
   if (ff!=objs.end()) return ff->second; // oggetto trovato nell'istanza
   // --- non ha trovato l'oggetto nell'istanza, potrebbe essere nella classe
   auto fu=theClass->objs.find(intern);  // --- Questo è poco efficiente: continua a cercare quello che non viene trovato nella classe, costa un po' di più il passaggio dall'istanza al modulo
-  if (fu!=theClass->objs.end()){ 
+  if (fu!=theClass->objs.end()){
+	obj* res=fu->second;  
 	// trovato nella classe, crea nell'istanza
-	switch (fu->second->procType()){
-	  case 0:objs[intern]=fu->second;break;
-	  case 1:objs[intern]=new methObj(this,dynamic_cast<const procObj*>(fu->second));break;
+	switch (res->procType()){
+	  case 0:objs[intern]=res;break;
+	  case 1:res=new methObj(this,dynamic_cast<const procObj*>(res));objs[intern]=res;break;
 	  case 2:break;
     }
 	auto ft=theClass->types.find(intern);
 	// qui bisogna mettere il tipo della variabile
 	types[intern]=ft->second;
-	return fu->second;
+	return res;
   }
+  /*
   string err=theStringIntern.get(intern)+" name not found in istance of class "+theStringIntern.get(theClass->name);
   cout << err << endl;
   throw out_of_range(err);
+  */
+  return contextObj::load(intern);
 }
 
 void instanceObj::store(int intern, obj* value){
