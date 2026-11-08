@@ -103,7 +103,7 @@ classname ::= CLASS generic ID(value).            {emit_s(P_CLASS,value);dispose
 
 classinherit ::= .                                {emit_i(P_INHERIT,0);}
 classinherit ::= LPAR dottedid_list(N) RPAR.      {emit_i(P_INHERIT,N);}
-
+ 
 classcmd_list ::=.
 classcmd_list ::= classcmd_list classcmd.
 
@@ -151,6 +151,7 @@ stm ::= raise_stm EOL.
 stm ::= print_stm EOL.
 stm ::= pre_stm EOL.
 stm ::= post_stm EOL.
+stm ::= invariant_stm EOL.
 stm ::= assert_stm EOL.
 stm ::= require_stm EOL.
 stm ::= ensure_stm EOL.
