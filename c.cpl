@@ -2,12 +2,13 @@
   Primi passi con le classi e le istanze
   
   TODO:
-  1. func/proc di istanza
+  5. le procedure non settano il loro tipo, le funzioni si
   2. clonazione degli oggetti quando portati dalla classe all'istanza per evitare di modificare dall'istanza gli oggetti di classe composti come array e dizionari
   3. func/proc di classe, si deve vedere! ... o sono solo nel contenitore (modulo di modulo)?
   5. classi nella lista dei tipi di modulo
 
   DONE:
+  1. func/proc di istanza
   4. store prima di load
   
 */
@@ -31,7 +32,7 @@ ccc.i:=10
 ccc.p()
 ccc.p()
 
-var ? c:=ccc()
+var ccc c:=ccc()
 ? 'c:',c,'=<instance of ccc> ()'
 ? 'c.i:',c.i,'=12'                 // qui crea l'oggetto lazy "i" nell'istanza
 c.i:=100                           // qui assegna all'oggetto lazy "i" che è già stato creato nell'instanza quando è stato letto

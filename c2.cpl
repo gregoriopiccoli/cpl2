@@ -1,0 +1,8 @@
+import c
+
+? c.ccc
+? c.c
+
+? c.a
+
+? c.c.f(1000)
