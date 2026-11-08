@@ -1637,7 +1637,7 @@ class moduleObj: public contextObj {
   pcodeProgram* prg;	
   string name;
 public:
-  moduleObj(const string n,pcodeProgram* p):contextObj(theBuiltIn){prg=p;name=n;}
+  moduleObj(const string n,pcodeProgram* p):contextObj(theBuiltIn){name=n;prg=p;}
   virtual ~moduleObj(){release();}
   virtual void release(){
 	  if (locked) unlock();
@@ -1700,30 +1700,43 @@ string sys::modulePathFor(const string& name, const string& baseDir) const {
   return baseDir + "/" + path;
 }
 
+// --- La gestione di Classi ed Istanze ---
+
+// la classe, che è un contenitore con tutti i suoi metodi e attributi
+// definisce il metodo "call" che crea una istanza della classe
+
 class classObj: public contextObj {
 protected:
+  friend class instanceObj;
   vector<classObj*> baseClasses;
   int name;
 public:
    explicit classObj(int n, interp& i);
    virtual obj* load(int intern) override;
+   virtual void call(int parmCnt,interp& interpreter) override; // crea un istanza di questa classe nello stack dell'interprete
+   virtual string print() const override {return "<class "+theStringIntern.get(name)+">";}
+   
 };
-
-obj* classObj::load(int intern) {
-  return nullptr;
-}
-
+	
 // istanza di una class, oggetto creato "lazy"?
 class instanceObj: public contextObj {
   classObj* theClass;
 public:
+   instanceObj(classObj* c){theClass=c;}
    virtual obj* load(int intern) override;
+   virtual string print() const override {return "<instance of "+theStringIntern.get(theClass->name)+">";}
 };
+
+obj* classObj::load(int intern) {
+  return theNil;
+}
 
 obj* instanceObj::load(int intern) {
   // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
-  return nullptr;
+  return theNil;
 }
+
+// --- il ciclo di esecuzione dei pcode ---
 
 //#define PRINT_PCODE_EXECUTION
 
@@ -1811,6 +1824,11 @@ public:
 	}
   }
 };
+
+void classObj::call(int parmCnt,interp& interpreter){
+  obj* theInstance=new instanceObj(this);
+  interpreter.stack[interpreter.sp]=theInstance;
+}
 
 moduleObj* sys::loadModule(string name) {
   // cout << "module:" << name << endl;
