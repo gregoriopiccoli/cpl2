@@ -748,6 +748,8 @@ public:
   virtual obj* _not() {throw domain_error("not not implemented");}
   virtual obj* is(const obj*) {throw domain_error("is not implemented");}
   //
+  virtual int procType() {return 0;}
+  //
   virtual const obj* getBaseType() const;
 };
 
@@ -801,7 +803,7 @@ static obj* floatNe(double a,double b);
 class intCache {
   vector<intObj*> ints;
 public:
-  ~intCache(){for(auto o:ints) delete o;}  
+  virtual ~intCache(){for(auto o:ints) delete o;}  
   void add(intObj* i){ints.push_back(i);}
   intObj* get(){intObj* r=ints.back();ints.pop_back();return r;}
   int size(){return ints.size();}
@@ -1700,78 +1702,6 @@ string sys::modulePathFor(const string& name, const string& baseDir) const {
   return baseDir + "/" + path;
 }
 
-// --- La gestione di Classi ed Istanze ---
-
-// la classe, che è un contenitore con tutti i suoi metodi e attributi
-// definisce il metodo "call" che crea una istanza della classe
-
-class classObj: public contextObj {
-protected:
-  friend class instanceObj;
-  vector<classObj*> baseClasses;
-  int name;
-public:
-   explicit classObj(int n, interp& i);
-   virtual obj* load(int intern) override;
-   virtual void call(int parmCnt,interp& interpreter) override; // crea un istanza di questa classe nello stack dell'interprete
-   virtual string print() const override {return "<class "+theStringIntern.get(name)+">";}
-};
-	
-// istanza di una class, oggetto creato "lazy"?
-class instanceObj: public contextObj {
-  classObj* theClass;
-public:
-  instanceObj(classObj* c){theClass=c;}
-  virtual obj* load(int intern) override;
-  virtual void store(int intern, obj* value) override;
-  // 
-  virtual string print() const override {
-    string s="";
-	for(auto& [k,t]:types){
-	  s+=","+t->print()+" "+theStringIntern.get(k)+" ("+objs.at(k)->print()+")";
-	}
-	return "<instance of "+theStringIntern.get(theClass->name)+"> ("+s+")" ;
-  }
-};
-
-obj* classObj::load(int intern) {  
-  return contextObj::load(intern);
-}
-
-obj* instanceObj::load(int intern) {
-  // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
-  auto ff=objs.find(intern);  
-  if (ff!=objs.end()) return ff->second; // oggetto trovato nell'instanza
-  // --- non ha trovato l'oggetto nell'istanza, potrebbe essere nella classe
-  auto fu=theClass->objs.find(intern);  
-  if (fu!=theClass->objs.end()){ 
-	// trovato nella classe, crea nell'instanza
-	objs[intern]=fu->second; // qui bisogna creare le procedure/funzioni legate all'istanza
-	auto ft=theClass->types.find(intern);
-	// qui bisogna mettere il tipo della variabile
-	types[intern]=ft->second;
-	return fu->second;
-  }
-  string err=theStringIntern.get(intern)+" name not found in istance of class "+theStringIntern.get(theClass->name);
-  cout << err << endl;
-  throw out_of_range(err);
-}
-
-void instanceObj::store(int intern, obj* value){
-  auto ff=objs.find(intern);
-  if (ff==objs.end()) {
-	// il nome non è già noto, prova a crearlo dalla classe
-	auto fu=theClass->objs.find(intern);
-	if (fu!=theClass->objs.end()) {
-	  // trovato nella classe, lo creo sul posto
-	  objs[intern]=fu->second;
-	  types[intern]=theClass->types[intern];	
-	}
-  } 
-  // il nome ora c'è, si salva come da contenitore
-  contextObj::store(intern,value);
-}
-
 // --- il ciclo di esecuzione dei pcode ---
 
 //#define PRINT_PCODE_EXECUTION
@@ -1792,7 +1722,7 @@ public:
 	currentSourceLine=0;
 	stack.reserve(20);
   }
-  ~interp(){stack_gc->unlock();};
+  virtual ~interp(){stack_gc->unlock();};
   //
   
 #define RUN_WITH_SWITCH
@@ -1860,11 +1790,6 @@ public:
 	}
   }
 };
-
-void classObj::call(int parmCnt,interp& interpreter){
-  obj* theInstance=new instanceObj(this);
-  interpreter.stack[interpreter.sp]=theInstance;
-}
 
 moduleObj* sys::loadModule(string name) {
   // cout << "module:" << name << endl;
@@ -1983,13 +1908,15 @@ public:
 
 class procObj : public obj {
 protected:
+  friend class methObj;
   int name,pc;
   contextObj* ctx;
   pcodeProgram& prg;
   procParm* prm;
 public:
+  procObj(pcodeProgram& p):prg{p}{}
   procObj(int n, interp& i);
-  ~procObj() override {/*prm->unlock();*/}
+  virtual ~procObj() override {/*prm->unlock();*/}
   //
   procObj*& operator=(procObj*&) = delete;
   procObj(procObj&) = delete;
@@ -2006,6 +1933,7 @@ public:
   virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
   virtual procVars* mkVars(){return new procVars(ctx);}
+  virtual int procType() override {return 1;}
 };
 
 class funcVars: public procVars {
@@ -2038,6 +1966,7 @@ public:
   funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{/*result_type->lock();*/}
   virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual procVars* mkVars()override {return new funcVars(ctx,result_type);}
+  virtual int procType() override {return 2;}
 };
 
 procObj::procObj(int n, interp& i):ctx{i.context},prg{*i.prg}{
@@ -2121,10 +2050,108 @@ void procParm::initParms(procVars*& vars, interp& i, int parmCnt){
   i.sp-=parmCnt;  
 }
 
+// --- La gestione di Classi ed Istanze ---
+
+// la classe, che è un contenitore con tutti i suoi metodi e attributi
+// definisce il metodo "call" che crea una istanza della classe
+
+class classObj: public contextObj {
+protected:
+  friend class instanceObj;
+  vector<classObj*> baseClasses;
+  int name;
+public:
+   explicit classObj(int n, interp& i);
+   virtual obj* load(int intern) override;
+   virtual void call(int parmCnt,interp& interpreter) override; // crea un istanza di questa classe nello stack dell'interprete
+   virtual string print() const override {return "<class "+theStringIntern.get(name)+">";}
+};
+	
+// istanza di una class, oggetto creato "lazy"?
+class instanceObj: public contextObj {
+  classObj* theClass;
+public:
+  instanceObj(classObj* c):contextObj{c->superlevel}{theClass=c;} // l'istanza vede il modulo della classe come sua base, cioè le procedure eseguite nell'istanza vedono quello che vede la classe come modulo
+  virtual obj* load(int intern) override;
+  virtual void store(int intern, obj* value) override;
+  // 
+  virtual string print() const override {
+    string s="";
+	for(auto& [k,t]:types){
+	  s+=","+t->print()+" "+theStringIntern.get(k)+" ("+objs.at(k)->print()+")";
+	}
+	return "<instance of "+theStringIntern.get(theClass->name)+"> ("+s+")" ;
+  }
+};
+
 classObj::classObj(int n, interp& i):contextObj{i.context}{
   name=n;
 }
 
+obj* classObj::load(int intern) {  
+  return contextObj::load(intern);
+}
+
+void classObj::call(int parmCnt,interp& interpreter){
+  obj* theInstance=new instanceObj(this);
+  interpreter.stack[interpreter.sp]=theInstance;
+}
+
+class methObj: public procObj {
+public:
+  explicit methObj(instanceObj* i, const procObj* p):procObj{p->prg}{
+    name=p->name;
+    pc=p->pc;
+    ctx=i;
+    prm=p->prm;  
+  }
+  virtual string print(){return "<method "+theStringIntern.get(name)+" >";}
+};
+
+/*
+class methFuncObj: public funcObj {
+public:
+  explicit methFuncObj(instanceObj* i, funcObj* f){}
+};
+*/
+
+obj* instanceObj::load(int intern) {
+  // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
+  auto ff=objs.find(intern);  
+  if (ff!=objs.end()) return ff->second; // oggetto trovato nell'istanza
+  // --- non ha trovato l'oggetto nell'istanza, potrebbe essere nella classe
+  auto fu=theClass->objs.find(intern);  // --- Questo è poco efficiente: continua a cercare quello che non viene trovato nella classe, costa un po' di più il passaggio dall'istanza al modulo
+  if (fu!=theClass->objs.end()){ 
+	// trovato nella classe, crea nell'istanza
+	switch (fu->second->procType()){
+	  case 0:objs[intern]=fu->second;break;
+	  case 1:objs[intern]=new methObj(this,dynamic_cast<const procObj*>(fu->second));break;
+	  case 2:break;
+    }
+	auto ft=theClass->types.find(intern);
+	// qui bisogna mettere il tipo della variabile
+	types[intern]=ft->second;
+	return fu->second;
+  }
+  string err=theStringIntern.get(intern)+" name not found in istance of class "+theStringIntern.get(theClass->name);
+  cout << err << endl;
+  throw out_of_range(err);
+}
+
+void instanceObj::store(int intern, obj* value){
+  auto ff=objs.find(intern);
+  if (ff==objs.end()) {
+	// il nome non è già noto, prova a crearlo dalla classe
+	auto fu=theClass->objs.find(intern);
+	if (fu!=theClass->objs.end()) {
+	  // trovato nella classe, lo creo sul posto
+	  objs[intern]=fu->second;
+	  types[intern]=theClass->types[intern];	
+	}
+  } 
+  // il nome ora c'è, si salva come da contenitore
+  contextObj::store(intern,value);
+}
 
 // --- le regole di compatibilita' fra il tipo dichiarato e il valore assegnato ---
 
