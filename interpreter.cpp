@@ -1652,7 +1652,11 @@ public:
 };
 
 string moduleObj::print() const {
-  return "<module "+name+">";
+    string s="";
+	for(auto& [k,t]:types){
+	  s+=","+t->print()+" "+theStringIntern.get(k)+" ("+objs.at(k)->print()+")";
+	}  
+	return "<module "+name+">"+" "+s;
 }
 
 
@@ -2915,25 +2919,24 @@ void pcodeToDo::exec(interp& interpreter) const {
   throw domain_error("program not implemented");
 }
 
-void makeProcOrFunc(interp& interpreter, int value, obj*& p, obj* type){
+void makeProcOrFunc(interp& interpreter, int value, procObj* p, funcObj* f, obj* resultType){
   int pc;
   //cout << "proc:" << theStringIntern.get(value) << " pc:" << interpreter.pc <<endl;
   // --- aggiunge la procedura/funzione al contesto attuale
-  // -- era: shared_ptr<obj> p(new procObj(value,interpreter));
-  // per una func il nome (value) viene legato alla firma completa (result type + tipi
-  // dei parametri) e non al solo result type: altrimenti il check di scrittura
-  // rifiuterebbe il valore funcObj col tipo int. Il funcType resta in vita perche'
-  // viene messo nella mappa dei tipi del contesto, che lo marca al GC
-  obj* declared=type;
-  funcObj* fo=dynamic_cast<funcObj*>(p);
-  if (type!=(obj*)theNil && fo!=nullptr){
-	procParm* pp=fo->getParm();
+  if (p!=nullptr){
+	// crea il tipo della procedura
+	procParm* pp=p->getParm();	
+	procType* pt=new procType();
+	for(const int& q:pp->prmOrder) pt->addPrmType(pp->tipoDi(q));
+    interpreter.context->add(value,pt,p);
+  } else {
+	// crea il tipo della funzione
+	procParm* pp=f->getParm();	
 	funcType* ft=new funcType();
 	for(const int& q:pp->prmOrder) ft->addPrmType(pp->tipoDi(q));
-	ft->setRetType(type);
-	declared=ft;
+	ft->setRetType(resultType);
+    interpreter.context->add(value,ft,f);      
   }
-  interpreter.context->add(value,declared,p);
   // --- salta il codice della procedura
   pc=interpreter.pc;
   //cout << "cerca fine proc " << pc << endl;
@@ -2945,16 +2948,16 @@ void makeProcOrFunc(interp& interpreter, int value, obj*& p, obj* type){
 }
 
 void pcodeProc::exec(interp& interpreter) const {
-  obj* p=new procObj(value,interpreter);
-  makeProcOrFunc(interpreter,value,p,theNil);
+  procObj* p=new procObj(value,interpreter);
+  makeProcOrFunc(interpreter,value,p,nullptr,nullptr);
 }
 
 void pcodeFunc::exec(interp& interpreter) const {
   obj* t=interpreter.stack[interpreter.sp--];
   interpreter.stack.pop_back();t->lock();
   //cout << "declaring func " << t->print() << " " << theStringIntern.get(value) << "()" << endl;
-  obj* f=new funcObj(value,interpreter,t);//f->lock();
-  makeProcOrFunc(interpreter,value,f,t);
+  funcObj* f=new funcObj(value,interpreter,t);//f->lock();
+  makeProcOrFunc(interpreter,value,nullptr,f,t);
   t->unlock();
 }
 

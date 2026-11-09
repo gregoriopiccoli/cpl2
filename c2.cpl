@@ -1,4 +1,4 @@
-import c
+import c,c3
 
 ? c.ccc
 ? c.c
@@ -6,3 +6,5 @@ import c
 ? c.a
 
 ? c.c.f(1000)
+
+? c3
