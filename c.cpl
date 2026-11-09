@@ -44,4 +44,3 @@ c.p()                              // siccome non esiste ancora la procedura leg
 ? 'c.i:',c.i,'=101 ccc.i:',ccc.i,'=12'
 ? 'c.f(2):',c.f(2),'=103'
 ? c
-

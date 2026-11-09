@@ -1,4 +1,4 @@
-import c
+import c,c3
 
 ? c.ccc
 ? c.c
@@ -14,3 +14,6 @@ c.ccc.p()
 var c.ccc aa:=c.ccc()
 
 ? 'aa.i:',aa.i,'=13'
+? c.c.f(1000)
+
+? c3

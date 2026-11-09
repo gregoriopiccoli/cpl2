@@ -1,0 +1,8 @@
+
+func int doppio(int i)
+  result:=i+i
+end
+
+proc p(int i)
+ ? i,' ',doppio(i)
+end
