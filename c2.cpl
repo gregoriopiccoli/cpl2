@@ -5,4 +5,12 @@ import c
 
 ? c.a
 
-? c.c.f(1000)
+? 'c.c.f(1000):',c.c.f(1000),'=1101'
+c.c.p()
+? 'c.c.f(1000):',c.c.f(1000),'=1102'
+c.ccc.p()
+? 'c.ccc.i:',c.ccc.i,'=13'
+
+var c.ccc aa:=c.ccc()
+
+? 'aa.i:',aa.i,'=13'
