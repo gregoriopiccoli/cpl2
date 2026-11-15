@@ -53,14 +53,6 @@ static int tipocheckOpzione=0;  // accende il check di tipo nelle assegnazioni: 
 #include "gc.h"
 using namespace gc;
 
-// un sistema per bloccare un array di obj*
-template <class T> class gc_array_ : public GCObject {
-  vector<T*>& data;
-public:	
-  explicit gc_array_(vector<T*>& d):data{d}{lock();}
-  void trace(Tracer& t) override {for(auto& a:data)t(a);}
-};
-
 #include "cli.c"
 
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
@@ -810,23 +802,22 @@ static obj* floatGe(double a,double b);
 static obj* floatGt(double a,double b);
 static obj* floatNe(double a,double b);
 
-class intCache {
-  vector<intObj*> ints;
+template <class T> class recicler {
+  vector<T*> objs;
+  int recycled=0;
 public:
-  virtual ~intCache(){for(auto o:ints) delete o;}  
-  void add(intObj* i){ints.push_back(i);}
-  intObj* get(){intObj* r=ints.back();ints.pop_back();return r;}
-  int size(){return ints.size();}
+  virtual ~recicler(){for(auto o:objs) delete o;}
+  void add(T* o){objs.push_back(o);}  
+  T* get(){T* r=objs.back();objs.pop_back();recycled++;return r;}
+  int size(){return objs.size();}
 };
-	
-intCache theIntCache;
-int intrecycle=0;
 
-void showIntCache(){cout << "intCache size:" << theIntCache.size() << " recycled:" << intrecycle << endl;}
+recicler<intObj> theIntCache;
+
+//void showIntCache(){cout << "intCache size:" << theIntCache.size() << " recycled:" << intrecycle << endl;}
 
 void intObj::reclaim(){
   theIntCache.add(this);
-  //cout << intcache.size() << endl;
 }
 
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
@@ -834,21 +825,21 @@ pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT
 obj* intObj::plus(const obj* o) const {
   if (!is_int(o)) return floatPlus(value,to_float(o,"integer + with a non integer"));
   const intObj* oo=static_cast<const intObj*>(o);
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;stdGC().addRecycled(v);intrecycle++;return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;stdGC().addRecycled(v);return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   if (!is_int(o)) return floatMinus(value,to_float(o,"integer - with a non integer"));
   const intObj* oo=static_cast<const intObj*>(o);
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;stdGC().addRecycled(v);intrecycle++;return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;stdGC().addRecycled(v);return v;}
   return new intObj(value-oo->value);
 }
 
 obj* intObj::uminus() const {
   // negazione in aritmetica senza segno: -INT_MIN fa il giro senza comportamento indefinito
   int r=(int)(0u-(unsigned)value);
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=r;stdGC().addRecycled(v);intrecycle++;return v;}
+  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=r;stdGC().addRecycled(v);return v;}
   return new intObj(r);
 }
 
@@ -1391,7 +1382,7 @@ public:
 };
 
 static intObj* nuovoInt(int v){
-  if (theIntCache.size()>0) {intObj* r=theIntCache.get();r->value=v;stdGC().addRecycled(r);intrecycle++;return r;}
+  if (theIntCache.size()>0) {intObj* r=theIntCache.get();r->value=v;stdGC().addRecycled(r);return r;}
   return new intObj(v);
 }
 

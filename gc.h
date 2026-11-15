@@ -207,7 +207,7 @@ public:
   T* get() const {return ptr;}
   T* operator->() const {
 #ifdef GC_DEBUG
-      ptr->checkLive();
+    ptr->checkLive();
 #endif
     return ptr;
   }
@@ -251,6 +251,14 @@ public:
 };
 
 #define GC_ptr(cl,name) gc_ptr<cl> name{gc_ptr<cl>(this)}
+
+// un sistema per bloccare un array di obj*
+template <class T> class gc_array_ : public GCObject {
+  vector<T*>& data;
+public:	
+  explicit gc_array_(vector<T*>& d):data{d}{lock();}
+  void trace(Tracer& t) override {for(auto& a:data)t(a);}
+};
 
 } // namespace gc
 
