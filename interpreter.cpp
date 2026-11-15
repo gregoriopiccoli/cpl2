@@ -50,7 +50,17 @@ void showIntCache();
 static int gcOpzione=0;
 static int tipocheckOpzione=0;  // accende il check di tipo nelle assegnazioni: l'interruttore e' l'opzione --typecheck/-c
 
-#include "gc.cpp"
+#include "gc.h"
+using namespace gc;
+
+// un sistema per bloccare un array di obj*
+template <class T> class gc_array_ : public GCObject {
+  vector<T*>& data;
+public:	
+  explicit gc_array_(vector<T*>& d):data{d}{lock();}
+  void trace(Tracer& t) override {for(auto& a:data)t(a);}
+};
+
 #include "cli.c"
 
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
@@ -715,8 +725,8 @@ class obj : public GCObject {
 public:
   //obj() {theObjCounter++;}
   //virtual ~obj(){}; //{theObjCounter--; if (theObjCounter==0) cout << "no more objs ...\n";}
-  virtual void mark() override {marked=true;}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;}
+  //virtual void mark() override {marked=true;}
+  //virtual void expand(int gen) override {if (generation<gen) generation=gen;}
   //  
   virtual string print() const override {throw domain_error("print not implemented");}
   virtual obj* load(int intern) {throw domain_error("load not implemented");}
@@ -780,7 +790,7 @@ public:
   //
   virtual const obj* getBaseType() const override;
   //
-  virtual bool reclaim() override;
+  virtual void reclaim() override;
   //
   //const intObj* check_int(const obj* o,const char* msg) const {const intObj* oo=dynamic_cast<const intObj*>(o);if (oo==nullptr) throw domain_error(msg);return oo;}
   const intObj* check_int(const obj* o,const char* msg) const;
@@ -814,11 +824,9 @@ int intrecycle=0;
 
 void showIntCache(){cout << "intCache size:" << theIntCache.size() << " recycled:" << intrecycle << endl;}
 
-bool intObj::reclaim(){
-  generation=0;
+void intObj::reclaim(){
   theIntCache.add(this);
   //cout << intcache.size() << endl;
-  return false;
 }
 
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
@@ -1114,8 +1122,9 @@ class arrayType : public obj {
 	obj* atype;
 public:
     //
-    virtual void mark() override {if (!marked) {marked=true;atype->mark();}}
-    virtual void expand(int gen) override {if (generation<gen) generation=gen;if (atype->generation<gen) atype->expand(gen);}
+    //virtual void mark() override {if (!marked) {marked=true;atype->mark();}}
+    //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (atype->generation<gen) atype->expand(gen);}
+    virtual void trace(Tracer& t) override {t(atype);}
     //
     arrayType(obj* t){atype=t;};
     const obj* elem() const {return atype;}                    // il tipo degli elementi, per is
@@ -1126,8 +1135,9 @@ class dictType : public obj {
 	obj* dtype;
 public:
     //
-    virtual void mark() override {if (!marked) {marked=true;dtype->mark();}}
-    virtual void expand(int gen) override {if (generation<gen) generation=gen;if (dtype->generation<gen) dtype->expand(gen);}
+    //virtual void mark() override {if (!marked) {marked=true;dtype->mark();}}
+    //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (dtype->generation<gen) dtype->expand(gen);}
+    virtual void trace(Tracer& t) override {t(dtype);}
     //
     dictType(obj* t){dtype=t;};
     const obj* elem() const {return dtype;}                    // il tipo dei valori, per is
@@ -1139,8 +1149,9 @@ class tupleType : public obj {
 public:
     tupleType(){}
     //
-    virtual void mark() override {if (!marked) {marked=true;for(const auto& o:types) o->mark();}}
-    virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:types) {if (o->generation<gen) o->expand(gen);}}
+    //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:types) o->mark();}}
+    //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:types) {if (o->generation<gen) o->expand(gen);}}
+    virtual void trace(Tracer& t) override {for(const auto& o:types) t(o);}
     //
     virtual void addSubType(obj* t){types.push_back(t);}    
     const vector<obj*>& tipi() const {return types;}           // i tipi posizione per posizione, per is
@@ -1158,8 +1169,9 @@ class orType : public obj {
 public:
     orType(){}
     //
-    virtual void mark() override {if (!marked) {marked=true;for(const auto& o:altTypes) o->mark();}}
-    virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:altTypes) {if (o->generation<gen) o->expand(gen);}}
+    //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:altTypes) o->mark();}}
+    //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:altTypes) {if (o->generation<gen) o->expand(gen);}}
+    virtual void trace(Tracer& t) override {for(const auto& o:altTypes) t(o);}
     //
     virtual void addAltType(obj* t){altTypes.push_back(t);}
     const vector<obj*>& alts() const {return altTypes;}       // le alternative, per il controllo di tipo
@@ -1174,15 +1186,16 @@ public:
 // il tipo marcato con NOT nella dichiarazione: rifiuta il valore nil. Il tipo base
 // resta avvolto dentro, cosi' le regole di compatibilita' si applicano igualmente
 class notType : public obj {
-	obj* t;
+	obj* ty;
 public:
     //
-    virtual void mark() override {if (!marked) {marked=true;t->mark();}}
-    virtual void expand(int gen) override {if (generation<gen) generation=gen;if (t->generation<gen) t->expand(gen);}
+    //virtual void mark() override {if (!marked) {marked=true;t->mark();}}
+    //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (t->generation<gen) t->expand(gen);}
+    virtual void trace(Tracer& t) override {t(ty);}
     //
-    explicit notType(obj* bt){t=bt;}
-    obj* inter() const {return t;}                            // il tipo base avvolto dal NOT
-    virtual string print() const override {return "not "+t->print();}
+    explicit notType(obj* bt){ty=bt;}
+    obj* inter() const {return ty;}                            // il tipo base avvolto dal NOT
+    virtual string print() const override {return "not "+ty->print();}
 };
 
 class procType : public obj {
@@ -1190,8 +1203,9 @@ class procType : public obj {
 public:
     procType(){}
     //
-    virtual void mark() override {if (!marked) {marked=true;for(const auto& o:prmTypes) o->mark();}}
-    virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:prmTypes) {if (o->generation<gen) o->expand(gen);}}
+    //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:prmTypes) o->mark();}}
+    //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:prmTypes) {if (o->generation<gen) o->expand(gen);}}
+    virtual void trace(Tracer& t) override {for(const auto& o:prmTypes) t(o);}
     //
     virtual void addPrmType(obj* t){prmTypes.push_back(t);}
     virtual string print() const override {
@@ -1209,8 +1223,9 @@ class funcType : public obj {
 public:
     funcType(){}
     //
-    virtual void mark() override {if (!marked) {marked=true;for(const auto& o:prmTypes) o->mark();retType->mark();}}
-    virtual void expand(int gen) override {if (generation<gen) generation=gen;if (retType->generation<gen) retType->expand(gen);for(const auto& o:prmTypes) {if (o->generation<gen) o->expand(gen);}}
+    //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:prmTypes) o->mark();retType->mark();}}
+    //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (retType->generation<gen) retType->expand(gen);for(const auto& o:prmTypes) {if (o->generation<gen) o->expand(gen);}}
+    virtual void trace(Tracer& t) override {t(retType);for(const auto& o:prmTypes) t(o);}
     //
     virtual void addPrmType(obj* t){prmTypes.push_back(t);}
     virtual void setRetType(obj* t){retType=t;}
@@ -1231,8 +1246,9 @@ public:
   arrayObj(){}
   explicit arrayObj(const int& sz){resize(sz);}
   //
-  virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) {if (o->generation<gen) o->expand(gen);}}
+  //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
+  //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) {if (o->generation<gen) o->expand(gen);}}
+  virtual void trace(Tracer& t) override {for(const auto& o:a) t(o);}
   //
   virtual obj* slice(const obj* idx) override {
 	    const intObj* pos=dynamic_cast<const intObj*>(idx);
@@ -1279,8 +1295,9 @@ class tupleObj: public obj {
 public:
   explicit tupleObj(const int& sz){a.resize(sz);}
   //
-  virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) {if (o->generation<gen) o->expand(gen);}}
+  //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
+  //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) {if (o->generation<gen) o->expand(gen);}}
+  virtual void trace(Tracer& t) override {for(const auto& o:a) t(o);}
   //
   virtual obj* slice(const obj* idx) override {
 	    const intObj* pos=dynamic_cast<const intObj*>(idx);
@@ -1320,8 +1337,9 @@ class dictObj : public obj {
   unordered_map<string,obj*> map;
 public:
   //
-  virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:map) o->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:map) {if (o->generation<gen) o->expand(gen);}}  
+  //virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:map) o->mark();}}
+  //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:map) {if (o->generation<gen) o->expand(gen);}}  
+  virtual void trace(Tracer& t) override {for(const auto& [k,o]:map) t(o);}
   //
   virtual obj* slice(const obj* idx) override {
 	 string key=idx->print();
@@ -1383,8 +1401,10 @@ class arrayIter : public iterObj {
   int pos=0;
 public:
   explicit arrayIter(arrayObj* aa):a{aa}{}
-  virtual void mark() override {if (!marked) {marked=true;a->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;if (a->generation<gen) a->expand(gen);}
+  //virtual void mark() override {if (!marked) {marked=true;a->mark();}}
+  //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (a->generation<gen) a->expand(gen);}
+  virtual void trace(Tracer& t) override {t(a);}
+  //
   virtual bool next(obj*& valore,obj*& chiave,interp&) override {
 	if (pos>=a->len()) return false;
 	valore=a->sliceidx(pos);
@@ -1395,16 +1415,18 @@ public:
 };
 
 class tupleIter : public iterObj {
-  tupleObj* t;
+  tupleObj* tu;
   int pos=0;
 public:
-  explicit tupleIter(tupleObj* tt):t{tt}{}
-  virtual void mark() override {if (!marked) {marked=true;t->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;if (t->generation<gen) t->expand(gen);}
+  explicit tupleIter(tupleObj* tt):tu{tt}{}
+  //virtual void mark() override {if (!marked) {marked=true;t->mark();}}
+  //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (t->generation<gen) t->expand(gen);}
+  virtual void trace(Tracer& t) override {t(tu);}
+  //
   virtual bool haChiave() const override {return false;}
   virtual bool next(obj*& valore,obj*&,interp&) override {
-	if (pos>=t->size()) return false;
-	valore=t->elem(pos++);
+	if (pos>=tu->size()) return false;
+	valore=tu->elem(pos++);
 	return true;
   }
 };
@@ -1417,8 +1439,10 @@ class dictIter : public iterObj {
   size_t pos=0;
 public:
   explicit dictIter(dictObj* dd):d{dd}{d->chiavi(k);}
-  virtual void mark() override {if (!marked) {marked=true;d->mark();}}
-  virtual void expand(int gen) override {if (generation<gen) generation=gen;if (d->generation<gen) d->expand(gen);}
+  //virtual void mark() override {if (!marked) {marked=true;d->mark();}}
+  //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (d->generation<gen) d->expand(gen);}
+  virtual void trace(Tracer& t) override {t(d);}
+  //
   virtual bool next(obj*& valore,obj*& chiave,interp&) override {
 	while (pos<k.size()) {
 	  obj* v=d->trova(k[pos]);
@@ -1441,12 +1465,14 @@ class zipIter : public iterObj {
   iterObj* b;
 public:
   zipIter(iterObj* aa,iterObj* bb):a{aa},b{bb}{}
-  virtual void mark() override {if (!marked) {marked=true;a->mark();b->mark();}}
-  virtual void expand(int gen) override {
-	if (generation<gen) generation=gen;
-	if (a->generation<gen) a->expand(gen);
-	if (b->generation<gen) b->expand(gen);
-  }
+  //virtual void mark() override {if (!marked) {marked=true;a->mark();b->mark();}}
+  //virtual void expand(int gen) override {
+  //  if (generation<gen) generation=gen;
+  //  if (a->generation<gen) a->expand(gen);
+  //  if (b->generation<gen) b->expand(gen);
+  //}
+  virtual void trace(Tracer& t) override {t(a);t(b);}
+  //
   virtual bool next(obj*& valore,obj*& chiave,interp& interpreter) override;
 };
 
@@ -1469,12 +1495,16 @@ public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
   explicit contextObj(contextObj* sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
   //
-  virtual void mark() override {if (!marked) {marked=true;for(auto const& [k,o]:objs) o->mark();for(auto const& [k,o]:types) o->mark();}}
-  virtual void expand(int gen) override {
-	if (generation<gen) generation=gen;
-	for(auto const& [k,o]:objs) {if (o->generation<gen) o->expand(gen);} 
-	for(auto const& [k,o]:types) {if (o->generation<gen) o->expand(gen);}
-  }
+  //virtual void mark() override {if (!marked) {marked=true;for(auto const& [k,o]:objs) o->mark();for(auto const& [k,o]:types) o->mark();}}
+  //virtual void expand(int gen) override {
+  // if (generation<gen) generation=gen;
+  // for(auto const& [k,o]:objs) {if (o->generation<gen) o->expand(gen);} 
+  // for(auto const& [k,o]:types) {if (o->generation<gen) o->expand(gen);}
+  //}
+  virtual void trace(Tracer& t) override {
+	for(auto const& [k,o]:objs) t(o);
+	for(auto const& [k,o]:types) t(o);
+  }	
   //
   // il valore che fallisce il check di tipo: il nome in mezzo al messaggio per
   // dire dove e' successo, e la consegna come fa il container dei builtin col
@@ -1642,7 +1672,7 @@ public:
   moduleObj(const string n,pcodeProgram* p):contextObj(theBuiltIn){name=n;prg=p;}
   virtual ~moduleObj(){release();}
   virtual void release(){
-	  if (locked) unlock();
+	  if (lockCnt()) unlock();
 	  if (prg) prg->release();
 	  delete prg;
 	  prg=nullptr;
@@ -1717,7 +1747,7 @@ public:
   contextObj* context;
   pcodeProgram* prg;
   bool stop;
-  gc_array_<obj>* stack_gc;
+  gc_array_<obj> *stack_gc;
   contextObj* saved_ctx; 
   //
   explicit interp(contextObj* c, pcodeProgram* p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{init();}
@@ -1898,7 +1928,7 @@ public:
   }
   obj* tipoDi(int intern) const {                       // il tipo dichiarato del parametro, per costruire la firma
 	auto ff=types.find(intern);
-	return ff!=types.end()?ff->second:theNil;
+	return ff!=types.end()?(obj*)ff->second:(obj*)theNil;
   }
   virtual string print() const override {
 	string s="";
@@ -1927,12 +1957,13 @@ public:
   //
   procParm* getParm() const {return prm;}               // la lista dei parametri, per risalire alla firma della func
   //
-  virtual void mark() override {if (!marked) {prm->mark();ctx->mark();} obj::mark();}
-  virtual void expand(int gen) override {
-	if (prm->generation<gen) prm->expand(gen); 
-	if (ctx->generation<gen) ctx->expand(gen);
-	obj::expand(gen);
-  }  
+  //virtual void mark() override {if (!marked) {prm->mark();ctx->mark();} obj::mark();}
+  //virtual void expand(int gen) override {
+  //  if (prm->generation<gen) prm->expand(gen); 
+  //  if (ctx->generation<gen) ctx->expand(gen);
+  //  obj::expand(gen);
+  //}  
+  virtual void trace(Tracer& t) override {t(prm);t(ctx);}
   //
   virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
@@ -1947,12 +1978,13 @@ protected:
 public:	
   funcVars(contextObj* ctx,obj* t):procVars{ctx},result_type{t},result_value{theNil}{}
   //
-  virtual void mark() override {if (!marked) {result_value->mark();result_type->mark();} procVars::mark();}
-  virtual void expand(int gen) override {
-	if (result_value->generation<gen) result_value->expand(gen);
-	if (result_type->generation<gen) result_type->expand(gen);
-	procVars::expand(gen);
-  }  
+  //virtual void mark() override {if (!marked) {result_value->mark();result_type->mark();} procVars::mark();}
+  //virtual void expand(int gen) override {
+  //  if (result_value->generation<gen) result_value->expand(gen);
+  //  if (result_type->generation<gen) result_type->expand(gen);
+  //  procVars::expand(gen);
+  //}  
+  void trace(Tracer& t) override {t(result_value);t(result_type);procVars::trace(t);}
   //
   virtual void store_result(obj* value) override {
 	static const int resultIntern=theStringIntern.add("result");  // il nome nel messaggio del check, calcolato alla prima chiamata
@@ -3332,17 +3364,17 @@ int main(int argc, char** argv){
   }
   if (gcOpzione) {
     cout << "--- status on exit ---\n";  
-    stdGC().status();
+    stdGC().stats();
     //cout << "--- collect 0 ---\n";  
     //stdGC().collect(0);
-    //stdGC().status();
+    //stdGC().stats();
   }
   releaseSysObjs();
-  stdGC().collectall();
+  stdGC().collectFull();
   if (gcOpzione || stdGC().size()){
-    stdGC().status();
+    stdGC().stats();
     cout << "--- status after destruction of system objects ---\n";   
-    stdGC().status();
+    stdGC().stats();
     cout << "--- final status,locked objs ---\n";
     stdGC().printLocked();
     cout << "--- end ---\n";
