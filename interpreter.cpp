@@ -46,7 +46,6 @@ FATTO:
 
 using namespace std;
 
-void showIntCache();
 static int gcOpzione=0;
 static int tipocheckOpzione=0;  // accende il check di tipo nelle assegnazioni: l'interruttore e' l'opzione --typecheck/-c
 
@@ -1112,9 +1111,6 @@ double intObj::to_float(const obj* o,const char* msg) const {
 class arrayType : public obj {
 	obj* atype;
 public:
-    //
-    //virtual void mark() override {if (!marked) {marked=true;atype->mark();}}
-    //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (atype->generation<gen) atype->expand(gen);}
     virtual void trace(Tracer& t) override {t(atype);}
     //
     arrayType(obj* t){atype=t;};
@@ -1125,9 +1121,6 @@ public:
 class dictType : public obj {
 	obj* dtype;
 public:
-    //
-    //virtual void mark() override {if (!marked) {marked=true;dtype->mark();}}
-    //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (dtype->generation<gen) dtype->expand(gen);}
     virtual void trace(Tracer& t) override {t(dtype);}
     //
     dictType(obj* t){dtype=t;};
@@ -1140,8 +1133,6 @@ class tupleType : public obj {
 public:
     tupleType(){}
     //
-    //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:types) o->mark();}}
-    //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:types) {if (o->generation<gen) o->expand(gen);}}
     virtual void trace(Tracer& t) override {for(const auto& o:types) t(o);}
     //
     virtual void addSubType(obj* t){types.push_back(t);}    
@@ -1160,8 +1151,6 @@ class orType : public obj {
 public:
     orType(){}
     //
-    //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:altTypes) o->mark();}}
-    //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:altTypes) {if (o->generation<gen) o->expand(gen);}}
     virtual void trace(Tracer& t) override {for(const auto& o:altTypes) t(o);}
     //
     virtual void addAltType(obj* t){altTypes.push_back(t);}
@@ -1180,8 +1169,6 @@ class notType : public obj {
 	obj* ty;
 public:
     //
-    //virtual void mark() override {if (!marked) {marked=true;t->mark();}}
-    //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (t->generation<gen) t->expand(gen);}
     virtual void trace(Tracer& t) override {t(ty);}
     //
     explicit notType(obj* bt){ty=bt;}
@@ -1194,8 +1181,6 @@ class procType : public obj {
 public:
     procType(){}
     //
-    //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:prmTypes) o->mark();}}
-    //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:prmTypes) {if (o->generation<gen) o->expand(gen);}}
     virtual void trace(Tracer& t) override {for(const auto& o:prmTypes) t(o);}
     //
     virtual void addPrmType(obj* t){prmTypes.push_back(t);}
@@ -1214,8 +1199,6 @@ class funcType : public obj {
 public:
     funcType(){}
     //
-    //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:prmTypes) o->mark();retType->mark();}}
-    //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (retType->generation<gen) retType->expand(gen);for(const auto& o:prmTypes) {if (o->generation<gen) o->expand(gen);}}
     virtual void trace(Tracer& t) override {t(retType);for(const auto& o:prmTypes) t(o);}
     //
     virtual void addPrmType(obj* t){prmTypes.push_back(t);}
@@ -1237,8 +1220,6 @@ public:
   arrayObj(){}
   explicit arrayObj(const int& sz){resize(sz);}
   //
-  //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
-  //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) {if (o->generation<gen) o->expand(gen);}}
   virtual void trace(Tracer& t) override {for(const auto& o:a) t(o);}
   //
   virtual obj* slice(const obj* idx) override {
@@ -1286,8 +1267,6 @@ class tupleObj: public obj {
 public:
   explicit tupleObj(const int& sz){a.resize(sz);}
   //
-  //virtual void mark() override {if (!marked) {marked=true;for(const auto& o:a) o->mark();}}
-  //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& o:a) {if (o->generation<gen) o->expand(gen);}}
   virtual void trace(Tracer& t) override {for(const auto& o:a) t(o);}
   //
   virtual obj* slice(const obj* idx) override {
@@ -1328,8 +1307,6 @@ class dictObj : public obj {
   unordered_map<string,obj*> map;
 public:
   //
-  //virtual void mark() override {if (!marked) {marked=true;for(const auto& [k,o]:map) o->mark();}}
-  //virtual void expand(int gen) override {if (generation<gen) generation=gen;for(const auto& [k,o]:map) {if (o->generation<gen) o->expand(gen);}}  
   virtual void trace(Tracer& t) override {for(const auto& [k,o]:map) t(o);}
   //
   virtual obj* slice(const obj* idx) override {
@@ -1392,8 +1369,7 @@ class arrayIter : public iterObj {
   int pos=0;
 public:
   explicit arrayIter(arrayObj* aa):a{aa}{}
-  //virtual void mark() override {if (!marked) {marked=true;a->mark();}}
-  //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (a->generation<gen) a->expand(gen);}
+  //
   virtual void trace(Tracer& t) override {t(a);}
   //
   virtual bool next(obj*& valore,obj*& chiave,interp&) override {
@@ -1410,8 +1386,7 @@ class tupleIter : public iterObj {
   int pos=0;
 public:
   explicit tupleIter(tupleObj* tt):tu{tt}{}
-  //virtual void mark() override {if (!marked) {marked=true;t->mark();}}
-  //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (t->generation<gen) t->expand(gen);}
+  //
   virtual void trace(Tracer& t) override {t(tu);}
   //
   virtual bool haChiave() const override {return false;}
@@ -1430,8 +1405,7 @@ class dictIter : public iterObj {
   size_t pos=0;
 public:
   explicit dictIter(dictObj* dd):d{dd}{d->chiavi(k);}
-  //virtual void mark() override {if (!marked) {marked=true;d->mark();}}
-  //virtual void expand(int gen) override {if (generation<gen) generation=gen;if (d->generation<gen) d->expand(gen);}
+  //
   virtual void trace(Tracer& t) override {t(d);}
   //
   virtual bool next(obj*& valore,obj*& chiave,interp&) override {
@@ -1456,12 +1430,7 @@ class zipIter : public iterObj {
   iterObj* b;
 public:
   zipIter(iterObj* aa,iterObj* bb):a{aa},b{bb}{}
-  //virtual void mark() override {if (!marked) {marked=true;a->mark();b->mark();}}
-  //virtual void expand(int gen) override {
-  //  if (generation<gen) generation=gen;
-  //  if (a->generation<gen) a->expand(gen);
-  //  if (b->generation<gen) b->expand(gen);
-  //}
+  //
   virtual void trace(Tracer& t) override {t(a);t(b);}
   //
   virtual bool next(obj*& valore,obj*& chiave,interp& interpreter) override;
@@ -1486,12 +1455,6 @@ public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
   explicit contextObj(contextObj* sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
   //
-  //virtual void mark() override {if (!marked) {marked=true;for(auto const& [k,o]:objs) o->mark();for(auto const& [k,o]:types) o->mark();}}
-  //virtual void expand(int gen) override {
-  // if (generation<gen) generation=gen;
-  // for(auto const& [k,o]:objs) {if (o->generation<gen) o->expand(gen);} 
-  // for(auto const& [k,o]:types) {if (o->generation<gen) o->expand(gen);}
-  //}
   virtual void trace(Tracer& t) override {
 	for(auto const& [k,o]:objs) t(o);
 	for(auto const& [k,o]:types) t(o);
@@ -1948,12 +1911,6 @@ public:
   //
   procParm* getParm() const {return prm;}               // la lista dei parametri, per risalire alla firma della func
   //
-  //virtual void mark() override {if (!marked) {prm->mark();ctx->mark();} obj::mark();}
-  //virtual void expand(int gen) override {
-  //  if (prm->generation<gen) prm->expand(gen); 
-  //  if (ctx->generation<gen) ctx->expand(gen);
-  //  obj::expand(gen);
-  //}  
   virtual void trace(Tracer& t) override {t(prm);t(ctx);}
   //
   virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
@@ -1969,12 +1926,6 @@ protected:
 public:	
   funcVars(contextObj* ctx,obj* t):procVars{ctx},result_type{t},result_value{theNil}{}
   //
-  //virtual void mark() override {if (!marked) {result_value->mark();result_type->mark();} procVars::mark();}
-  //virtual void expand(int gen) override {
-  //  if (result_value->generation<gen) result_value->expand(gen);
-  //  if (result_type->generation<gen) result_type->expand(gen);
-  //  procVars::expand(gen);
-  //}  
   void trace(Tracer& t) override {t(result_value);t(result_type);procVars::trace(t);}
   //
   virtual void store_result(obj* value) override {
