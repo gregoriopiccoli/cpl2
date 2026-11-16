@@ -18,7 +18,8 @@ DA FARE:
   La print di una procedura/funzione dovrebbe descriverla completamente, ora lo fa per le proc/func cpl ma devo riuscire anche per quelle c++
   Float e operazioni miste tra int e float
    
-FATTO: 
+FATTO:
+  fatta la cache di Int, frame di Funzioni, frame di Procedure: guadagnato il 20%! 
   assegnazione di int a float
   iniziato il tipo float
   array & dict comprehension
@@ -1871,6 +1872,8 @@ public:
 
 recycler<procVars> theProcVarsRecycler;
 
+void showProcVarsRecycler(){cout << "ProcVars size:" << theProcVarsRecycler.size() << " recycled:" << theProcVarsRecycler.recycled << endl;}
+
 void procVars::reclaim(){
   superlevel=nullptr;
   objs.clear();
@@ -1962,7 +1965,7 @@ public:
 
 recycler<funcVars> theFuncVarsRecycler;
 
-//void showFuncVarsRecycler(){cout << "FuncVars size:" << theFuncVarsRecycler.size() << " recycled:" << theFuncVarsRecycler.recycled << endl;}
+void showFuncVarsRecycler(){cout << "FuncVars size:" << theFuncVarsRecycler.size() << " recycled:" << theFuncVarsRecycler.recycled << endl;}
 
 void funcVars::reclaim() {
   superlevel=nullptr;
