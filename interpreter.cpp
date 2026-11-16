@@ -801,44 +801,45 @@ static obj* floatGe(double a,double b);
 static obj* floatGt(double a,double b);
 static obj* floatNe(double a,double b);
 
-template <class T> class recicler {
+template <class T> class recycler {
   vector<T*> objs;
-  int recycled=0;
 public:
-  virtual ~recicler(){for(auto o:objs) delete o;}
+  int recycled=0;
+  virtual ~recycler(){for(auto o:objs) delete o;}
   void add(T* o){objs.push_back(o);}  
   T* get(){T* r=objs.back();objs.pop_back();recycled++;return r;}
   int size(){return objs.size();}
+  T* recycle(){return (size()>0)?get():nullptr;}
 };
 
-recicler<intObj> theIntCache;
-
-//void showIntCache(){cout << "intCache size:" << theIntCache.size() << " recycled:" << intrecycle << endl;}
+recycler<intObj> theIntRecycler;
 
 void intObj::reclaim(){
-  theIntCache.add(this);
+  theIntRecycler.add(this);
 }
+
+//void showIntCache(){cout << "intCache size:" << theIntRecycler.size() << " recycled:" << intrecycle << endl;}
 
 pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT_CONST;}
 
 obj* intObj::plus(const obj* o) const {
   if (!is_int(o)) return floatPlus(value,to_float(o,"integer + with a non integer"));
   const intObj* oo=static_cast<const intObj*>(o);
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value+oo->value;stdGC().addRecycled(v);return v;}
+  if (theIntRecycler.size()>0) {intObj* v=theIntRecycler.get();v->value=value+oo->value;stdGC().addRecycled(v);return v;}
   return new intObj(value+oo->value);
 }
 
 obj* intObj::minus(const obj* o) const {
   if (!is_int(o)) return floatMinus(value,to_float(o,"integer - with a non integer"));
   const intObj* oo=static_cast<const intObj*>(o);
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=value-oo->value;stdGC().addRecycled(v);return v;}
+  if (theIntRecycler.size()>0) {intObj* v=theIntRecycler.get();v->value=value-oo->value;stdGC().addRecycled(v);return v;}
   return new intObj(value-oo->value);
 }
 
 obj* intObj::uminus() const {
   // negazione in aritmetica senza segno: -INT_MIN fa il giro senza comportamento indefinito
   int r=(int)(0u-(unsigned)value);
-  if (theIntCache.size()>0) {intObj* v=theIntCache.get();v->value=r;stdGC().addRecycled(v);return v;}
+  if (theIntRecycler.size()>0) {intObj* v=theIntRecycler.get();v->value=r;stdGC().addRecycled(v);return v;}
   return new intObj(r);
 }
 
@@ -1359,7 +1360,7 @@ public:
 };
 
 static intObj* nuovoInt(int v){
-  if (theIntCache.size()>0) {intObj* r=theIntCache.get();r->value=v;stdGC().addRecycled(r);return r;}
+  if (theIntRecycler.size()>0) {intObj* r=theIntRecycler.get();r->value=v;stdGC().addRecycled(r);return r;}
   return new intObj(v);
 }
 
@@ -1636,11 +1637,14 @@ public:
 };
 
 string moduleObj::print() const {
+	/*
     string s="";
 	for(auto& [k,t]:types){
 	  s+=","+t->print()+" "+theStringIntern.get(k)+" ("+objs.at(k)->print()+")";
 	}  
 	return "<module "+name+">"+" "+s;
+	*/
+	return "<module "+name+">";
 }
 
 
@@ -1860,7 +1864,19 @@ class procVars : public contextObj {
 public:	
   explicit procVars(contextObj* ctx):contextObj{ctx}{}
   virtual obj* getResult(){return theNil;}
+  //
+  virtual void reclaim();
+  virtual void recycle(contextObj* ctx){superlevel=ctx;}
 };
+
+recycler<procVars> theProcVarsRecycler;
+
+void procVars::reclaim(){
+  superlevel=nullptr;
+  objs.clear();
+  types.clear();	
+  theProcVarsRecycler.add(this);
+}
 
 class procParm : public contextObj  {
 public:
@@ -1915,7 +1931,11 @@ public:
   //
   virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
-  virtual procVars* mkVars(){return new procVars(ctx);}
+  virtual procVars* mkVars(){
+	procVars* r=theProcVarsRecycler.recycle();  
+	if (r!=nullptr) {r->recycle(ctx);stdGC().addRecycled(r);return r;}
+	return new procVars(ctx);
+  }
   virtual int procType() override {return 1;}
 };
 
@@ -1935,7 +1955,23 @@ public:
 	result_value=value;
   }
   virtual obj* getResult() override {return result_value;}
+  //
+  virtual void reclaim();
+  virtual void recycle(contextObj* ctx,obj* t){superlevel=ctx;result_type=t;result_value=theNil;}
 };
+
+recycler<funcVars> theFuncVarsRecycler;
+
+//void showFuncVarsRecycler(){cout << "FuncVars size:" << theFuncVarsRecycler.size() << " recycled:" << theFuncVarsRecycler.recycled << endl;}
+
+void funcVars::reclaim() {
+  superlevel=nullptr;
+  objs.clear();
+  types.clear();	
+  result_type=nullptr;
+  result_value=nullptr;
+  theFuncVarsRecycler.add(this);
+}
 
 class funcObj: public procObj {
 protected:
@@ -1945,7 +1981,11 @@ public:
   funcObj(pcodeProgram& p,obj* t):procObj(p),result_type{t}{}
   funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{/*result_type->lock();*/}
   virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
-  virtual procVars* mkVars()override {return new funcVars(ctx,result_type);}
+  virtual procVars* mkVars()override {
+	funcVars* r=theFuncVarsRecycler.recycle();  
+	if (r!=nullptr) {r->recycle(ctx,result_type);stdGC().addRecycled(r);return r;}
+	return new funcVars(ctx,result_type);
+  }
   virtual int procType() override {return 2;}
 };
 
