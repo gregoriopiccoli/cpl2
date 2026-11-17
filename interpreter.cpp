@@ -38,12 +38,10 @@ FATTO:
 #include <fstream>
 #include <string>
 #include <cstring>
-#include <unordered_map>
 #include <vector>
 #include <cassert>
 #include <charconv>
-//#include <deque>
-//#include <memory>
+#include "ankler/unordered_dense.h"
 
 using namespace std;
 
@@ -58,7 +56,7 @@ using namespace gc;
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
 
 class StringIntern {
-   unordered_map<string,int> map;  // mappa di interning delle stringhe
+   ankerl::unordered_dense::map<string,int> map;  // mappa di interning delle stringhe
    vector<string> imap;            // mappa inversa per riavere il valore rapidamente (si può migliorare, così salva due volte le stringhe)
    int n=0;
 public:
@@ -628,7 +626,7 @@ string tupleObj::print() const {
 }
 
 class dictObj : public obj {
-  unordered_map<string,obj*> map;
+  ankerl::unordered_dense::map<string,obj*> map;
 public:
   //
   virtual void trace(Tracer& t) override {for(const auto& [k,o]:map) t(o);}
@@ -652,7 +650,7 @@ public:
   // per il for each: le chiavi nell'ordine (non specificato) della hash map, e la ricerca che non inserisce
   void chiavi(vector<string>& k) const {k.reserve(map.size());for(const auto& [key,o]:map) k.push_back(key);}
   obj* trova(const string& key) const {auto ff=map.find(key);return ff==map.end()?nullptr:ff->second;}
-  const unordered_map<string,obj*>& elementi() const {return map;} // chiavi e valori in sola lettura, per is
+  const ankerl::unordered_dense::map<string,obj*>& elementi() const {return map;} // chiavi e valori in sola lettura, per is
 };
 
 string dictObj::print() const {
@@ -773,8 +771,8 @@ obj* adattaTipo(const obj* tipo,obj* valore);
 class contextObj : public obj {
 protected:
   contextObj* superlevel;                               // il contesto dove verranno cercate tutte le etichette non trovate in questo contesto
-  unordered_map<int,obj*> objs;              
-  unordered_map<int,obj*> types;
+  ankerl::unordered_dense::map<int,obj*> objs;              
+  ankerl::unordered_dense::map<int,obj*> types;
 public:
   contextObj();                                         // se non viene specificato un superlevel il superlevel sarà built-in
   explicit contextObj(contextObj* sl):superlevel{sl}{}  // il costruttore che specifica quale è il contesto che fa da superlevel
@@ -974,7 +972,7 @@ string moduleObj::print() const {
 class sys {
 public:
   // i moduli caricati
-  unordered_map<string,moduleObj*> modules;
+  ankerl::unordered_dense::map<string,moduleObj*> modules;
   string currentDir;
   // dei valori che esistono sempre
   // metodi del sistema 
@@ -1209,7 +1207,7 @@ public:
   // bookkeeping dei default: per ogni parametro con valore di default memorizza
   // l'intervallo p-code [inizio espressione, posizione di ENDPARM_DEFAULT];
   // nessuna voce per il parametro = nessun default (sentinella)
-  unordered_map<int,pair<int,int>> defExp;
+  ankerl::unordered_dense::map<int,pair<int,int>> defExp;
   void add(int intern, obj* type) override {
 	contextObj::add(intern,type);
 	prmOrder.push_back(intern);
