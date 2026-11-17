@@ -56,8 +56,8 @@ using namespace gc;
 // --- gestione della lista delle stringhe che fanno da identificatori, vengono poste in una lista e viene assegnato un numero progressivo
 
 class StringIntern {
-   ankerl::unordered_dense::map<string,int> map;  // mappa di interning delle stringhe
-   vector<string> imap;            // mappa inversa per riavere il valore rapidamente (si può migliorare, così salva due volte le stringhe)
+   ankerl::unordered_dense::map<string,int> map; // mappa di interning delle stringhe
+   vector<string> imap;                          // mappa inversa per riavere il valore rapidamente (si può migliorare, così salva due volte le stringhe)
    int n=0;
 public:
    int add(string s){

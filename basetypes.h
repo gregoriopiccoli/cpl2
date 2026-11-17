@@ -1,5 +1,18 @@
 #pragma once
 
+/*
+
+  Le classi per i vari tipi di base: nil, Int, Str, Bool, Float,
+  
+  Ogni tipo di base ha una classe che implementa le operazioni. La base "obj" non implememta nessuna operazioni, i tipi
+  di base implmentano tutte le operazioni.
+  
+  Per ogni tipo di base viene creata una classe, alcune classi hanno una lista per ricilare i valori già creati.
+  Questo permette di non allocare nuova memoria (operazione lenta) per tanti nuovi oggetti, ma viene riusato un oggetto dismesso
+  in precedenza.
+
+*/
+
 class nilObj: public obj {
 public:
   virtual string print() const override {return "nil";}
