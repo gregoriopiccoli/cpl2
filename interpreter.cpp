@@ -178,26 +178,6 @@ pcodeIntConst::pcodeIntConst(int v):ipcode(v),theValue{new intObj(v)}{code=P_INT
 
 pcodeStrConst::pcodeStrConst(const string& v):spcode(v),theValue{new strObj(v)}{code=P_STR_CONST;}
 
-
-const boolObj* boolObj::check_bool(const obj* o,const char*  msg) const {
-  if (o!=theTrue && o!=theFalse) throw domain_error(msg);
-  return static_cast<const boolObj*>(o);
-}
-
-// il calcolo in double, unico per float op float, float op int e int op float;
-// l'aritmetica crea sempre un oggetto nuovo, la divisione per zero segue IEEE (inf, nan)
-static obj* floatPlus(double a,double b){return new floatObj(a+b);}
-static obj* floatMinus(double a,double b){return new floatObj(a-b);}
-static obj* floatMult(double a,double b){return new floatObj(a*b);}
-static obj* floatDiv(double a,double b){return new floatObj(a/b);}
-static obj* floatEq(double a,double b){return (a==b?theTrue:theFalse);}
-static obj* floatLt(double a,double b){return (a<b?theTrue:theFalse);}
-static obj* floatLe(double a,double b){return (a<=b?theTrue:theFalse);}
-static obj* floatGe(double a,double b){return (a>=b?theTrue:theFalse);}
-static obj* floatGt(double a,double b){return (a>b?theTrue:theFalse);}
-static obj* floatNe(double a,double b){return (a!=b?theTrue:theFalse);}
-
-
 // --- i tipi di base
 
 class intType: public obj {

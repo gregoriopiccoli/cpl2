@@ -103,8 +103,6 @@ obj* intObj::ne(const obj* o) const {
   return (value != oo->value?theTrue:theFalse);
 }
 
-
-
 obj* strObj::plus(const obj* o) const {
   const strObj* oo=check_str(o,"str + with a non str");
   return new strObj(value + oo->value);
@@ -148,6 +146,11 @@ obj* boolObj::eq(const obj* o) const {
 obj* boolObj::ne(const obj* o) const {
   const boolObj* oo=check_bool(o,"bool <> with a non bool");
   return (value != oo->value ? theTrue : theFalse);
+}
+
+const boolObj* boolObj::check_bool(const obj* o,const char*  msg) const {
+  if (o!=theTrue && o!=theFalse) throw domain_error(msg);
+  return static_cast<const boolObj*>(o);
 }
 
 // il calcolo in double, unico per float op float, float op int e int op float;
