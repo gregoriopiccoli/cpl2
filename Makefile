@@ -1,7 +1,10 @@
 all: interpreter compiler asm runtest
 
-interpreter: interpreter.cpp pcodes.c pcodes.h cli.c gc.h gccommon.h
-	c++ -g -O2 interpreter.cpp -o interpreter
+interpreter: interpreter.cpp pcodes.c pcodes.h cli.c gc.h gccommon.h basetypes.o
+	c++ -g -O2 interpreter.cpp basetypes.o -o interpreter
+
+basetypes.o: basetypes.h basetypes.cpp recycler.h gc.h cplobject.h
+	c++ -c basetypes.cpp
 
 compiler: parser.c cpl2.c cpl2.h pcodes.h pcodes.c emit.c cli.c
 	cc parser.c -o compiler

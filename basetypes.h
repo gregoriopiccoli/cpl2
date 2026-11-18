@@ -11,7 +11,11 @@
   Questo permette di non allocare nuova memoria (operazione lenta) per tanti nuovi oggetti, ma viene riusato un oggetto dismesso
   in precedenza.
 
+  Vengono create delle costanti per i valori più usati.
+  
 */
+
+#include "recycler.h"
 
 class nilObj: public obj {
 public:
@@ -113,3 +117,9 @@ public:
     double check_num(const obj* o,const char* msg) const;
 };
 
+// i singleton degli oggetti che non richiedono tante copie ...
+extern lockgc_ptr<obj> theTrue;
+extern lockgc_ptr<obj> theFalse;
+extern lockgc_ptr<obj> theNil;
+
+extern recycler<intObj> theIntRecycler;

@@ -538,3 +538,29 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 	
+class pcodeProgram {
+protected:	
+  vector<pcode*> prg;    // i pcode che costituiscono il programma
+  vector<int> labelPos;  // la posizione delle label nel pcode, per effettuare i salti
+public:
+  virtual ~pcodeProgram(){release();}
+  void add(pcode* p){
+	prg.push_back(p);
+	if (p->getCode()==P_LABEL) putLabelPos(p->getIntValue());
+  }
+  const pcode& get(int i){return *prg[i];}
+  int getLabelPos(int l){return labelPos[l];}
+  int loadPcd(string fn);
+  void putLabelPos(int id){
+	if ((int)labelPos.size()<=id) labelPos.resize(id+1);
+ 	labelPos[id]=prg.size()-1;
+  }
+  const pcode& operator[](int i) const {return *prg[i];}
+  int size() const {return (int)prg.size();}
+  void release(){
+	//cout << "elimina i pcode del programma" << endl; 
+	for(auto p:prg) delete p;
+	prg.clear();
+	labelPos.clear();
+  }
+};
