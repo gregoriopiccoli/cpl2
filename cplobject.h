@@ -1,7 +1,16 @@
 #pragma once
 
+#include "gc.h"
+
 // --- gli oggetti dell'esecuzione dell'interprete
 
+/*
+   Tutti gli oggetti derivano da un oggetto base "obj", qui definito.
+   E' un oggetto garbage collected, che espone tutti i metodi che i vari sottotipi possono decidere di implementare.
+   Ognoi oggetto reale sarà una istanza di questo oggetto.
+ 
+*/
+ 
 class obj : public GCObject {
 public:
   //  

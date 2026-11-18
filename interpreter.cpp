@@ -87,6 +87,7 @@ class obj;
 #include "cplobject.h"
 
 #include "basetypes.h"
+#include "basetypes.cpp"
 	
 pcode* makePCode(int c,const char* s){
   switch(c){
