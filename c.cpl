@@ -27,10 +27,10 @@ class ccc
 end
 
 ? ccc
-ccc.i:=10
-? 'cccc.i=',ccc.i,' cccc.k=',ccc.k,' ccc.p=',ccc.p
-ccc.p()
-ccc.p()
+-- ccc.i:=10
+-- ? 'cccc.i=',ccc.i,' cccc.k=',ccc.k,' ccc.p=',ccc.p
+? ccc.p
+--ccc.p()
 
 var ccc c:=ccc()
 ? 'c:',c,'=<instance of ccc> ()'

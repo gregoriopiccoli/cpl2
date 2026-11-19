@@ -1017,6 +1017,7 @@ public:
 class procObj : public obj {
 protected:
   friend class methObj;
+  friend class unboundMethObj;
   int name,pc;
   contextObj* ctx;
   pcodeProgram& prg;
@@ -1080,6 +1081,7 @@ void funcVars::reclaim() {
 class funcObj: public procObj {
 protected:
   friend class methFuncObj;
+  friend class unboundMethFuncObj;
   obj* result_type;
 public:  
   funcObj(pcodeProgram& p,obj* t):procObj(p),result_type{t}{}
@@ -1208,18 +1210,19 @@ public:
   }
 };
 
-classObj::classObj(int n, interp& i):contextObj{i.context}{
-  name=n;
-}
+class unboundMethObj: public procObj {
+public:
+  explicit unboundMethObj(const procObj* p):procObj{p->prg}{name=p->name;pc=p->pc;prm=p->prm;}
+  virtual string print() const {return "<unbound methp "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  virtual void call(int parmCnt,interp& interpreter) override {throw domain_error("calling unbound method ... ");}
+};
 
-obj* classObj::load(int intern) {  
-  return contextObj::load(intern);
-}
-
-void classObj::call(int parmCnt,interp& interpreter){
-  obj* theInstance=new instanceObj(this);
-  interpreter.stack[interpreter.sp]=theInstance;
-}
+class unboundMethFuncObj: public funcObj {
+public:
+  explicit unboundMethFuncObj(const funcObj* f):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;prm=f->prm;}
+  virtual string print() const {return "<unbound methf "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  virtual void call(int parmCnt,interp& interpreter) override {throw domain_error("calling unbound methodf ... ");}
+};
 
 class methObj: public procObj {
 public:
@@ -1232,6 +1235,29 @@ public:
   explicit methFuncObj(instanceObj* i, const funcObj* f):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;ctx=i;prm=f->prm;}
   virtual string print() const {return "<methf "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
 };
+
+classObj::classObj(int n, interp& i):contextObj{i.context}{
+  name=n;
+}
+
+obj* classObj::load(int intern) { 
+  auto fu=objs.find(intern);  // --- Questo è poco efficiente: continua a cercare quello che non viene trovato nella classe, costa un po' di più il passaggio dall'istanza al modulo
+  if (fu!=objs.end()){
+	obj* res=fu->second;  
+	// trovato nella classe, crea nell'istanza
+	switch (res->procType()){
+	  case 1:return new unboundMethObj(dynamic_cast<const procObj*>(res));
+	  case 2:return new unboundMethFuncObj(dynamic_cast<const funcObj*>(res));
+    }
+  }	 
+  //return contextObj::load(intern);
+  throw domain_error("loading object from class ... ");
+}
+
+void classObj::call(int parmCnt,interp& interpreter){
+  obj* theInstance=new instanceObj(this);
+  interpreter.stack[interpreter.sp]=theInstance;
+}
 
 obj* instanceObj::load(int intern) {
   // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
