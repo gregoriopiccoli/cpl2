@@ -1269,6 +1269,14 @@ void classObj::call(int parmCnt,interp& interpreter){
 
 void classObj::addBaseClass(classObj* d){
   baseClasses.push_back(d);
+  // ora deve aggiungere tutto quello che trova nella classe base a questa nuova classe
+  // bisognerà poi gestire i doppi
+  cout << "class " << d->print() << endl;
+  for(auto& [k,v]:d->objs) {
+    //cout << " k:" << k << " value:" << v->print() << " types:" << d->types[k]->print() << endl;
+    objs[k]=v;
+    types[k]=d->types[k];
+  }
 }
 
 obj* instanceObj::load(int intern) {
@@ -2118,7 +2126,7 @@ void pcodeFunc::exec(interp& interpreter) const {
 }
 
 void pcodeClass::exec(interp& interpreter) const {
-  cout << "declaring class " << theStringIntern.get(value) << endl;
+  //cout << "declaring class " << theStringIntern.get(value) << endl;
   classObj* c=new classObj(value,interpreter.context);
   // aggiunge l'oggetto al modulo (container corrente)
   interpreter.context->add(value,c,c); // il tipo è la classe stessa
@@ -2127,14 +2135,15 @@ void pcodeClass::exec(interp& interpreter) const {
 }
 
 void pcodeInherit::exec(interp& interpreter) const {
-  cout << "inherit " << value << endl;	
+  //cout << "inherit " << value << endl;	
   // mette la lista delle classi da cui deriva 
   classObj* c=interpreter.pending_class;
   int i;
   for(i=0;i<value;i++){
 	classObj* d=static_cast<classObj*>(interpreter.stack[interpreter.sp-value+1+i]);
-    c->addBaseClass(d);
+    c->addBaseClass(d); 
   }
+  // toglie le classi dallo stack
   for(i=0;i<value;i++) interpreter.stack.pop_back();
   interpreter.sp-=value;
   // sostituisce il container corrente in modo che variabili, procedure e funzioni vengano aggiunte alla classe	
@@ -2143,7 +2152,7 @@ void pcodeInherit::exec(interp& interpreter) const {
 }
 
 void pcodeEndClass::exec(interp& interpreter) const {
-  cout << "end declaring class " << endl;
+  //cout << "end declaring class " << endl;
   // ripristina il contaner del modulo
   interpreter.context=interpreter.saved_ctx;
   // DA FARE: qui bisogna verificare se i metodi sono coerenti con le superclassi (no due nomi uguali)

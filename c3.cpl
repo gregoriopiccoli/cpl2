@@ -8,9 +8,21 @@ proc p(int i)
 end
 
 class alfa
-  var int i,j,k
+  var int i:=10,j,k:=100
+  func int addi(int a)
+    result:=a+i
+  end  
 end
 
 class beta(alfa)
   var str s
+  func int addkkk(int a)
+    result:=addi(a)+kkk
+  end  
 end    
+
+var int kkk:=1000000
+
+? alfa().addi(10)
+? beta().addi(1)
+? beta().addkkk(1)
