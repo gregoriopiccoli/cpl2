@@ -137,9 +137,8 @@ typedecl ::= TYPE type ID(value).                 {emit_s(P_COMMENT,"da fare use
 
 stm_list ::= stm_list stm.
 stm_list ::= .
- 
-stm ::= expr EOL.                                 {emit(P_POP);}
-stm ::= vardecl EOL.                              {emit(P_POP);}
+
+// statement che costiuiscono un blocco e possono avere nuove variabili all'interno
 stm ::= if_stm EOL.
 stm ::= switch_stm EOL.
 stm ::= for_stm EOL.
@@ -147,6 +146,9 @@ stm ::= foreach_stm EOL.
 stm ::= while_stm EOL.
 stm ::= repeat_stm EOL.
 stm ::= try_catch_stm EOL.
+// statement che non permettono di dichiarare nuove variabili
+stm ::= expr EOL.                                 {emit(P_POP);}
+stm ::= vardecl EOL.                              {emit(P_POP);}
 stm ::= raise_stm EOL.
 stm ::= print_stm EOL.
 stm ::= pre_stm EOL.

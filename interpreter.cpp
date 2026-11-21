@@ -2,6 +2,7 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
+  separare prg e interp, fare due oggetti GCed
   tipi definiti dall'utente
   operazioni negli array
   check di tipo profondo nella is per proc/func
@@ -803,16 +804,21 @@ string sys::modulePathFor(const string& name, const string& baseDir) const {
 
 class interp {
 protected:
+  // questo si può eliminare rendendo interp un oggetto GCed
+  gc_array_<obj> *stack_gc;
+  // questo blocco si potrebbe eliminare usando lo stack
+  contextObj* saved_ctx; 
+  classObj* pending_class;
+  friend class pcodeClass; 
+  friend class pcodeInherit;
+  friend class pcodeEndClass;
 public:
-  //friend class pcode;
   vector<obj*> stack;
   int sp,pc,currentSourceLine;
   contextObj* context;
   pcodeProgram* prg;
   bool stop;
-  gc_array_<obj> *stack_gc;
-  contextObj* saved_ctx; 
-  classObj* pending_class;
+public:
   //
   explicit interp(contextObj* c, pcodeProgram* p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{init();}
   void init(){
@@ -1192,13 +1198,15 @@ protected:
   int name;
 public:
   //
-  virtual void trace(Tracer& t) override {for(auto& d:baseClasses) t(d);}
+  virtual void trace(Tracer& t) override {for(auto& d:baseClasses) t(d);contextObj::trace(t);}
   //
   explicit classObj(int n, contextObj* c);
   virtual obj* load(int intern) override;
   virtual void call(int parmCnt,interp& interpreter) override; // crea un istanza di questa classe nello stack dell'interprete
   virtual string print() const override {return "<class "+theStringIntern.get(name)+">";}
   virtual void addBaseClass(classObj* c);
+  //
+  virtual int getName(){return name;}
 };
 	
 // istanza di una class, oggetto creato "lazy"?
@@ -1219,16 +1227,18 @@ public:
 };
 
 class unboundMethObj: public procObj {
+  classObj* theClass;
 public:
-  explicit unboundMethObj(const procObj* p):procObj{p->prg}{name=p->name;pc=p->pc;prm=p->prm;}
-  virtual string print() const {return "<unbound methp "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  explicit unboundMethObj(const procObj* p,classObj* c):procObj{p->prg}{name=p->name;pc=p->pc;prm=p->prm;theClass=c;}
+  virtual string print() const {return "<unbound methp "+theStringIntern.get(theClass->getName())+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override {throw domain_error("calling unbound method ... ");}
 };
 
 class unboundMethFuncObj: public funcObj {
+  classObj* theClass;
 public:
-  explicit unboundMethFuncObj(const funcObj* f):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;prm=f->prm;}
-  virtual string print() const {return "<unbound methf "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  explicit unboundMethFuncObj(const funcObj* f,classObj* c):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;prm=f->prm;theClass=c;}
+  virtual string print() const {return "<unbound methf "+result_type->print()+" "+theStringIntern.get(theClass->getName())+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override {throw domain_error("calling unbound methodf ... ");}
 };
 
@@ -1254,8 +1264,8 @@ obj* classObj::load(int intern) {
 	obj* res=fu->second;  
 	// trovato nella classe, crea nell'istanza
 	switch (res->procType()){
-	  case 1:return new unboundMethObj(dynamic_cast<const procObj*>(res));
-	  case 2:return new unboundMethFuncObj(dynamic_cast<const funcObj*>(res));
+	  case 1:return new unboundMethObj(dynamic_cast<const procObj*>(res),this);
+	  case 2:return new unboundMethFuncObj(dynamic_cast<const funcObj*>(res),this);
     }
   }	 
   //return contextObj::load(intern);

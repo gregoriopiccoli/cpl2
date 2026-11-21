@@ -20,3 +20,9 @@ var c.ccc aa:=c.ccc()
 
 ? c3.alfa().addi(10)
 ? c3.beta().addkkk(1)
+
+class gamma(c3.beta)
+end
+
+? gamma().addkkk
+? gamma().addkkk(1) // questo non funziona ... sembra che l'oggetto 

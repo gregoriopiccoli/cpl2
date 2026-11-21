@@ -21,8 +21,24 @@ class beta(alfa)
   end  
 end    
 
+// questa classe realizza il fenomeno della cattura
+class cattura(beta)
+  var int kkk:=-1000
+end
+  
 var int kkk:=1000000
 
 ? alfa().addi(10)
 ? beta().addi(1)
 ? beta().addkkk(1)
+
+var alfa a:=alfa()
+a.i:=222
+? a.addi(10),'=232'
+
+var beta b:=beta()
+b.i:=11
+? b.addi(10),'=21'
+
+var cattura c:=cattura()
+? c.addkkk(1)

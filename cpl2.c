@@ -16,7 +16,7 @@
 **
 ** The "lemon" program processes an LALR(1) input grammar file, then uses
 ** this template to construct a parser.  The "lemon" program inserts text
-** at each "%%" line.  Also, any "P-a-r-s-e" identifier prefix (without the
+** at each "%%" line.  Also, any "P-a-r-s-e" identifer prefix (without the
 ** interstitial "-" characters) contained in this template is changed into
 ** the value of the %name directive from the grammar.  Otherwise, the content
 ** of this template is copied straight through into the generate parser
@@ -163,9 +163,6 @@
 **    ParseARG_STORE     Code to store %extra_argument into yypParser
 **    ParseARG_FETCH     Code to extract %extra_argument from yypParser
 **    ParseCTX_*         As ParseARG_ except for %extra_context
-**    YYREALLOC          Name of the realloc() function to use
-**    YYFREE             Name of the free() function to use
-**    YYDYNSTACK         True if stack space should be extended on heap
 **    YYERRORSYMBOL      is the code number of the error symbol.  If not
 **                       defined, then do no error processing.
 **    YYNSTATE           the combined number of states.
@@ -179,8 +176,6 @@
 **    YY_NO_ACTION       The yy_action[] code for no-op
 **    YY_MIN_REDUCE      Minimum value for reduce actions
 **    YY_MAX_REDUCE      Maximum value for reduce actions
-**    YY_MIN_DSTRCTR     Minimum symbol value that has a destructor
-**    YY_MAX_DSTRCTR     Maximum symbol value that has a destructor
 */
 #ifndef INTERFACE
 # define INTERFACE 1
@@ -206,22 +201,11 @@ typedef union {
 #define ParseARG_PARAM ,sState
 #define ParseARG_FETCH parserState *sState=yypParser->sState;
 #define ParseARG_STORE yypParser->sState=sState;
-#undef YYREALLOC
-#define YYREALLOC realloc
-#undef YYFREE
-#define YYFREE free
-#undef YYDYNSTACK
-#define YYDYNSTACK 0
-#undef YYSIZELIMIT
-#define ParseCTX(P) 0
 #define ParseCTX_SDECL
 #define ParseCTX_PDECL
 #define ParseCTX_PARAM
 #define ParseCTX_FETCH
 #define ParseCTX_STORE
-#undef YYERRORSYMBOL
-#undef YYERRSYMDT
-#undef YYFALLBACK
 #define YYNSTATE             338
 #define YYNRULE              285
 #define YYNRULE_WITH_ACTION  208
@@ -234,8 +218,6 @@ typedef union {
 #define YY_NO_ACTION         843
 #define YY_MIN_REDUCE        844
 #define YY_MAX_REDUCE        1128
-#define YY_MIN_DSTRCTR       0
-#define YY_MAX_DSTRCTR       0
 /************* End control #defines *******************************************/
 #define YY_NLOOKAHEAD ((int)(sizeof(yy_lookahead)/sizeof(yy_lookahead[0])))
 
@@ -249,22 +231,6 @@ typedef union {
 */
 #ifndef yytestcase
 # define yytestcase(X)
-#endif
-
-/* Macro to determine if stack space has the ability to grow using
-** heap memory.
-*/
-#if YYSTACKDEPTH<=0 || YYDYNSTACK
-# define YYGROWABLESTACK 1
-#else
-# define YYGROWABLESTACK 0
-#endif
-
-/* Guarantee a minimum number of initial stack slots.
-*/
-#if YYSTACKDEPTH<=0
-# undef YYSTACKDEPTH
-# define YYSTACKDEPTH 2  /* Need a minimum stack size */
 #endif
 
 
@@ -323,31 +289,31 @@ static const YYACTIONTYPE yy_action[] = {
  /*     0 */    61,   63,  245, 1106, 1052,  337,  336,  335,  334,  333,
  /*    10 */   332, 1052,  226,  159,  180,  249,  146,  152,   55,   54,
  /*    20 */   286,  287,  139,  136,  867,  581,  643,   61,   63,  124,
- /*    30 */   325,  132,  656, 1036,  614,  324,  312,  842,    1,  323,
- /*    40 */   322,  321,  320,  319,  318,  317,  316,  315,  314,  313,
- /*    50 */   311,  310,  309,  308,   41,  325,  175,  227,  172,  163,
+ /*    30 */   318,  132,  656, 1036,  614,  317,  312,  842,    1,  325,
+ /*    40 */   324,  323,  322,  321,  320,  319,  316,  315,  314,  313,
+ /*    50 */   311,  310,  309,  308,   41,  318,  175,  227,  172,  163,
  /*    60 */    20,  230,  253,  160,  113,   51,  273,  274,   82,  123,
  /*    70 */    40,  182,  158,  157,   39,  156,  155,  244,  233,  278,
- /*    80 */   325,  174,  305,  304,  303,  302,   75,   77,   74,   76,
+ /*    80 */   318,  174,  305,  304,  303,  302,   75,   77,   74,   76,
  /*    90 */   165,  168,  168,  168,  168,  168,  168,  168,  168,   61,
  /*   100 */    63,   17,   88,   89,  140,   16,  179,  227,  173,  977,
  /*   110 */  1078,  303,  302,  586,   77,  272,   76,  165,  168,  168,
- /*   120 */   168,  168,  168,  168,  168,  168,  568,   83,   17,  325,
- /*   130 */   627,  284,   16,  775,  324,  312,  272,  561,  323,  322,
- /*   140 */   321,  320,  319,  318,  317,  316,  315,  314,  313,  311,
- /*   150 */   310,  309,  308,  566,  325,  932,  892,  172,  163,   20,
+ /*   120 */   168,  168,  168,  168,  168,  168,  568,   83,   17,  318,
+ /*   130 */   627,  284,   16,  775,  317,  312,  272,  561,  325,  324,
+ /*   140 */   323,  322,  321,  320,  319,  316,  315,  314,  313,  311,
+ /*   150 */   310,  309,  308,  566,  318,  932,  892,  172,  163,   20,
  /*   160 */   775,  253,  160,  113,  327,  328,  307,  254,  630,   40,
- /*   170 */   182,  158,  157,   39,  156,  155,  118,  891,  575,  325,
+ /*   170 */   182,  158,  157,   39,  156,  155,  118,  891,  575,  318,
  /*   180 */   174,  305,  304,  303,  302,   75,   77,   74,   76,  165,
  /*   190 */   168,  168,  168,  168,  168,  168,  168,  168,   61,   63,
  /*   200 */    17,  220,  216,  215,   16,  213,  933,   72,  195, 1078,
  /*   210 */   269,   96,  146,  141,  117,  331,  328,  297,  139,  136,
- /*   220 */   100, 1099,  588,   21,  222,   46,  272,   44,  325,  573,
- /*   230 */  1070,  214,  212,  324,  312,   65,  265,  323,  322,  321,
- /*   240 */   320,  319,  318,  317,  316,  315,  314,  313,  311,  310,
- /*   250 */   309,  308,  142,  325,  171,  833,  172,  163,   20,   23,
+ /*   220 */   100, 1099,  588,   21,  222,   46,  272,   44,  318,  573,
+ /*   230 */  1070,  214,  212,  317,  312,   65,  265,  325,  324,  323,
+ /*   240 */   322,  321,  320,  319,  316,  315,  314,  313,  311,  310,
+ /*   250 */   309,  308,  142,  318,  171,  833,  172,  163,   20,   23,
  /*   260 */   253,  160,  113,   87,   79,  134,  224,  125,   40,  182,
- /*   270 */   158,  157,   39,  156,  155,   93,   92,   91,  325,  174,
+ /*   270 */   158,  157,   39,  156,  155,   93,   92,   91,  318,  174,
  /*   280 */   305,  304,  303,  302,   75,   77,   74,   76,  165,  168,
  /*   290 */   168,  168,  168,  168,  168,  168,  168,   88,   89,   17,
  /*   300 */   326,  140,  299,   16,  844,  808,  122,  147,   21,  301,
@@ -401,9 +367,9 @@ static const YYACTIONTYPE yy_action[] = {
  /*   780 */   173,  306,   66,  739,   67,   68,  807,  112,   95,   22,
  /*   790 */    73, 1000, 1000, 1000, 1000, 1000, 1000, 1000,   18,  806,
  /*   800 */    17,  805,  804,  803,   16,   19,  184,  802,  801,  800,
- /*   810 */    42,  799,  713,   90,   94,  714,  716,  717,  718,  798,
- /*   820 */   797,  663,  796,  665,  240,  795,  794,  239,   35,   33,
- /*   830 */    31,   29,   28,   27,   26,  300,  793,  792,  596,  595,
+ /*   810 */    42,  799,  713,   90,   94,  714,  716,  717,  718,  596,
+ /*   820 */   595,  663,  798,  665,  240,  797,  796,  239,   35,   33,
+ /*   830 */    31,   29,   28,   27,   26,  300,  795,  794,  793,  792,
  /*   840 */   164,  843,  771,  843,  148,  715,  296,  293,  727,  728,
  /*   850 */   749,  808,  329,  562,  770,  301,  769,  628,  768,  767,
  /*   860 */   766,  843,   69,  843,  843,  843,  843,  290,  843,  843,
@@ -1570,9 +1536,14 @@ struct yyParser {
 #endif
   ParseARG_SDECL                /* A place to hold %extra_argument */
   ParseCTX_SDECL                /* A place to hold %extra_context */
-  yyStackEntry *yystackEnd;           /* Last entry in the stack */
-  yyStackEntry *yystack;              /* The parser stack */
-  yyStackEntry yystk0[YYSTACKDEPTH];  /* Initial stack space */
+#if YYSTACKDEPTH<=0
+  int yystksz;                  /* Current side of the stack */
+  yyStackEntry *yystack;        /* The parser's stack */
+  yyStackEntry yystk0;          /* First stack entry */
+#else
+  yyStackEntry yystack[YYSTACKDEPTH];  /* The parser's stack */
+  yyStackEntry *yystackEnd;            /* Last entry in the stack */
+#endif
 };
 typedef struct yyParser yyParser;
 
@@ -2120,54 +2091,37 @@ static const char *const yyRuleName[] = {
 #endif /* NDEBUG */
 
 
-#if YYGROWABLESTACK
+#if YYSTACKDEPTH<=0
 /*
 ** Try to increase the size of the parser stack.  Return the number
 ** of errors.  Return 0 on success.
 */
 static int yyGrowStack(yyParser *p){
-  int oldSize = 1 + (int)(p->yystackEnd - p->yystack);
   int newSize;
   int idx;
   yyStackEntry *pNew;
-#ifdef YYSIZELIMIT
-  int nLimit = YYSIZELIMIT(ParseCTX(p));
-#endif
 
-  newSize = oldSize*2 + 100;
-#ifdef YYSIZELIMIT
-  if( newSize>nLimit ){
-    newSize = nLimit;
-    if( newSize<=oldSize ) return 1;
-  }
-#endif
-  idx = (int)(p->yytos - p->yystack);
-  if( p->yystack==p->yystk0 ){
-    pNew = YYREALLOC(0, newSize*sizeof(pNew[0]), ParseCTX(p));
-    if( pNew==0 ) return 1;
-    memcpy(pNew, p->yystack, oldSize*sizeof(pNew[0]));
+  newSize = p->yystksz*2 + 100;
+  idx = p->yytos ? (int)(p->yytos - p->yystack) : 0;
+  if( p->yystack==&p->yystk0 ){
+    pNew = malloc(newSize*sizeof(pNew[0]));
+    if( pNew ) pNew[0] = p->yystk0;
   }else{
-    pNew = YYREALLOC(p->yystack, newSize*sizeof(pNew[0]), ParseCTX(p));
-    if( pNew==0 ) return 1;
+    pNew = realloc(p->yystack, newSize*sizeof(pNew[0]));
   }
-  p->yystack = pNew;
-  p->yytos = &p->yystack[idx];
+  if( pNew ){
+    p->yystack = pNew;
+    p->yytos = &p->yystack[idx];
 #ifndef NDEBUG
-  if( yyTraceFILE ){
-    fprintf(yyTraceFILE,"%sStack grows from %d to %d entries.\n",
-            yyTracePrompt, oldSize, newSize);
-  }
+    if( yyTraceFILE ){
+      fprintf(yyTraceFILE,"%sStack grows from %d to %d entries.\n",
+              yyTracePrompt, p->yystksz, newSize);
+    }
 #endif
-  p->yystackEnd = &p->yystack[newSize-1];
-  return 0;
+    p->yystksz = newSize;
+  }
+  return pNew==0; 
 }
-#endif /* YYGROWABLESTACK */
-
-#if !YYGROWABLESTACK
-/* For builds that do no have a growable stack, yyGrowStack always
-** returns an error.
-*/
-# define yyGrowStack(X) 1
 #endif
 
 /* Datatype of the argument to the memory allocated passed as the
@@ -2187,14 +2141,24 @@ void ParseInit(void *yypRawParser ParseCTX_PDECL){
 #ifdef YYTRACKMAXSTACKDEPTH
   yypParser->yyhwm = 0;
 #endif
-  yypParser->yystack = yypParser->yystk0;
-  yypParser->yystackEnd = &yypParser->yystack[YYSTACKDEPTH-1];
+#if YYSTACKDEPTH<=0
+  yypParser->yytos = NULL;
+  yypParser->yystack = NULL;
+  yypParser->yystksz = 0;
+  if( yyGrowStack(yypParser) ){
+    yypParser->yystack = &yypParser->yystk0;
+    yypParser->yystksz = 1;
+  }
+#endif
 #ifndef YYNOERRORRECOVERY
   yypParser->yyerrcnt = -1;
 #endif
   yypParser->yytos = yypParser->yystack;
   yypParser->yystack[0].stateno = 0;
   yypParser->yystack[0].major = 0;
+#if YYSTACKDEPTH>0
+  yypParser->yystackEnd = &yypParser->yystack[YYSTACKDEPTH-1];
+#endif
 }
 
 #ifndef Parse_ENGINEALWAYSONSTACK
@@ -2279,28 +2243,9 @@ static void yy_pop_parser_stack(yyParser *pParser){
 */
 void ParseFinalize(void *p){
   yyParser *pParser = (yyParser*)p;
-
-  /* In-lined version of calling yy_pop_parser_stack() for each
-  ** element left in the stack */
-  yyStackEntry *yytos = pParser->yytos;
-  while( yytos>pParser->yystack ){
-#ifndef NDEBUG
-    if( yyTraceFILE ){
-      fprintf(yyTraceFILE,"%sPopping %s\n",
-        yyTracePrompt,
-        yyTokenName[yytos->major]);
-    }
-#endif
-    if( yytos->major>=YY_MIN_DSTRCTR ){
-      yy_destructor(pParser, yytos->major, &yytos->minor);
-    }
-    yytos--;
-  }
-
-#if YYGROWABLESTACK
-  if( pParser->yystack!=pParser->yystk0 ){
-    YYFREE(pParser->yystack, ParseCTX(pParser));
-  }
+  while( pParser->yytos>pParser->yystack ) yy_pop_parser_stack(pParser);
+#if YYSTACKDEPTH<=0
+  if( pParser->yystack!=&pParser->yystk0 ) free(pParser->yystack);
 #endif
 }
 
@@ -2525,19 +2470,25 @@ static void yy_shift(
     assert( yypParser->yyhwm == (int)(yypParser->yytos - yypParser->yystack) );
   }
 #endif
-  yytos = yypParser->yytos;
-  if( yytos>yypParser->yystackEnd ){
+#if YYSTACKDEPTH>0 
+  if( yypParser->yytos>yypParser->yystackEnd ){
+    yypParser->yytos--;
+    yyStackOverflow(yypParser);
+    return;
+  }
+#else
+  if( yypParser->yytos>=&yypParser->yystack[yypParser->yystksz] ){
     if( yyGrowStack(yypParser) ){
       yypParser->yytos--;
       yyStackOverflow(yypParser);
       return;
     }
-    yytos = yypParser->yytos;
-    assert( yytos <= yypParser->yystackEnd );
   }
+#endif
   if( yyNewState > YY_MAX_SHIFT ){
     yyNewState += YY_MIN_REDUCE - YY_MIN_SHIFTREDUCE;
   }
+  yytos = yypParser->yytos;
   yytos->stateno = yyNewState;
   yytos->major = yyMajor;
   yytos->minor.yy0 = yyMinor;
@@ -3166,17 +3117,17 @@ static YYACTIONTYPE yy_reduce(
       case 0: /* start ::= cmd_list */
 #line 28 "cpl2.gram"
 {int errs=sState->errors; emit_i(P_PCODEEND,errs);}
-#line 3170 "cpl2.c"
+#line 3120 "cpl2.c"
         break;
       case 1: /* import ::= IMPORT importid_list */
 #line 45 "cpl2.gram"
 {emit_i(P_IMPORT,yymsp[0].minor.yy6);}
-#line 3175 "cpl2.c"
+#line 3125 "cpl2.c"
         break;
       case 2: /* import ::= FROM importid IMPORT importid_list */
 #line 46 "cpl2.gram"
 {emit_i(P_FROM,yymsp[0].minor.yy6);}
-#line 3180 "cpl2.c"
+#line 3130 "cpl2.c"
         break;
       case 3: /* importid_list ::= importid_list COMMA importid */
       case 7: /* dottedid_list ::= dottedid_list COMMA dottedid */ yytestcase(yyruleno==7);
@@ -3185,7 +3136,7 @@ static YYACTIONTYPE yy_reduce(
       case 117: /* print_list ::= print_list COMMA expr */ yytestcase(yyruleno==117);
 #line 49 "cpl2.gram"
 {yylhsminor.yy6 = yymsp[-2].minor.yy6+1;}
-#line 3189 "cpl2.c"
+#line 3139 "cpl2.c"
   yymsp[-2].minor.yy6 = yylhsminor.yy6;
         break;
       case 4: /* importid_list ::= importid */
@@ -3194,123 +3145,123 @@ static YYACTIONTYPE yy_reduce(
       case 116: /* print_list ::= expr */ yytestcase(yyruleno==116);
 #line 50 "cpl2.gram"
 {yymsp[0].minor.yy6 = 1;}
-#line 3198 "cpl2.c"
+#line 3148 "cpl2.c"
         break;
       case 5: /* importid ::= ID */
 #line 52 "cpl2.gram"
 {emit_s(P_IMPORTID,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3203 "cpl2.c"
+#line 3153 "cpl2.c"
         break;
       case 6: /* importid ::= importid DOT ID */
 #line 53 "cpl2.gram"
 {emit_s(P_IMPORTIDX,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3208 "cpl2.c"
+#line 3158 "cpl2.c"
         break;
       case 9: /* funcdecl ::= funcname procparlist impl local observer EOL stm_list END */
 #line 61 "cpl2.gram"
 {emit(P_ENDFUNC);}
-#line 3213 "cpl2.c"
+#line 3163 "cpl2.c"
         break;
       case 10: /* funcdecl ::= funcname procparlist impl local ABSTRACT */
       case 12: /* procdecl ::= procname procparlist impl local ABSTRACT */ yytestcase(yyruleno==12);
 #line 62 "cpl2.gram"
 {emit(P_ABSTRACT);}
-#line 3219 "cpl2.c"
+#line 3169 "cpl2.c"
         break;
       case 11: /* procdecl ::= procname procparlist impl local observer EOL stm_list END */
 #line 64 "cpl2.gram"
 {emit(P_ENDPROC);}
-#line 3224 "cpl2.c"
+#line 3174 "cpl2.c"
         break;
       case 13: /* procdecl ::= eventname procparlist */
 #line 66 "cpl2.gram"
 {emit(P_EMITEVENT);}
-#line 3229 "cpl2.c"
+#line 3179 "cpl2.c"
         break;
       case 14: /* funcname ::= FUNC generic type ID */
 #line 68 "cpl2.gram"
 {emit_s(P_FUNC,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3234 "cpl2.c"
+#line 3184 "cpl2.c"
         break;
       case 15: /* procname ::= PROC generic ID */
 #line 69 "cpl2.gram"
 {emit_s(P_PROC,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3239 "cpl2.c"
+#line 3189 "cpl2.c"
         break;
       case 16: /* eventname ::= EVENT ID */
 #line 70 "cpl2.gram"
 {emit_s(P_EVENT,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3244 "cpl2.c"
+#line 3194 "cpl2.c"
         break;
       case 17: /* procparlist ::= LPAR pardecl_list RPAR */
 #line 72 "cpl2.gram"
 {emit(P_ENDPARM);}
-#line 3249 "cpl2.c"
+#line 3199 "cpl2.c"
         break;
       case 18: /* local ::= LOCAL */
 #line 75 "cpl2.gram"
 {emit(P_LOCAL);}
-#line 3254 "cpl2.c"
+#line 3204 "cpl2.c"
         break;
       case 19: /* const ::= CONST */
 #line 81 "cpl2.gram"
 {emit(P_CONST);}
-#line 3259 "cpl2.c"
+#line 3209 "cpl2.c"
         break;
       case 20: /* pardecl ::= type ID */
 #line 87 "cpl2.gram"
 {emit_s(P_PARM,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3264 "cpl2.c"
+#line 3214 "cpl2.c"
         break;
       case 21: /* pardecl ::= type AT ID */
 #line 88 "cpl2.gram"
 {emit_s(P_PARM_REF,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3269 "cpl2.c"
+#line 3219 "cpl2.c"
         break;
       case 22: /* pardecl ::= pardecla ASSIGN expr */
 #line 89 "cpl2.gram"
 {emit(P_ENDPARM_DEFAULT);}
-#line 3274 "cpl2.c"
+#line 3224 "cpl2.c"
         break;
       case 23: /* pardecla ::= type ID */
 #line 90 "cpl2.gram"
 {emit_s(P_PARM_DEFAULT,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3279 "cpl2.c"
+#line 3229 "cpl2.c"
         break;
       case 24: /* pardecl ::= type ID DOT DOT DOT */
 #line 92 "cpl2.gram"
 {emit_s(P_PARM_VA,yymsp[-3].minor.yy0);dispose(&yymsp[-3].minor.yy0);}
-#line 3284 "cpl2.c"
+#line 3234 "cpl2.c"
         break;
       case 25: /* pardecl ::= type ID MULT */
 #line 93 "cpl2.gram"
 {emit_s(P_PARM_VD,yymsp[-1].minor.yy0);dispose(&yymsp[-1].minor.yy0);}
-#line 3289 "cpl2.c"
+#line 3239 "cpl2.c"
         break;
       case 26: /* impl ::= LT dottedid_list GT */
 #line 96 "cpl2.gram"
 {emit_i(P_IMPLEMENTS,yymsp[-1].minor.yy6);}
-#line 3294 "cpl2.c"
+#line 3244 "cpl2.c"
         break;
       case 27: /* classdecl ::= classname classinherit impl EOL classcmd_list END */
 #line 100 "cpl2.gram"
 {emit(P_ENDCLASS);}
-#line 3299 "cpl2.c"
+#line 3249 "cpl2.c"
         break;
       case 28: /* classname ::= CLASS generic ID */
 #line 102 "cpl2.gram"
 {emit_s(P_CLASS,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3304 "cpl2.c"
+#line 3254 "cpl2.c"
         break;
       case 29: /* classinherit ::= */
 #line 104 "cpl2.gram"
 {emit_i(P_INHERIT,0);}
-#line 3309 "cpl2.c"
+#line 3259 "cpl2.c"
         break;
       case 30: /* classinherit ::= LPAR dottedid_list RPAR */
 #line 105 "cpl2.gram"
 {emit_i(P_INHERIT,yymsp[-1].minor.yy6);}
-#line 3314 "cpl2.c"
+#line 3264 "cpl2.c"
         break;
       case 31: /* classcmd ::= vardecl EOL */
       case 39: /* stm ::= expr EOL */ yytestcase(yyruleno==39);
@@ -3319,12 +3270,12 @@ static YYACTIONTYPE yy_reduce(
       case 91: /* else_tok ::= ELSE EOL */ yytestcase(yyruleno==91);
 #line 112 "cpl2.gram"
 {emit(P_POP);}
-#line 3323 "cpl2.c"
+#line 3273 "cpl2.c"
         break;
       case 32: /* generic ::= LSQ generic_list RSQ */
 #line 120 "cpl2.gram"
 {emit_s(P_COMMENT,"da fare generics ...");}
-#line 3328 "cpl2.c"
+#line 3278 "cpl2.c"
         break;
       case 33: /* generic_list ::= ID */
       case 34: /* generic_list ::= generic_list COMMA ID */ yytestcase(yyruleno==34);
@@ -3332,733 +3283,733 @@ static YYACTIONTYPE yy_reduce(
       case 37: /* enum_list ::= enum_list COMMA ID */ yytestcase(yyruleno==37);
 #line 122 "cpl2.gram"
 {dispose(&yymsp[0].minor.yy0);}
-#line 3336 "cpl2.c"
+#line 3286 "cpl2.c"
         break;
       case 35: /* enum ::= ENUM ID enum_list */
 #line 127 "cpl2.gram"
 {emit_s(P_COMMENT,"da fare enum ...");dispose(&yymsp[-1].minor.yy0);}
-#line 3341 "cpl2.c"
+#line 3291 "cpl2.c"
         break;
       case 38: /* typedecl ::= TYPE type ID */
 #line 134 "cpl2.gram"
 {emit_s(P_COMMENT,"da fare user type ...");dispose(&yymsp[0].minor.yy0);}
-#line 3346 "cpl2.c"
+#line 3296 "cpl2.c"
         break;
       case 41: /* var_list ::= ID */
       case 43: /* var_list ::= var_list COMMA ID */ yytestcase(yyruleno==43);
-#line 165 "cpl2.gram"
+#line 167 "cpl2.gram"
 {emit_s(P_VAR,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3352 "cpl2.c"
+#line 3302 "cpl2.c"
         break;
       case 42: /* var_list ::= ID ASSIGN lexpr */
       case 44: /* var_list ::= var_list COMMA ID ASSIGN lexpr */ yytestcase(yyruleno==44);
-#line 166 "cpl2.gram"
+#line 168 "cpl2.gram"
 {emit_s(P_VAR_STORE,yymsp[-2].minor.yy0);dispose(&yymsp[-2].minor.yy0);}
-#line 3358 "cpl2.c"
+#line 3308 "cpl2.c"
         break;
       case 45: /* type ::= btype NOT */
-#line 173 "cpl2.gram"
+#line 175 "cpl2.gram"
 {emit(P_NOT_TYPE);}
-#line 3363 "cpl2.c"
+#line 3313 "cpl2.c"
         break;
       case 46: /* type ::= or_type */
-#line 176 "cpl2.gram"
+#line 178 "cpl2.gram"
 {emit_i(P_OR_TYPE,yymsp[0].minor.yy6);}
-#line 3368 "cpl2.c"
+#line 3318 "cpl2.c"
         break;
       case 47: /* or_type ::= btype VBAR btype */
-#line 178 "cpl2.gram"
+#line 180 "cpl2.gram"
 {yymsp[-2].minor.yy6 = 2;}
-#line 3373 "cpl2.c"
+#line 3323 "cpl2.c"
         break;
       case 49: /* btype ::= INT */
-#line 183 "cpl2.gram"
+#line 185 "cpl2.gram"
 {emit(P_INT_TYPE);}
-#line 3378 "cpl2.c"
+#line 3328 "cpl2.c"
         break;
       case 50: /* btype ::= STR */
-#line 184 "cpl2.gram"
+#line 186 "cpl2.gram"
 {emit(P_STR_TYPE);}
-#line 3383 "cpl2.c"
+#line 3333 "cpl2.c"
         break;
       case 51: /* btype ::= BOOL */
-#line 185 "cpl2.gram"
+#line 187 "cpl2.gram"
 {emit(P_BOOL_TYPE);}
-#line 3388 "cpl2.c"
+#line 3338 "cpl2.c"
         break;
       case 52: /* btype ::= FLOAT */
-#line 186 "cpl2.gram"
+#line 188 "cpl2.gram"
 {emit(P_FLOAT_TYPE);}
-#line 3393 "cpl2.c"
+#line 3343 "cpl2.c"
         break;
       case 53: /* btype ::= DATE */
-#line 187 "cpl2.gram"
+#line 189 "cpl2.gram"
 {emit(P_DATE_TYPE);}
-#line 3398 "cpl2.c"
+#line 3348 "cpl2.c"
         break;
       case 54: /* btype ::= TIME */
-#line 188 "cpl2.gram"
+#line 190 "cpl2.gram"
 {emit(P_TIME_TYPE);}
-#line 3403 "cpl2.c"
+#line 3353 "cpl2.c"
         break;
       case 55: /* btype ::= DATETIME */
-#line 189 "cpl2.gram"
+#line 191 "cpl2.gram"
 {emit(P_DATETIME_TYPE);}
-#line 3408 "cpl2.c"
+#line 3358 "cpl2.c"
         break;
       case 56: /* btype ::= ANY */
       case 57: /* btype ::= QUESTIONMARK */ yytestcase(yyruleno==57);
-#line 190 "cpl2.gram"
+#line 192 "cpl2.gram"
 {emit(P_ANY_TYPE);}
-#line 3414 "cpl2.c"
+#line 3364 "cpl2.c"
         break;
       case 58: /* dottedid ::= ID */
       case 169: /* ref ::= ID */ yytestcase(yyruleno==169);
-#line 195 "cpl2.gram"
+#line 197 "cpl2.gram"
 {emit_s(P_LOAD,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3420 "cpl2.c"
+#line 3370 "cpl2.c"
         break;
       case 59: /* dottedid ::= dottedid DOT ID */
       case 174: /* ref ::= ref DOT ID */ yytestcase(yyruleno==174);
-#line 196 "cpl2.gram"
+#line 198 "cpl2.gram"
 {emit_s(P_LOADX,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3426 "cpl2.c"
+#line 3376 "cpl2.c"
         break;
       case 60: /* btype ::= ARRAY LSQ type RSQ */
-#line 198 "cpl2.gram"
+#line 200 "cpl2.gram"
 {emit(P_ARRAY_TYPE);}
-#line 3431 "cpl2.c"
+#line 3381 "cpl2.c"
         break;
       case 61: /* btype ::= DICT LSQ type RSQ */
-#line 199 "cpl2.gram"
+#line 201 "cpl2.gram"
 {emit(P_DICT_TYPE);}
-#line 3436 "cpl2.c"
+#line 3386 "cpl2.c"
         break;
       case 62: /* btype ::= TUPLE LSQ type_list RSQ */
-#line 200 "cpl2.gram"
+#line 202 "cpl2.gram"
 {emit_i(P_TUPLE_TYPE,yymsp[-1].minor.yy6);}
-#line 3441 "cpl2.c"
+#line 3391 "cpl2.c"
         break;
       case 63: /* btype ::= LPAR type COLON type_list RPAR */
-#line 202 "cpl2.gram"
+#line 204 "cpl2.gram"
 {emit_i(P_FUNC_TYPE,yymsp[-1].minor.yy6);}
-#line 3446 "cpl2.c"
+#line 3396 "cpl2.c"
         break;
       case 64: /* btype ::= LPAR type COLON RPAR */
-#line 203 "cpl2.gram"
+#line 205 "cpl2.gram"
 {emit_i(P_FUNC_TYPE,0);}
-#line 3451 "cpl2.c"
+#line 3401 "cpl2.c"
         break;
       case 65: /* btype ::= LPAR type_list RPAR */
-#line 204 "cpl2.gram"
+#line 206 "cpl2.gram"
 {emit_i(P_PROC_TYPE,yymsp[-1].minor.yy6);}
-#line 3456 "cpl2.c"
+#line 3406 "cpl2.c"
         break;
       case 66: /* btype ::= LPAR RPAR */
-#line 205 "cpl2.gram"
+#line 207 "cpl2.gram"
 {emit_i(P_PROC_TYPE,0);}
-#line 3461 "cpl2.c"
+#line 3411 "cpl2.c"
         break;
       case 68: /* type_list ::= type ID */
-#line 208 "cpl2.gram"
+#line 210 "cpl2.gram"
 {yymsp[-1].minor.yy6 = 1;emit_s(P_PARMNAME,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3466 "cpl2.c"
+#line 3416 "cpl2.c"
         break;
       case 70: /* type_list ::= type_list COMMA type ID */
-#line 210 "cpl2.gram"
+#line 212 "cpl2.gram"
 {yylhsminor.yy6 = yymsp[-3].minor.yy6+1;emit_s(P_PARMNAME,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3471 "cpl2.c"
+#line 3421 "cpl2.c"
   yymsp[-3].minor.yy6 = yylhsminor.yy6;
         break;
       case 71: /* if_stm ::= ifelseif_list END */
-#line 223 "cpl2.gram"
+#line 225 "cpl2.gram"
 {emit_i(P_LABEL,yymsp[-1].minor.yy28.start);if(yymsp[-1].minor.yy28.start!=yymsp[-1].minor.yy28.last) emit_i(P_LABEL,yymsp[-1].minor.yy28.last);}
-#line 3477 "cpl2.c"
+#line 3427 "cpl2.c"
         break;
       case 72: /* if_stm ::= if_else stm_list END */
-#line 224 "cpl2.gram"
+#line 226 "cpl2.gram"
 {emit_i(P_LABEL,yymsp[-2].minor.yy28.start);}
-#line 3482 "cpl2.c"
+#line 3432 "cpl2.c"
         break;
       case 73: /* if_else ::= ifelseif_list ELSE EOL */
-#line 226 "cpl2.gram"
+#line 228 "cpl2.gram"
 {if(yymsp[-2].minor.yy28.start==yymsp[-2].minor.yy28.last) yymsp[-2].minor.yy28.start=sState->labelCnt++;emit_i(P_GOTO,yymsp[-2].minor.yy28.start);emit_i(P_LABEL,yymsp[-2].minor.yy28.last);}
-#line 3487 "cpl2.c"
+#line 3437 "cpl2.c"
         break;
       case 74: /* if_elseif ::= ifelseif_list ELSEIF */
-#line 227 "cpl2.gram"
+#line 229 "cpl2.gram"
 {if(yymsp[-1].minor.yy28.start==yymsp[-1].minor.yy28.last) yymsp[-1].minor.yy28.start=sState->labelCnt++;emit_i(P_GOTO,yymsp[-1].minor.yy28.start);emit_i(P_LABEL,yymsp[-1].minor.yy28.last);}
-#line 3492 "cpl2.c"
+#line 3442 "cpl2.c"
         break;
       case 75: /* ifelseif_list ::= if_elseif if_expr stm_list */
-#line 229 "cpl2.gram"
+#line 231 "cpl2.gram"
 {yylhsminor.yy28.start=yymsp[-2].minor.yy28.start;yylhsminor.yy28.last=yymsp[-1].minor.yy6;}
-#line 3497 "cpl2.c"
+#line 3447 "cpl2.c"
   yymsp[-2].minor.yy28 = yylhsminor.yy28;
         break;
       case 76: /* ifelseif_list ::= IF if_expr stm_list */
-#line 230 "cpl2.gram"
+#line 232 "cpl2.gram"
 {yymsp[-2].minor.yy28.start=yymsp[-1].minor.yy6;yymsp[-2].minor.yy28.last=yymsp[-1].minor.yy6;}
-#line 3503 "cpl2.c"
+#line 3453 "cpl2.c"
         break;
       case 77: /* if_expr ::= expr EOL */
-#line 232 "cpl2.gram"
+#line 234 "cpl2.gram"
 {yymsp[-1].minor.yy6=sState->labelCnt++;emit_i(P_IF_FALSE,yymsp[-1].minor.yy6);}
-#line 3508 "cpl2.c"
+#line 3458 "cpl2.c"
         break;
       case 78: /* for_stm ::= for_head stm_list END */
-#line 243 "cpl2.gram"
+#line 245 "cpl2.gram"
 {emit_s(P_FOR_NEXT,yymsp[-2].minor.yy266.name);emit_i(P_GOTO,yymsp[-2].minor.yy266.start);emit_i(P_LABEL,yymsp[-2].minor.yy266.last);emit(P_POP);emit(P_POP);dispose(&yymsp[-2].minor.yy266.name);}
-#line 3513 "cpl2.c"
+#line 3463 "cpl2.c"
         break;
       case 79: /* for_head ::= for_init EOL */
-#line 244 "cpl2.gram"
+#line 246 "cpl2.gram"
 {yylhsminor.yy266=yymsp[-1].minor.yy266;yylhsminor.yy266.start=sState->labelCnt++;yylhsminor.yy266.last=sState->labelCnt++;emit_i(P_LABEL,yylhsminor.yy266.start);emit_s(P_LOAD,yylhsminor.yy266.name);emit_i(P_FOR_TEST,yylhsminor.yy266.last);}
-#line 3518 "cpl2.c"
+#line 3468 "cpl2.c"
   yymsp[-1].minor.yy266 = yylhsminor.yy266;
         break;
       case 80: /* for_init ::= FOR ID ASSIGN expr TO expr */
-#line 245 "cpl2.gram"
+#line 247 "cpl2.gram"
 {emit_s(P_INT_CONST,"1");emit_s(P_FOR_TO,yymsp[-4].minor.yy0);yymsp[-5].minor.yy266.name=yymsp[-4].minor.yy0;}
-#line 3524 "cpl2.c"
+#line 3474 "cpl2.c"
         break;
       case 81: /* for_init ::= FOR ID ASSIGN expr TO expr STEP expr */
-#line 246 "cpl2.gram"
+#line 248 "cpl2.gram"
 {emit_s(P_FOR_TO,yymsp[-6].minor.yy0);yymsp[-7].minor.yy266.name=yymsp[-6].minor.yy0;}
-#line 3529 "cpl2.c"
+#line 3479 "cpl2.c"
         break;
       case 82: /* for_init ::= FOR ID ASSIGN expr DOWNTO expr */
-#line 247 "cpl2.gram"
+#line 249 "cpl2.gram"
 {emit_s(P_INT_CONST,"-1");emit_s(P_FOR_DOWNTO,yymsp[-4].minor.yy0);yymsp[-5].minor.yy266.name=yymsp[-4].minor.yy0;}
-#line 3534 "cpl2.c"
+#line 3484 "cpl2.c"
         break;
       case 83: /* for_init ::= FOR ID ASSIGN expr DOWNTO expr STEP expr */
-#line 248 "cpl2.gram"
+#line 250 "cpl2.gram"
 {emit_s(P_FOR_DOWNTO,yymsp[-6].minor.yy0);yymsp[-7].minor.yy266.name=yymsp[-6].minor.yy0;}
-#line 3539 "cpl2.c"
+#line 3489 "cpl2.c"
         break;
       case 84: /* switch_stm ::= switch_case_list case_else END */
       case 166: /* iif_fact ::= iif_then expr RPAR */ yytestcase(yyruleno==166);
-#line 259 "cpl2.gram"
+#line 261 "cpl2.gram"
 {emit_i(P_LABEL,yymsp[-2].minor.yy6);}
-#line 3545 "cpl2.c"
+#line 3495 "cpl2.c"
         break;
       case 85: /* switch_case_list ::= SWITCH expr EOL */
-#line 261 "cpl2.gram"
+#line 263 "cpl2.gram"
 {yymsp[-2].minor.yy6=sState->labelCnt++;}
-#line 3550 "cpl2.c"
+#line 3500 "cpl2.c"
         break;
       case 86: /* switch_case_list ::= switch_case_list case_head stm_list */
-#line 262 "cpl2.gram"
+#line 264 "cpl2.gram"
 {yylhsminor.yy6=yymsp[-2].minor.yy6;emit_i(P_GOTO,yylhsminor.yy6);emit_i(P_LABEL,yymsp[-1].minor.yy6);}
-#line 3555 "cpl2.c"
+#line 3505 "cpl2.c"
   yymsp[-2].minor.yy6 = yylhsminor.yy6;
         break;
       case 87: /* case_head ::= case_test EOL */
-#line 264 "cpl2.gram"
+#line 266 "cpl2.gram"
 {yylhsminor.yy6=sState->labelCnt++;emit_i(P_GOTO,yylhsminor.yy6);emit_i(P_LABEL,yymsp[-1].minor.yy6);emit(P_POP);}
-#line 3561 "cpl2.c"
+#line 3511 "cpl2.c"
   yymsp[-1].minor.yy6 = yylhsminor.yy6;
         break;
       case 88: /* case_test ::= CASE case_const */
-#line 266 "cpl2.gram"
+#line 268 "cpl2.gram"
 {yymsp[-1].minor.yy6=sState->labelCnt++;emit_i(P_CASE,yymsp[-1].minor.yy6);}
-#line 3567 "cpl2.c"
+#line 3517 "cpl2.c"
         break;
       case 89: /* case_test ::= case_test COMMA case_const */
-#line 267 "cpl2.gram"
+#line 269 "cpl2.gram"
 {yylhsminor.yy6=yymsp[-2].minor.yy6;emit_i(P_CASE,yylhsminor.yy6);}
-#line 3572 "cpl2.c"
+#line 3522 "cpl2.c"
   yymsp[-2].minor.yy6 = yylhsminor.yy6;
         break;
       case 92: /* case_const ::= INT_CONST */
       case 94: /* case_const ::= PLUS INT_CONST */ yytestcase(yyruleno==94);
       case 157: /* fact ::= INT_CONST */ yytestcase(yyruleno==157);
-#line 273 "cpl2.gram"
+#line 275 "cpl2.gram"
 {emit_s(P_INT_CONST,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3580 "cpl2.c"
+#line 3530 "cpl2.c"
         break;
       case 93: /* case_const ::= MINUS INT_CONST */
-#line 274 "cpl2.gram"
+#line 276 "cpl2.gram"
 {char n[64];snprintf(n,sizeof(n),"-%s",yymsp[0].minor.yy0);emit_s(P_INT_CONST,n);dispose(&yymsp[0].minor.yy0);}
-#line 3585 "cpl2.c"
+#line 3535 "cpl2.c"
         break;
       case 95: /* case_const ::= STR_CONST */
       case 158: /* fact ::= STR_CONST */ yytestcase(yyruleno==158);
-#line 276 "cpl2.gram"
+#line 278 "cpl2.gram"
 {emit_s(P_STR_CONST,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3591 "cpl2.c"
+#line 3541 "cpl2.c"
         break;
       case 96: /* case_const ::= TRUE */
       case 160: /* fact ::= TRUE */ yytestcase(yyruleno==160);
-#line 277 "cpl2.gram"
+#line 279 "cpl2.gram"
 {emit(P_TRUE);}
-#line 3597 "cpl2.c"
+#line 3547 "cpl2.c"
         break;
       case 97: /* case_const ::= FALSE */
       case 161: /* fact ::= FALSE */ yytestcase(yyruleno==161);
-#line 278 "cpl2.gram"
+#line 280 "cpl2.gram"
 {emit(P_FALSE);}
-#line 3603 "cpl2.c"
+#line 3553 "cpl2.c"
         break;
       case 98: /* case_const ::= NIL */
       case 162: /* fact ::= NIL */ yytestcase(yyruleno==162);
-#line 279 "cpl2.gram"
+#line 281 "cpl2.gram"
 {emit(P_NIL);}
-#line 3609 "cpl2.c"
+#line 3559 "cpl2.c"
         break;
       case 99: /* foreach_stm ::= foreach_head stm_list END */
-#line 291 "cpl2.gram"
+#line 293 "cpl2.gram"
 {emit_i(P_GOTO,yymsp[-2].minor.yy215.start);emit_i(P_LABEL,yymsp[-2].minor.yy215.last);emit(P_POP);}
-#line 3614 "cpl2.c"
+#line 3564 "cpl2.c"
         break;
       case 100: /* foreach_head ::= foreach_src EOL */
-#line 292 "cpl2.gram"
+#line 294 "cpl2.gram"
 {yylhsminor.yy215=yymsp[-1].minor.yy215;}
-#line 3619 "cpl2.c"
+#line 3569 "cpl2.c"
   yymsp[-1].minor.yy215 = yylhsminor.yy215;
         break;
       case 101: /* foreach_head ::= foreach_src WITH expr EOL */
-#line 293 "cpl2.gram"
+#line 295 "cpl2.gram"
 {yylhsminor.yy215=yymsp[-3].minor.yy215;emit_i(P_IF_FALSE,yylhsminor.yy215.start);}
-#line 3625 "cpl2.c"
+#line 3575 "cpl2.c"
   yymsp[-3].minor.yy215 = yylhsminor.yy215;
         break;
       case 102: /* foreach_src ::= foreach_in expr */
       case 191: /* compr_src ::= compr_in expr */ yytestcase(yyruleno==191);
       case 201: /* dcompr_src ::= dcompr_in expr */ yytestcase(yyruleno==201);
-#line 294 "cpl2.gram"
+#line 296 "cpl2.gram"
 {yylhsminor.yy215=yymsp[-1].minor.yy215;foreachTesta(&yylhsminor.yy215,sState);}
-#line 3633 "cpl2.c"
+#line 3583 "cpl2.c"
   yymsp[-1].minor.yy215 = yylhsminor.yy215;
         break;
       case 103: /* foreach_in ::= FOR EACH ID IN */
-#line 295 "cpl2.gram"
+#line 297 "cpl2.gram"
 {yymsp[-3].minor.yy215.name=yymsp[-1].minor.yy0;yymsp[-3].minor.yy215.key=NULL;yymsp[-3].minor.yy215.n=1;}
-#line 3639 "cpl2.c"
+#line 3589 "cpl2.c"
         break;
       case 104: /* foreach_in ::= FOR EACH ID COMMA ID IN */
-#line 296 "cpl2.gram"
+#line 298 "cpl2.gram"
 {yymsp[-5].minor.yy215.name=yymsp[-3].minor.yy0;yymsp[-5].minor.yy215.key=yymsp[-1].minor.yy0;yymsp[-5].minor.yy215.n=1;}
-#line 3644 "cpl2.c"
+#line 3594 "cpl2.c"
         break;
       case 105: /* while_stm ::= while_expr stm_list END */
-#line 303 "cpl2.gram"
+#line 305 "cpl2.gram"
 {emit_i(P_GOTO,yymsp[-2].minor.yy28.start); emit_i(P_LABEL,yymsp[-2].minor.yy28.last);}
-#line 3649 "cpl2.c"
+#line 3599 "cpl2.c"
         break;
       case 106: /* while_expr ::= while_tok expr EOL */
-#line 304 "cpl2.gram"
+#line 306 "cpl2.gram"
 {yylhsminor.yy28.start=yymsp[-2].minor.yy6;yylhsminor.yy28.last=sState->labelCnt++;emit_i(P_IF_FALSE,yylhsminor.yy28.last);}
-#line 3654 "cpl2.c"
+#line 3604 "cpl2.c"
   yymsp[-2].minor.yy28 = yylhsminor.yy28;
         break;
       case 107: /* while_tok ::= WHILE */
       case 109: /* repeat_tok ::= REPEAT */ yytestcase(yyruleno==109);
-#line 305 "cpl2.gram"
+#line 307 "cpl2.gram"
 {yymsp[0].minor.yy6=sState->labelCnt++;emit_i(P_LABEL,yymsp[0].minor.yy6);}
-#line 3661 "cpl2.c"
+#line 3611 "cpl2.c"
         break;
       case 108: /* repeat_stm ::= repeat_tok stm_list UNTIL expr */
-#line 311 "cpl2.gram"
+#line 313 "cpl2.gram"
 {emit_i(P_IF_FALSE,yymsp[-3].minor.yy6);}
-#line 3666 "cpl2.c"
+#line 3616 "cpl2.c"
         break;
       case 110: /* trystart ::= TRY EOL */
-#line 318 "cpl2.gram"
+#line 320 "cpl2.gram"
 {emit(P_TRY);}
-#line 3671 "cpl2.c"
+#line 3621 "cpl2.c"
         break;
       case 111: /* catch_catch ::= CATCH LPAR type ID RPAR EOL stm_list */
-#line 321 "cpl2.gram"
+#line 323 "cpl2.gram"
 {emit_s(P_COMMENT,"da fare catch ...");dispose(&yymsp[-3].minor.yy0);}
-#line 3676 "cpl2.c"
+#line 3626 "cpl2.c"
         break;
       case 112: /* raise_stm ::= RAISE */
-#line 325 "cpl2.gram"
+#line 327 "cpl2.gram"
 {emit_i(P_RAISE,0);}
-#line 3681 "cpl2.c"
+#line 3631 "cpl2.c"
         break;
       case 113: /* raise_stm ::= RAISE LPAR expr RPAR */
-#line 326 "cpl2.gram"
+#line 328 "cpl2.gram"
 {emit_i(P_RAISE,1);}
-#line 3686 "cpl2.c"
+#line 3636 "cpl2.c"
         break;
       case 114: /* raise_stm ::= RAISE LPAR expr COMMA RPAR */
-#line 327 "cpl2.gram"
+#line 329 "cpl2.gram"
 {emit_i(P_RAISE,2);}
-#line 3691 "cpl2.c"
+#line 3641 "cpl2.c"
         break;
       case 115: /* print_stm ::= QUESTIONMARK print_list */
-#line 331 "cpl2.gram"
+#line 333 "cpl2.gram"
 {emit_i(P_PRINT,yymsp[0].minor.yy6);}
-#line 3696 "cpl2.c"
+#line 3646 "cpl2.c"
         break;
       case 118: /* pre_stm ::= PRE expr */
-#line 338 "cpl2.gram"
+#line 340 "cpl2.gram"
 {emit_i(P_PRE,1);}
-#line 3701 "cpl2.c"
+#line 3651 "cpl2.c"
         break;
       case 119: /* pre_stm ::= PRE expr COLON expr */
-#line 339 "cpl2.gram"
+#line 341 "cpl2.gram"
 {emit_i(P_PRE,2);}
-#line 3706 "cpl2.c"
+#line 3656 "cpl2.c"
         break;
       case 120: /* post_stm ::= POST expr */
-#line 340 "cpl2.gram"
+#line 342 "cpl2.gram"
 {emit_i(P_POST,1);}
-#line 3711 "cpl2.c"
+#line 3661 "cpl2.c"
         break;
       case 121: /* post_stm ::= POST expr COLON expr */
-#line 341 "cpl2.gram"
+#line 343 "cpl2.gram"
 {emit_i(P_POST,2);}
-#line 3716 "cpl2.c"
+#line 3666 "cpl2.c"
         break;
       case 122: /* assert_stm ::= ASSERT expr */
-#line 342 "cpl2.gram"
+#line 344 "cpl2.gram"
 {emit_i(P_ASSERT,1);}
-#line 3721 "cpl2.c"
+#line 3671 "cpl2.c"
         break;
       case 123: /* assert_stm ::= ASSERT expr COLON expr */
-#line 343 "cpl2.gram"
+#line 345 "cpl2.gram"
 {emit_i(P_ASSERT,2);}
-#line 3726 "cpl2.c"
+#line 3676 "cpl2.c"
         break;
       case 124: /* invariant_stm ::= INVARIANT expr */
-#line 344 "cpl2.gram"
+#line 346 "cpl2.gram"
 {emit_s(P_COMMENT,"da fare invariant ...");}
-#line 3731 "cpl2.c"
+#line 3681 "cpl2.c"
         break;
       case 125: /* aexpr ::= ID ASSIGN expr */
-#line 354 "cpl2.gram"
+#line 356 "cpl2.gram"
 {emit_s(P_STORE,yymsp[-2].minor.yy0);dispose(&yymsp[-2].minor.yy0);}
-#line 3736 "cpl2.c"
+#line 3686 "cpl2.c"
         break;
       case 126: /* aexpr ::= RESULT ASSIGN expr */
-#line 355 "cpl2.gram"
+#line 357 "cpl2.gram"
 {emit(P_STORE_RESULT);}
-#line 3741 "cpl2.c"
+#line 3691 "cpl2.c"
         break;
       case 127: /* aexpr ::= ref DOT ID ASSIGN expr */
-#line 356 "cpl2.gram"
+#line 358 "cpl2.gram"
 {emit_s(P_STOREX,yymsp[-2].minor.yy0);dispose(&yymsp[-2].minor.yy0);}
-#line 3746 "cpl2.c"
+#line 3696 "cpl2.c"
         break;
       case 128: /* aexpr ::= ref LSQ expr RSQ ASSIGN expr */
-#line 357 "cpl2.gram"
+#line 359 "cpl2.gram"
 {emit(P_STORESLICE);}
-#line 3751 "cpl2.c"
+#line 3701 "cpl2.c"
         break;
       case 129: /* lexpr ::= or_short */
       case 130: /* lexpra ::= and_short */ yytestcase(yyruleno==130);
-#line 361 "cpl2.gram"
+#line 363 "cpl2.gram"
 {emit_i(P_LABEL,yymsp[0].minor.yy6);}
-#line 3757 "cpl2.c"
+#line 3707 "cpl2.c"
         break;
       case 131: /* or_short ::= or_short_or1 lexpra */
       case 133: /* or_short ::= or_short_or2 lexpra */ yytestcase(yyruleno==133);
-#line 373 "cpl2.gram"
+#line 375 "cpl2.gram"
 {yylhsminor.yy6=yymsp[-1].minor.yy6;}
-#line 3763 "cpl2.c"
+#line 3713 "cpl2.c"
   yymsp[-1].minor.yy6 = yylhsminor.yy6;
         break;
       case 132: /* or_short_or1 ::= lexpra OR */
-#line 374 "cpl2.gram"
+#line 376 "cpl2.gram"
 {yymsp[-1].minor.yy6 = sState->labelCnt++;emit_i(P_IF_OR,yymsp[-1].minor.yy6);}
-#line 3769 "cpl2.c"
+#line 3719 "cpl2.c"
         break;
       case 134: /* or_short_or2 ::= or_short OR */
-#line 376 "cpl2.gram"
+#line 378 "cpl2.gram"
 {yylhsminor.yy6 = yymsp[-1].minor.yy6;emit_i(P_IF_OR,yylhsminor.yy6);}
-#line 3774 "cpl2.c"
+#line 3724 "cpl2.c"
   yymsp[-1].minor.yy6 = yylhsminor.yy6;
         break;
       case 135: /* and_short ::= and_short_and1 rexpr */
       case 137: /* and_short ::= and_short_and2 rexpr */ yytestcase(yyruleno==137);
-#line 378 "cpl2.gram"
+#line 380 "cpl2.gram"
 {yylhsminor.yy6 = yymsp[-1].minor.yy6;}
-#line 3781 "cpl2.c"
+#line 3731 "cpl2.c"
   yymsp[-1].minor.yy6 = yylhsminor.yy6;
         break;
       case 136: /* and_short_and1 ::= rexpr AND */
-#line 379 "cpl2.gram"
+#line 381 "cpl2.gram"
 {yymsp[-1].minor.yy6 = sState->labelCnt++;emit_i(P_IF_AND,yymsp[-1].minor.yy6);}
-#line 3787 "cpl2.c"
+#line 3737 "cpl2.c"
         break;
       case 138: /* and_short_and2 ::= and_short AND */
-#line 381 "cpl2.gram"
+#line 383 "cpl2.gram"
 {yylhsminor.yy6 = yymsp[-1].minor.yy6;emit_i(P_IF_AND,yylhsminor.yy6);}
-#line 3792 "cpl2.c"
+#line 3742 "cpl2.c"
   yymsp[-1].minor.yy6 = yylhsminor.yy6;
         break;
       case 139: /* rexpr ::= term LT term */
-#line 386 "cpl2.gram"
+#line 388 "cpl2.gram"
 {emit(P_LT);}
-#line 3798 "cpl2.c"
+#line 3748 "cpl2.c"
         break;
       case 140: /* rexpr ::= term LE term */
-#line 387 "cpl2.gram"
+#line 389 "cpl2.gram"
 {emit(P_LE);}
-#line 3803 "cpl2.c"
+#line 3753 "cpl2.c"
         break;
       case 141: /* rexpr ::= term EQ term */
-#line 388 "cpl2.gram"
+#line 390 "cpl2.gram"
 {emit(P_EQ);}
-#line 3808 "cpl2.c"
+#line 3758 "cpl2.c"
         break;
       case 142: /* rexpr ::= term GE term */
-#line 389 "cpl2.gram"
+#line 391 "cpl2.gram"
 {emit(P_GE);}
-#line 3813 "cpl2.c"
+#line 3763 "cpl2.c"
         break;
       case 143: /* rexpr ::= term GT term */
-#line 390 "cpl2.gram"
+#line 392 "cpl2.gram"
 {emit(P_GT);}
-#line 3818 "cpl2.c"
+#line 3768 "cpl2.c"
         break;
       case 144: /* rexpr ::= term NE term */
-#line 391 "cpl2.gram"
+#line 393 "cpl2.gram"
 {emit(P_NE);}
-#line 3823 "cpl2.c"
+#line 3773 "cpl2.c"
         break;
       case 145: /* rexpr ::= term LT term LT term */
-#line 392 "cpl2.gram"
+#line 394 "cpl2.gram"
 {emit(P_LT_LT);}
-#line 3828 "cpl2.c"
+#line 3778 "cpl2.c"
         break;
       case 146: /* rexpr ::= term LE term LE term */
-#line 393 "cpl2.gram"
+#line 395 "cpl2.gram"
 {emit(P_LE_LE);}
-#line 3833 "cpl2.c"
+#line 3783 "cpl2.c"
         break;
       case 147: /* rexpr ::= term LT term LE term */
-#line 394 "cpl2.gram"
+#line 396 "cpl2.gram"
 {emit(P_LT_LE);}
-#line 3838 "cpl2.c"
+#line 3788 "cpl2.c"
         break;
       case 148: /* rexpr ::= term LE term LT term */
-#line 395 "cpl2.gram"
+#line 397 "cpl2.gram"
 {emit(P_LE_LT);}
-#line 3843 "cpl2.c"
+#line 3793 "cpl2.c"
         break;
       case 149: /* term ::= term PLUS mterm */
-#line 399 "cpl2.gram"
+#line 401 "cpl2.gram"
 {emit(P_PLUS);}
-#line 3848 "cpl2.c"
+#line 3798 "cpl2.c"
         break;
       case 150: /* term ::= term MINUS mterm */
-#line 400 "cpl2.gram"
+#line 402 "cpl2.gram"
 {emit(P_MINUS);}
-#line 3853 "cpl2.c"
+#line 3803 "cpl2.c"
         break;
       case 151: /* mterm ::= mterm MULT fact */
-#line 403 "cpl2.gram"
+#line 405 "cpl2.gram"
 {emit(P_MULT);}
-#line 3858 "cpl2.c"
+#line 3808 "cpl2.c"
         break;
       case 152: /* mterm ::= mterm DIV fact */
-#line 404 "cpl2.gram"
+#line 406 "cpl2.gram"
 {emit(P_DIV);}
-#line 3863 "cpl2.c"
+#line 3813 "cpl2.c"
         break;
       case 153: /* mterm ::= mterm MOD fact */
-#line 405 "cpl2.gram"
+#line 407 "cpl2.gram"
 {emit(P_MOD);}
-#line 3868 "cpl2.c"
+#line 3818 "cpl2.c"
         break;
       case 154: /* mterm ::= mterm IDIV fact */
-#line 406 "cpl2.gram"
+#line 408 "cpl2.gram"
 {emit(P_IDIV);}
-#line 3873 "cpl2.c"
+#line 3823 "cpl2.c"
         break;
       case 155: /* fact ::= NOT fact */
-#line 410 "cpl2.gram"
+#line 412 "cpl2.gram"
 {emit(P_NOT);}
-#line 3878 "cpl2.c"
+#line 3828 "cpl2.c"
         break;
       case 156: /* fact ::= MINUS fact */
-#line 411 "cpl2.gram"
+#line 413 "cpl2.gram"
 {emit(P_UMINUS);}
-#line 3883 "cpl2.c"
+#line 3833 "cpl2.c"
         break;
       case 159: /* fact ::= FLOAT_CONST */
-#line 416 "cpl2.gram"
+#line 418 "cpl2.gram"
 {emit_s(P_FLOAT_CONST,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3888 "cpl2.c"
+#line 3838 "cpl2.c"
         break;
       case 163: /* fact ::= IS LPAR expr COMMA type RPAR */
       case 164: /* fact ::= LPAR expr IS type RPAR */ yytestcase(yyruleno==164);
-#line 427 "cpl2.gram"
+#line 429 "cpl2.gram"
 {emit(P_IS);}
-#line 3894 "cpl2.c"
+#line 3844 "cpl2.c"
         break;
       case 165: /* fact ::= MINUS QUESTIONMARK STR_CONST */
-#line 431 "cpl2.gram"
+#line 433 "cpl2.gram"
 {emit_s(P_TODO,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3899 "cpl2.c"
+#line 3849 "cpl2.c"
         break;
       case 167: /* iif_test ::= IIF LPAR expr COMMA */
-#line 436 "cpl2.gram"
+#line 438 "cpl2.gram"
 {yymsp[-3].minor.yy6=sState->labelCnt++;emit_i(P_IF_FALSE,yymsp[-3].minor.yy6);}
-#line 3904 "cpl2.c"
+#line 3854 "cpl2.c"
         break;
       case 168: /* iif_then ::= iif_test expr COMMA */
-#line 437 "cpl2.gram"
+#line 439 "cpl2.gram"
 {yylhsminor.yy6=sState->labelCnt++;emit_i(P_GOTO,yylhsminor.yy6);emit_i(P_LABEL,yymsp[-2].minor.yy6);}
-#line 3909 "cpl2.c"
+#line 3859 "cpl2.c"
   yymsp[-2].minor.yy6 = yylhsminor.yy6;
         break;
       case 170: /* ref ::= RESULT */
-#line 442 "cpl2.gram"
+#line 444 "cpl2.gram"
 {emit(P_LOAD_RESULT);}
-#line 3915 "cpl2.c"
+#line 3865 "cpl2.c"
         break;
       case 171: /* ref ::= OLD */
-#line 443 "cpl2.gram"
+#line 445 "cpl2.gram"
 {emit(P_OLD);}
-#line 3920 "cpl2.c"
+#line 3870 "cpl2.c"
         break;
       case 172: /* ref ::= INHERITED */
-#line 444 "cpl2.gram"
+#line 446 "cpl2.gram"
 {emit(P_LOAD_INHERITED);}
-#line 3925 "cpl2.c"
+#line 3875 "cpl2.c"
         break;
       case 173: /* ref ::= AT ID */
-#line 445 "cpl2.gram"
+#line 447 "cpl2.gram"
 {emit_s(P_LOADREF,yymsp[0].minor.yy0);dispose(&yymsp[0].minor.yy0);}
-#line 3930 "cpl2.c"
+#line 3880 "cpl2.c"
         break;
       case 175: /* ref ::= ref LSQ expr RSQ */
-#line 447 "cpl2.gram"
+#line 449 "cpl2.gram"
 {emit(P_SLICE);}
-#line 3935 "cpl2.c"
+#line 3885 "cpl2.c"
         break;
       case 176: /* ref ::= ref LPAR par_list RPAR */
-#line 448 "cpl2.gram"
+#line 450 "cpl2.gram"
 {emit_i(P_CALL,yymsp[-1].minor.yy6);}
-#line 3940 "cpl2.c"
+#line 3890 "cpl2.c"
         break;
       case 177: /* par_list ::= */
-#line 452 "cpl2.gram"
+#line 454 "cpl2.gram"
 {yymsp[1].minor.yy6=0;}
-#line 3945 "cpl2.c"
+#line 3895 "cpl2.c"
         break;
       case 178: /* par_list ::= par_expr */
-#line 453 "cpl2.gram"
+#line 455 "cpl2.gram"
 {yylhsminor.yy6=yymsp[0].minor.yy6;}
-#line 3950 "cpl2.c"
+#line 3900 "cpl2.c"
   yymsp[0].minor.yy6 = yylhsminor.yy6;
         break;
       case 179: /* par_list ::= par_list COMMA par_expr */
-#line 454 "cpl2.gram"
+#line 456 "cpl2.gram"
 {yylhsminor.yy6=yymsp[-2].minor.yy6+yymsp[0].minor.yy6;if (yylhsminor.yy6>1000000) yylhsminor.yy6=1000000+yylhsminor.yy6%1000000;}
-#line 3956 "cpl2.c"
+#line 3906 "cpl2.c"
   yymsp[-2].minor.yy6 = yylhsminor.yy6;
         break;
       case 180: /* par_expr ::= par_expr_named lexpr */
-#line 455 "cpl2.gram"
+#line 457 "cpl2.gram"
 {yymsp[-1].minor.yy6=1000002;}
-#line 3962 "cpl2.c"
+#line 3912 "cpl2.c"
         break;
       case 181: /* par_expr_named ::= ID ASSIGN */
-#line 456 "cpl2.gram"
+#line 458 "cpl2.gram"
 {emit_s(P_NAMEDPARM,yymsp[-1].minor.yy0);dispose(&yymsp[-1].minor.yy0);}
-#line 3967 "cpl2.c"
+#line 3917 "cpl2.c"
         break;
       case 182: /* par_expr ::= lexpr */
       case 187: /* array_list ::= expr */ yytestcase(yyruleno==187);
       case 196: /* dict_list ::= dict_list_elem */ yytestcase(yyruleno==196);
       case 207: /* tuple_list ::= expr */ yytestcase(yyruleno==207);
-#line 457 "cpl2.gram"
+#line 459 "cpl2.gram"
 {yymsp[0].minor.yy6=1;}
-#line 3975 "cpl2.c"
+#line 3925 "cpl2.c"
         break;
       case 183: /* lsq ::= LSQ */
       case 193: /* lbr ::= LBR */ yytestcase(yyruleno==193);
-#line 464 "cpl2.gram"
+#line 466 "cpl2.gram"
 {yymsp[0].minor.yy6=emit_pos();}
-#line 3981 "cpl2.c"
+#line 3931 "cpl2.c"
         break;
       case 184: /* array_const ::= lsq RSQ */
-#line 466 "cpl2.gram"
+#line 468 "cpl2.gram"
 {emit_i(P_ARRAY,0);}
-#line 3986 "cpl2.c"
+#line 3936 "cpl2.c"
         break;
       case 185: /* array_const ::= lsq array_list RSQ */
-#line 467 "cpl2.gram"
+#line 469 "cpl2.gram"
 {emit_i(P_ARRAY,yymsp[-1].minor.yy6);}
-#line 3991 "cpl2.c"
+#line 3941 "cpl2.c"
         break;
       case 186: /* array_list ::= array_list COMMA expr */
       case 197: /* dict_list ::= dict_list COMMA dict_list_elem */ yytestcase(yyruleno==197);
       case 206: /* tuple_list ::= tuple_list COMMA expr */ yytestcase(yyruleno==206);
-#line 468 "cpl2.gram"
+#line 470 "cpl2.gram"
 {yylhsminor.yy6=yymsp[-2].minor.yy6+1;}
-#line 3998 "cpl2.c"
+#line 3948 "cpl2.c"
   yymsp[-2].minor.yy6 = yylhsminor.yy6;
         break;
       case 188: /* array_compr ::= lsq expr compr_head RSQ */
-#line 478 "cpl2.gram"
+#line 480 "cpl2.gram"
 {emit_rotate(yymsp[-3].minor.yy6,yymsp[-1].minor.yy215.mark);emit(P_COMPR_APPEND);
                                                    emit_i(P_GOTO,yymsp[-1].minor.yy215.start);emit_i(P_LABEL,yymsp[-1].minor.yy215.last);emit(P_POP);}
-#line 4005 "cpl2.c"
+#line 3955 "cpl2.c"
         break;
       case 189: /* compr_head ::= compr_src */
       case 199: /* dcompr_head ::= dcompr_src */ yytestcase(yyruleno==199);
-#line 480 "cpl2.gram"
+#line 482 "cpl2.gram"
 {yylhsminor.yy215=yymsp[0].minor.yy215;}
-#line 4011 "cpl2.c"
+#line 3961 "cpl2.c"
   yymsp[0].minor.yy215 = yylhsminor.yy215;
         break;
       case 190: /* compr_head ::= compr_src WITH expr */
       case 200: /* dcompr_head ::= dcompr_src WITH expr */ yytestcase(yyruleno==200);
-#line 481 "cpl2.gram"
+#line 483 "cpl2.gram"
 {yylhsminor.yy215=yymsp[-2].minor.yy215;emit_i(P_IF_FALSE,yylhsminor.yy215.start);}
-#line 4018 "cpl2.c"
+#line 3968 "cpl2.c"
   yymsp[-2].minor.yy215 = yylhsminor.yy215;
         break;
       case 192: /* compr_in ::= foreach_in */
-#line 483 "cpl2.gram"
+#line 485 "cpl2.gram"
 {yylhsminor.yy215=yymsp[0].minor.yy215;yylhsminor.yy215.mark=emit_pos();emit_i(P_ARRAY,0);}
-#line 4024 "cpl2.c"
+#line 3974 "cpl2.c"
   yymsp[0].minor.yy215 = yylhsminor.yy215;
         break;
       case 194: /* dict_const ::= lbr RBR */
-#line 489 "cpl2.gram"
+#line 491 "cpl2.gram"
 {emit_i(P_DICT,0);}
-#line 4030 "cpl2.c"
+#line 3980 "cpl2.c"
         break;
       case 195: /* dict_const ::= lbr dict_list RBR */
-#line 490 "cpl2.gram"
+#line 492 "cpl2.gram"
 {emit_i(P_DICT,yymsp[-1].minor.yy6);}
-#line 4035 "cpl2.c"
+#line 3985 "cpl2.c"
         break;
       case 198: /* dict_compr ::= lbr expr COLON expr dcompr_head RBR */
-#line 508 "cpl2.gram"
+#line 510 "cpl2.gram"
 {emit_rotate(yymsp[-5].minor.yy6,yymsp[-1].minor.yy215.mark);emit_i(P_COMPR_APPEND,2);
                                                    emit_i(P_GOTO,yymsp[-1].minor.yy215.start);emit_i(P_LABEL,yymsp[-1].minor.yy215.last);emit(P_POP);}
-#line 4041 "cpl2.c"
+#line 3991 "cpl2.c"
         break;
       case 202: /* dcompr_src ::= dcompr_zip expr COLON expr */
-#line 513 "cpl2.gram"
+#line 515 "cpl2.gram"
 {yylhsminor.yy215=yymsp[-3].minor.yy215;foreachTesta(&yylhsminor.yy215,sState);}
-#line 4046 "cpl2.c"
+#line 3996 "cpl2.c"
   yymsp[-3].minor.yy215 = yylhsminor.yy215;
         break;
       case 203: /* dcompr_in ::= FOR EACH ID COMMA ID IN */
-#line 514 "cpl2.gram"
+#line 516 "cpl2.gram"
 {yymsp[-5].minor.yy215.name=yymsp[-3].minor.yy0;yymsp[-5].minor.yy215.key=yymsp[-1].minor.yy0;yymsp[-5].minor.yy215.n=1;yymsp[-5].minor.yy215.mark=emit_pos();emit_i(P_DICT,0);}
-#line 4052 "cpl2.c"
+#line 4002 "cpl2.c"
         break;
       case 204: /* dcompr_zip ::= FOR EACH ID COLON ID IN */
-#line 515 "cpl2.gram"
+#line 517 "cpl2.gram"
 {yymsp[-5].minor.yy215.name=yymsp[-3].minor.yy0;yymsp[-5].minor.yy215.key=yymsp[-1].minor.yy0;yymsp[-5].minor.yy215.n=2;yymsp[-5].minor.yy215.mark=emit_pos();emit_i(P_DICT,0);}
-#line 4057 "cpl2.c"
+#line 4007 "cpl2.c"
         break;
       case 205: /* tuple_const ::= VBAR tuple_list VBAR */
-#line 517 "cpl2.gram"
+#line 519 "cpl2.gram"
 {emit_i(P_TUPLE,yymsp[-1].minor.yy6);}
-#line 4062 "cpl2.c"
+#line 4012 "cpl2.c"
         break;
       default:
       /* (208) cmd_list ::= cmd_list cmd */ yytestcase(yyruleno==208);
@@ -4199,7 +4150,7 @@ static void yy_syntax_error(
 /************ Begin %syntax_error code ****************************************/
 #line 26 "cpl2.gram"
 diag("syntax error at line %d!\n",sState->lineNo);sState->errors++;
-#line 4203 "cpl2.c"
+#line 4153 "cpl2.c"
 /************ End %syntax_error code ******************************************/
   ParseARG_STORE /* Suppress warning about unused %extra_argument variable */
   ParseCTX_STORE
@@ -4320,12 +4271,19 @@ void Parse(
                   (int)(yypParser->yytos - yypParser->yystack));
         }
 #endif
+#if YYSTACKDEPTH>0 
         if( yypParser->yytos>=yypParser->yystackEnd ){
+          yyStackOverflow(yypParser);
+          break;
+        }
+#else
+        if( yypParser->yytos>=&yypParser->yystack[yypParser->yystksz-1] ){
           if( yyGrowStack(yypParser) ){
             yyStackOverflow(yypParser);
             break;
           }
         }
+#endif
       }
       yyact = yy_reduce(yypParser,yyruleno,yymajor,yyminor ParseCTX_PARAM);
     }else if( yyact <= YY_MAX_SHIFTREDUCE ){
