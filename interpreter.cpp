@@ -1283,7 +1283,7 @@ void classObj::addBaseClass(classObj* d){
   // bisognerà poi gestire i doppi
   cout << "class " << d->print() << endl;
   for(auto& [k,v]:d->objs) {
-    //cout << " k:" << k << " value:" << v->print() << " types:" << d->types[k]->print() << endl;
+    cout << " k:" << k << " value:" << v->print() << " types:" << d->types[k]->print() << endl;
     objs[k]=v;
     types[k]=d->types[k];
   }
