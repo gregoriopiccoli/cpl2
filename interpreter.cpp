@@ -82,6 +82,7 @@ StringIntern theStringIntern;
 
 class interp;
 class obj;
+class classObj;
 
 #include "pcodeinterp.h"
 #include "cplobject.h"
@@ -801,7 +802,9 @@ string sys::modulePathFor(const string& name, const string& baseDir) const {
 //#define PRINT_PCODE_EXECUTION
 
 class interp {
+protected:
 public:
+  //friend class pcode;
   vector<obj*> stack;
   int sp,pc,currentSourceLine;
   contextObj* context;
@@ -809,6 +812,7 @@ public:
   bool stop;
   gc_array_<obj> *stack_gc;
   contextObj* saved_ctx; 
+  classObj* pending_class;
   //
   explicit interp(contextObj* c, pcodeProgram* p):context{c},prg{p},stack_gc{new gc_array_<obj>(stack)}{init();}
   void init(){
@@ -1187,10 +1191,14 @@ protected:
   vector<classObj*> baseClasses;
   int name;
 public:
-   explicit classObj(int n, interp& i);
-   virtual obj* load(int intern) override;
-   virtual void call(int parmCnt,interp& interpreter) override; // crea un istanza di questa classe nello stack dell'interprete
-   virtual string print() const override {return "<class "+theStringIntern.get(name)+">";}
+  //
+  virtual void trace(Tracer& t) override {for(auto& d:baseClasses) t(d);}
+  //
+  explicit classObj(int n, contextObj* c);
+  virtual obj* load(int intern) override;
+  virtual void call(int parmCnt,interp& interpreter) override; // crea un istanza di questa classe nello stack dell'interprete
+  virtual string print() const override {return "<class "+theStringIntern.get(name)+">";}
+  virtual void addBaseClass(classObj* c);
 };
 	
 // istanza di una class, oggetto creato "lazy"?
@@ -1236,7 +1244,7 @@ public:
   virtual string print() const {return "<methf "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
 };
 
-classObj::classObj(int n, interp& i):contextObj{i.context}{
+classObj::classObj(int n, contextObj* c):contextObj{c}{
   name=n;
 }
 
@@ -1257,6 +1265,10 @@ obj* classObj::load(int intern) {
 void classObj::call(int parmCnt,interp& interpreter){
   obj* theInstance=new instanceObj(this);
   interpreter.stack[interpreter.sp]=theInstance;
+}
+
+void classObj::addBaseClass(classObj* d){
+  baseClasses.push_back(d);
 }
 
 obj* instanceObj::load(int intern) {
@@ -2107,16 +2119,27 @@ void pcodeFunc::exec(interp& interpreter) const {
 
 void pcodeClass::exec(interp& interpreter) const {
   cout << "declaring class " << theStringIntern.get(value) << endl;
-  classObj* c=new classObj(value,interpreter);
+  classObj* c=new classObj(value,interpreter.context);
   // aggiunge l'oggetto al modulo (container corrente)
   interpreter.context->add(value,c,c); // il tipo è la classe stessa
-  // sostituisce il container corrente in modo che variabili, procedure e funzioni vengano aggiunte alla classe	
-  interpreter.saved_ctx=interpreter.context;
-  interpreter.context=c;
+  // salva la classe che evrrà segnata come contesto corrente dal pcode inherit, la lista delle classi da cui deriva viene valutata nel contesto corrente
+  interpreter.pending_class=c;
 }
 
 void pcodeInherit::exec(interp& interpreter) const {
   cout << "inherit " << value << endl;	
+  // mette la lista delle classi da cui deriva 
+  classObj* c=interpreter.pending_class;
+  int i;
+  for(i=0;i<value;i++){
+	classObj* d=static_cast<classObj*>(interpreter.stack[interpreter.sp-value+1+i]);
+    c->addBaseClass(d);
+  }
+  for(i=0;i<value;i++) interpreter.stack.pop_back();
+  interpreter.sp-=value;
+  // sostituisce il container corrente in modo che variabili, procedure e funzioni vengano aggiunte alla classe	
+  interpreter.saved_ctx=interpreter.context;
+  interpreter.context=c;
 }
 
 void pcodeEndClass::exec(interp& interpreter) const {

@@ -6,3 +6,11 @@ end
 proc p(int i)
  ? i,' ',doppio(i)
 end
+
+class alfa
+  var int i,j,k
+end
+
+class beta(alfa)
+  var str s
+end    
