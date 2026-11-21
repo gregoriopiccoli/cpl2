@@ -1209,7 +1209,7 @@ public:
   virtual int getName(){return name;}
 };
 	
-// istanza di una class, oggetto creato "lazy"?
+// istanza di una classe, oggetto creato "lazy"?
 class instanceObj: public contextObj {
   classObj* theClass;
 public:
