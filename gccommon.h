@@ -10,11 +10,11 @@
 // percentuale di crescita degli oggetti rispetto ai vivi dell'ultima collect che fa scattare la collect
 // automatica (come GOGC in Go). Negativa: collect automatiche disattivate.
 #ifndef GC_PERCENT
-#define GC_PERCENT 100
+#define GC_PERCENT 100 //100
 #endif
 // soglia minima di nuovi oggetti prima di una collect automatica (evita collect continue con heap piccoli)
 #ifndef GC_MIN_OBJS
-#define GC_MIN_OBJS 10000
+#define GC_MIN_OBJS 5000 // 10000
 #endif
 
 namespace gc {

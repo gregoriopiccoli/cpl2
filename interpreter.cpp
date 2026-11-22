@@ -2700,5 +2700,9 @@ int main(int argc, char** argv){
     stdGC().printLocked();
     cout << "--- end ---\n";
   }
+  if (testOpzione==1){
+    GCStats st=stdGC().stats();
+    cout << "GC:" << st.totalPauseNs/1000000.0 << " ms. runs: " << st.collections << " mean: " << st.avgPauseUs()/1000.0 << " ms. max: " << st.maxPauseNs/1000000.0 << " ms." << endl;
+  }
   return rc;
 }
