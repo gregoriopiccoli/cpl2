@@ -642,6 +642,8 @@ public:
   }
   // il nome e' dichiarato in questo livello? non risale il superlevel (variabile del for)
   bool isLocal(int intern) const {return objs.find(intern)!=objs.end();}
+  // il contesto dove prosegue la ricerca: serve ai metodi per trovare il modulo della classe che li definisce
+  contextObj* getSuperlevel() const {return superlevel;}
   virtual string print() const override {
 	string s="container ";
 	for(auto& [k,t]:types){
@@ -1235,7 +1237,9 @@ public:
   virtual obj* load(int intern) override;
   virtual obj* loadDirect(int intern) override;
   virtual void store(int intern, obj* value) override;
-  // 
+  // salva solo se il nome e' dell'istanza (gia' creato o dichiarato nella classe), senza risalire: false se non e' suo
+  virtual bool storeDirect(int intern, obj* value);
+  //
   virtual string print() const override {
     string s="";
 	for(auto& [k,t]:types){
@@ -1244,6 +1248,74 @@ public:
 	return "<instance of "+theClass->getName()+"> ("+s+")" ;
   }
 };
+
+// --- i locali di un metodo legato ad un'istanza
+// la catena di ricerca e': locali del metodo -> istanza (senza risalire) -> superlevel
+// il superlevel e' la "home" del metodo, cioe' il contesto dove e' definita la classe
+// che contiene il metodo (il suo modulo), non il modulo della classe dell'istanza:
+// un metodo ereditato da una classe importata vede i nomi del modulo dove e' scritto.
+// L'istanza viene consultata prima della home, cosi' un campo dell'istanza nasconde
+// un nome del modulo (la "cattura") e un metodo chiamato per nome trova la versione
+// della classe concreta.
+template <class Base> class methFrame: public Base {
+protected:
+  instanceObj* inst;
+public:
+  template <class... A> explicit methFrame(instanceObj* i,A... a):Base{a...},inst{i}{}
+  //
+  void trace(Tracer& t) override {t(inst);Base::trace(t);}
+  //
+  obj* load(int intern) override {
+	obj* o=this->loadDirect(intern);                      // i locali e i parametri del metodo
+	if (o!=nullptr) return o;
+	o=inst->loadDirect(intern);                           // i campi e i metodi dell'istanza
+	if (o!=nullptr) return o;
+	return this->superlevel->load(intern);                // la home del metodo
+  }
+  void store(int intern, obj* value) override {
+	if (this->isLocal(intern)) {Base::store(intern,value);return;}
+	if (inst->storeDirect(intern,value)) return;
+	this->superlevel->store(intern,value);
+  }
+};
+
+class methVars: public methFrame<procVars> {
+public:
+  methVars(instanceObj* i,contextObj* home):methFrame<procVars>{i,home}{}
+  //
+  void reclaim() override;
+  void recycle(instanceObj* i,contextObj* home){inst=i;superlevel=home;}
+};
+
+recycler<methVars> theMethVarsRecycler;
+
+void methVars::reclaim(){
+  inst=nullptr;
+  superlevel=nullptr;
+  objs.clear();
+  types.clear();
+  theMethVarsRecycler.add(this);
+}
+
+class methFuncVars: public methFrame<funcVars> {
+public:
+  methFuncVars(instanceObj* i,contextObj* home,obj* t):methFrame<funcVars>{i,home,t}{}
+  //
+  void reclaim() override;
+  void recycle(instanceObj* i,contextObj* home,obj* t){inst=i;superlevel=home;result_type=t;result_value=theNil;}
+};
+
+recycler<methFuncVars> theMethFuncVarsRecycler;
+
+void methFuncVars::reclaim(){
+  inst=nullptr;
+  superlevel=nullptr;
+  objs.clear();
+  types.clear();
+  result_type=nullptr;
+  result_value=nullptr;
+  theMethFuncVarsRecycler.add(this);
+}
 
 class unboundMethObj: public procObj {
 public:
@@ -1254,29 +1326,47 @@ public:
 
 class unboundMethFuncObj: public funcObj {
 public:
-  explicit unboundMethFuncObj(const funcObj* f,classObj* c):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;prm=f->prm;ctx=c;}
+  explicit unboundMethFuncObj(const funcObj* f,classObj* c):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;prm=f->prm;ctx=f->ctx;}
   virtual string print() const {return "<unbound methf "+result_type->print()+" "+ctx->getName()+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override {throw domain_error("calling unbound methodf ... ");}
 };
 
+// il metodo legato ad un'istanza: tiene il procObj originale (quello definito nella classe,
+// condiviso con le classi derivate da addBaseClass) e l'istanza.
+// ctx e' la home del metodo: il superlevel della classe che lo definisce (orig->ctx),
+// cioe' il suo modulo, anche quando l'istanza e' di una classe derivata in un altro modulo.
 class methObj: public procObj {
-  classObj* theClass;	
+  const procObj* orig;
+  instanceObj* inst;
 public:
   //
-  virtual void trace(Tracer& t) override {t(theClass);procObj::trace(t);}
+  virtual void trace(Tracer& t) override {t(const_cast<procObj*>(orig));t(inst);procObj::trace(t);}
   //
-  explicit methObj(instanceObj* i, const procObj* p):procObj{p->prg}{name=p->name;pc=p->pc;ctx=i;prm=p->prm;theClass=i->theClass;}
-  virtual string print() const {return "<methp "+theClass->getName()+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  explicit methObj(instanceObj* i, const procObj* p):procObj{p->prg}{name=p->name;pc=p->pc;prm=p->prm;orig=p;inst=i;ctx=p->ctx->getSuperlevel();}
+  virtual string getName() const override {return orig->getName();}
+  virtual string print() const override {return "<methp "+getName()+"("+prm->print()+") -- pcode>";}
+  virtual procVars* mkVars() override {
+	methVars* r=theMethVarsRecycler.recycle();
+	if (r!=nullptr) {r->recycle(inst,ctx);stdGC().addRecycled(r);return r;}
+	return new methVars(inst,ctx);
+  }
 };
 
 class methFuncObj: public funcObj {
-  classObj* theClass;	
+  const funcObj* orig;
+  instanceObj* inst;
 public:
   //
-  virtual void trace(Tracer& t) override {t(theClass);funcObj::trace(t);}
+  virtual void trace(Tracer& t) override {t(const_cast<funcObj*>(orig));t(inst);funcObj::trace(t);}
   //
-  explicit methFuncObj(instanceObj* i, const funcObj* f):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;ctx=i;prm=f->prm;theClass=i->theClass;}
-  virtual string print() const {return "<methf "+result_type->print()+" "+theClass->getName()+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  explicit methFuncObj(instanceObj* i, const funcObj* f):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;prm=f->prm;orig=f;inst=i;ctx=f->ctx->getSuperlevel();}
+  virtual string getName() const override {return orig->getName();}
+  virtual string print() const override {return "<methf "+result_type->print()+" "+getName()+"("+prm->print()+") -- pcode>";}
+  virtual procVars* mkVars() override {
+	methFuncVars* r=theMethFuncVarsRecycler.recycle();
+	if (r!=nullptr) {r->recycle(inst,ctx,result_type);stdGC().addRecycled(r);return r;}
+	return new methFuncVars(inst,ctx,result_type);
+  }
 };
 
 classObj::classObj(int n, contextObj* c):contextObj{c}{
@@ -1346,28 +1436,33 @@ obj* instanceObj::loadDirect(int intern) {
 obj* instanceObj::load(int intern) {
   obj* o=loadDirect(intern);
   if (o!=nullptr) return o;
-  /*
+  // l'istanza non fa piu' parte della catena dei metodi (ci pensano methVars/methFuncVars):
+  // qui si arriva solo da obj.nome, e un nome che non e' dell'istanza e' un errore
   string err="name '"+theStringIntern.get(intern)+"' not found in istance of class "+theClass->getName();
   cout << err << endl;
   throw out_of_range(err);
-  */
-  //return contextObj::load(intern);
-  return theClass->superlevel->load(intern);
 }
 
-void instanceObj::store(int intern, obj* value){
+bool instanceObj::storeDirect(int intern, obj* value){
   auto ff=objs.find(intern);
   if (ff==objs.end()) {
 	// il nome non è già noto, prova a crearlo dalla classe
 	auto fu=theClass->objs.find(intern);
-	if (fu!=theClass->objs.end()) {
-	  // trovato nella classe, lo creo sul posto
-	  objs[intern]=fu->second;
-	  types[intern]=theClass->types[intern];	
-	}
-  } 
-  // il nome ora c'è, si salva come da contenitore
+	if (fu==theClass->objs.end()) return false;           // non e' un nome dell'istanza
+	// trovato nella classe, lo creo sul posto
+	objs[intern]=fu->second;
+	types[intern]=theClass->types[intern];
+  }
+  // il nome ora c'è, si salva come da contenitore (non risale: il nome e' locale)
   contextObj::store(intern,value);
+  return true;
+}
+
+void instanceObj::store(int intern, obj* value){
+  if (storeDirect(intern,value)) return;
+  string err="name '"+theStringIntern.get(intern)+"' not found in istance of class "+theClass->getName();
+  cout << err << endl;
+  throw out_of_range(err);
 }
 
 // --- le regole di compatibilita' fra il tipo dichiarato e il valore assegnato ---

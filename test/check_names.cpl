@@ -26,3 +26,13 @@ end
 ? check_names_module.mm
 ? check_names_module.mm.mmpp
 ? check_names_module.mm.mmff
+
+class my(check_names_module.mm)
+  proc mmppp()
+  end
+end
+
+? my
+? my.mmpp
+? my.mmff
+? my.mmppp

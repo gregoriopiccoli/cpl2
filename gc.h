@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-#define GC_DEBUG
+//#define GC_DEBUG
 
 namespace gc {
 
