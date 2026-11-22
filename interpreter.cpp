@@ -1257,13 +1257,14 @@ public:
 // L'istanza viene consultata prima della home, cosi' un campo dell'istanza nasconde
 // un nome del modulo (la "cattura") e un metodo chiamato per nome trova la versione
 // della classe concreta.
-template <class Base> class methFrame: public Base {
+
+class methVars: public procVars {
 protected:
   instanceObj* inst;
 public:
-  template <class... A> explicit methFrame(instanceObj* i,A... a):Base{a...},inst{i}{}
+  methVars(instanceObj* i,contextObj* home):procVars{home}{inst=i;}
   //
-  void trace(Tracer& t) override {t(inst);Base::trace(t);}
+  void trace(Tracer& t) override {t(inst);procVars::trace(t);}
   //
   obj* load(int intern) override {
 	obj* o=this->loadDirect(intern);                      // i locali e i parametri del metodo
@@ -1273,16 +1274,10 @@ public:
 	return this->superlevel->load(intern);                // la home del metodo
   }
   void store(int intern, obj* value) override {
-	if (this->isLocal(intern)) {Base::store(intern,value);return;}
+	if (this->isLocal(intern)) {procVars::store(intern,value);return;}
 	if (inst->storeDirect(intern,value)) return;
 	this->superlevel->store(intern,value);
   }
-};
-
-class methVars: public methFrame<procVars> {
-public:
-  methVars(instanceObj* i,contextObj* home):methFrame<procVars>{i,home}{}
-  //
   void reclaim() override;
   void recycle(instanceObj* i,contextObj* home){inst=i;superlevel=home;}
 };
@@ -1297,9 +1292,26 @@ void methVars::reclaim(){
   theMethVarsRecycler.add(this);
 }
 
-class methFuncVars: public methFrame<funcVars> {
+class methFuncVars: public funcVars {
+protected:
+  instanceObj* inst;
 public:
-  methFuncVars(instanceObj* i,contextObj* home,obj* t):methFrame<funcVars>{i,home,t}{}
+  methFuncVars(instanceObj* i,contextObj* home,obj* t):funcVars{home,t}{inst=i;}
+  //
+  void trace(Tracer& t) override {t(inst);funcVars::trace(t);}
+  //
+  obj* load(int intern) override {
+	obj* o=this->loadDirect(intern);                      // i locali e i parametri del metodo
+	if (o!=nullptr) return o;
+	o=inst->loadDirect(intern);                           // i campi e i metodi dell'istanza
+	if (o!=nullptr) return o;
+	return this->superlevel->load(intern);                // la home del metodo
+  }
+  void store(int intern, obj* value) override {
+	if (this->isLocal(intern)) {funcVars::store(intern,value);return;}
+	if (inst->storeDirect(intern,value)) return;
+	this->superlevel->store(intern,value);
+  }
   //
   void reclaim() override;
   void recycle(instanceObj* i,contextObj* home,obj* t){inst=i;superlevel=home;result_type=t;result_value=theNil;}
