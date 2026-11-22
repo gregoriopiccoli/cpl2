@@ -2,6 +2,9 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
+  ridefinizione di metodi (override)
+  chiamata di metodo della classe base
+  ridefinizione obbligatoria di metodi ereditati da due classi diverse
   separare prg e interp, fare due oggetti GCed
   tipi definiti dall'utente
   operazioni negli array
@@ -20,6 +23,7 @@ DA FARE:
   Float e operazioni miste tra int e float
    
 FATTO:
+  fatta la gestione corretta del modulo in cui viene eseguito un metodo
   fatta la cache di Int, frame di Funzioni, frame di Procedure: guadagnato il 20%! 
   assegnazione di int a float
   iniziato il tipo float
@@ -1415,9 +1419,9 @@ void classObj::addBaseClass(classObj* d){
   baseClasses.push_back(d);
   // ora deve aggiungere tutto quello che trova nella classe base a questa nuova classe
   // bisognerà poi gestire i doppi
-  cout << "class " << d->print() << endl;
+  //cout << "class " << d->print() << endl;
   for(auto& [k,v]:d->objs) {
-    cout << theStringIntern.get(k) << " value:" << v->print() << " type:" << d->types[k]->print() << endl;
+    //cout << theStringIntern.get(k) << " value:" << v->print() << " type:" << d->types[k]->print() << endl;
     objs[k]=v;
     types[k]=d->types[k];
   }

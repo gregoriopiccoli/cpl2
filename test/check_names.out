@@ -8,9 +8,6 @@
 <class check_names_module.mm>
 <unbound methp check_names_module.mm.mmpp() -- pcode>
 <unbound methf int check_names_module.mm.mmff() -- pcode>
-class <class check_names_module.mm>
-mmpp value:<proc check_names_module.mm.mmpp() -- pcode> type:()
-mmff value:<func int check_names_module.mm.mmff() -- pcode> type:(int:)
 <class check_names.my>
 <unbound methp check_names_module.mm.mmpp() -- pcode>
 <unbound methf int check_names_module.mm.mmff() -- pcode>

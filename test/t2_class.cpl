@@ -1,0 +1,13 @@
+import t_class
+
+var int xxx:=-1
+
+class ddd(t_class.derived)
+  proc pp()
+    ? 'nel modulo t2_class la variabile xxx vale ',xxx
+  end  
+end
+
+var ddd d:=ddd()
+d.p()
+d.pp()

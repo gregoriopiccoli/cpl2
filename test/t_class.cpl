@@ -1,0 +1,28 @@
+
+var int xxx:=10000
+
+class base
+  var int i:=100
+  proc p()
+    ? 'nel modulo t_class la variabile xxx vale ',xxx
+  end
+  func int f()
+    result:=1
+  end
+end
+
+class derived(base)
+  func int g()
+    result:=i
+  end
+end
+
+var base b:=base()
+b.p()
+? b.f(),'=1'
+
+var derived d:=derived()
+d.p()
+? d.f(),'=1'
+? d.g(),'=100'
+  
