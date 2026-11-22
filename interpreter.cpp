@@ -2,7 +2,7 @@
 Dove possibile usare sempre referenze!
 
 DA FARE:
-  ridefinizione di metodi (override)
+  fare controlli sui metodi quando si fa derivazione, controllare se due basi mettono lo stesso metodo
   chiamata di metodo della classe base
   ridefinizione obbligatoria di metodi ereditati da due classi diverse
   separare prg e interp, fare due oggetti GCed
@@ -23,6 +23,7 @@ DA FARE:
   Float e operazioni miste tra int e float
    
 FATTO:
+  ridefinizione di metodi (override)
   fatta la gestione corretta del modulo in cui viene eseguito un metodo
   fatta la cache di Int, frame di Funzioni, frame di Procedure: guadagnato il 20%! 
   assegnazione di int a float
@@ -1225,6 +1226,7 @@ public:
   virtual string getName() const override {return superlevel->getName()+"."+theStringIntern.get(name);}
   virtual string print() const override {return "<class "+getName()+">";}
   virtual void addBaseClass(classObj* c);
+  virtual void expandBaseClasses();
   //
 };
 	
@@ -1416,17 +1418,30 @@ void classObj::call(int parmCnt,interp& interpreter){
 }
 
 void classObj::addBaseClass(classObj* d){
+  // aggiunge la classe alla lista delle classi da cui la classe corrente eredita	
   baseClasses.push_back(d);
-  // ora deve aggiungere tutto quello che trova nella classe base a questa nuova classe
-  // bisognerà poi gestire i doppi
-  //cout << "class " << d->print() << endl;
-  for(auto& [k,v]:d->objs) {
-    //cout << theStringIntern.get(k) << " value:" << v->print() << " type:" << d->types[k]->print() << endl;
-    objs[k]=v;
-    types[k]=d->types[k];
-  }
+  // aggiungerà tutto quello che viene derivato alla chiusura della classe
 }
 
+void classObj::expandBaseClasses(){
+  // esplora le classi da cui deriva questa classe e mette tutti i metodi/attributi che trova se non sono già definiti
+  // in questo modo prima mette i metodi della classe, poi aggiunge quelli delle classi da cui deriva
+  // questa operazione viene chiamata dal pCode ENDCLASS
+  for(classObj* d:baseClasses){	
+    // ora deve aggiungere tutto quello che trova nella classe base a questa nuova classe
+    //cout << "class " << d->print() << endl;
+    for(auto& [k,v]:d->objs) {
+	  // aggiunge tutto quello che c'è nelle classi da cui deriva e che non trova già nella classe	
+	  auto ff=objs.find(k);
+	  if (ff==objs.end()){	
+        //cout << theStringIntern.get(k) << " value:" << v->print() << " type:" << d->types[k]->print() << endl;
+        objs[k]=v;
+        types[k]=d->types[k];
+	  }
+    }
+  }
+}
+	
 obj* instanceObj::loadDirect(int intern) {
   // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
   auto ff=objs.find(intern);  
@@ -2312,7 +2327,9 @@ void pcodeInherit::exec(interp& interpreter) const {
 }
 
 void pcodeEndClass::exec(interp& interpreter) const {
-  //cout << "end declaring class " << endl;
+  classObj* c=interpreter.pending_class;
+  //cout << "end declaring class " << c->print() << endl;
+  c->expandBaseClasses();
   // ripristina il contaner del modulo
   interpreter.context=interpreter.saved_ctx;
   // DA FARE: qui bisogna verificare se i metodi sono coerenti con le superclassi (no due nomi uguali)

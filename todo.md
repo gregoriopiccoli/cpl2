@@ -1,6 +1,5 @@
 DA FARE: (15)
 
-12. fare ridefinizione di metodi
 13. fare ridefinizione di variabili (cambio tipo)
 15. fare chiamata a metodi da classe da cui si eredita
 14. fare metodi che devono essere ridefiniti per doppia eredità
@@ -10,6 +9,7 @@ DA FARE: (15)
 
 FATTO:
 
+12. fare ridefinizione di metodi
 3. pCode delle classi
 10. fare esecuzione di import
 11. check di tipo nelle assegnazioni: ogni variabile porta il tipo dichiarato e le
