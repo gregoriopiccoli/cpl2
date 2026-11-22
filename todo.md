@@ -1,13 +1,17 @@
-DA FARE: (11)
+DA FARE: (15)
 
+12. fare ridefinizione di metodi
+13. fare ridefinizione di variabili (cambio tipo)
+15. fare chiamata a metodi da classe da cui si eredita
+14. fare metodi che devono essere ridefiniti per doppia eredità
 8. fare parametri posizionali
 9. fare parametri per referenza
-3. pCode delle classi
-10. fare esecuzione di import
 4. la sintassi per i "tipi dipendenti"
 
 FATTO:
 
+3. pCode delle classi
+10. fare esecuzione di import
 11. check di tipo nelle assegnazioni: ogni variabile porta il tipo dichiarato e le
     scritture (STORE, STOREX, VAR_STORE, legatura dei parametri) verificano la
     compatibilita' — or/union, `any`/`?`, tipi `not` che rifiutano il nil
