@@ -16,8 +16,21 @@ template <class T> class recycler {
 public:
   int recycled=0;
   virtual ~recycler(){for(auto o:objs) delete o;}
-  void add(T* o){objs.push_back(o);}  
-  T* get(){T* r=objs.back();objs.pop_back();recycled++;return r;}
+  void add(T* o){
+	objs.push_back(o);
+#ifdef GC_DEBUG
+	o->kill();
+#endif	
+  }  
+  T* get(){
+	T* r=objs.back();
+	objs.pop_back();
+	recycled++;
+#ifdef GC_DEBUG
+    r->resuscitate();
+#endif	
+	return r;
+  }
   int size(){return objs.size();}
   T* recycle(){return (size()>0)?get():nullptr;}
 };

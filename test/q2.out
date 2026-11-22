@@ -3,5 +3,5 @@ in q1, doppio(10)=20
 ------------ arrivato alla fine di q1 ------------
 <module q1>
 100
-<func int doppio(int x) -- pcode>
+<func int q1.doppio(int x) -- pcode>
 ------------ arrivato alla fine di q2 ------------

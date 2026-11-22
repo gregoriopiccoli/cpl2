@@ -618,9 +618,14 @@ public:
 	types[intern]=type;
   }
   virtual obj* load(int intern) override {
+    obj* o=loadDirect(intern);
+    if (o) return o;
+    return superlevel->load(intern);
+  }
+  virtual obj* loadDirect(int intern) {
     auto ff=objs.find(intern);
     if (ff!=objs.end()) return ff->second;
-    return superlevel->load(intern);
+    return nullptr;
   }
   virtual void store(int intern, obj* value) override {
 	auto ff=objs.find(intern);
@@ -644,6 +649,7 @@ public:
 	}
 	return s;
   }
+  virtual string getName() const {return "???";}
 };
 
 // la classe che implementa i builtin: ferma la ricerca perché è sempre l'ultimo livello
@@ -737,6 +743,7 @@ public:
 	  prg=nullptr;
   }
   virtual string print() const override;
+  virtual string getName() const override {return name;}
 
 };
 
@@ -1044,7 +1051,8 @@ public:
   //
   virtual void trace(Tracer& t) override {t(prm);t(ctx);}
   //
-  virtual string print() const override {return "<proc "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  virtual string getName() const {return ctx->getName()+"."+theStringIntern.get(name);}
+  virtual string print() const override {return "<proc "+getName()+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override;
   virtual procVars* mkVars(){
 	procVars* r=theProcVarsRecycler.recycle();  
@@ -1095,8 +1103,12 @@ protected:
   obj* result_type;
 public:  
   funcObj(pcodeProgram& p,obj* t):procObj(p),result_type{t}{}
-  funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{/*result_type->lock();*/}
-  virtual string print() const override {return "<func "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  funcObj(int n, interp& i, obj*& t):procObj(n,i),result_type{t}{}
+  //
+  virtual void trace(Tracer& t) override {t(result_type);procObj::trace(t);}
+  //
+  virtual  string getName()const override {return ctx->getName()+"."+theStringIntern.get(name);}
+  virtual string print() const override {return "<func "+result_type->print()+" "+getName()+"("+prm->print()+") -- pcode>";}
   virtual procVars* mkVars()override {
 	funcVars* r=theFuncVarsRecycler.recycle();  
 	if (r!=nullptr) {r->recycle(ctx,result_type);stdGC().addRecycled(r);return r;}
@@ -1202,19 +1214,26 @@ public:
   //
   explicit classObj(int n, contextObj* c);
   virtual obj* load(int intern) override;
+  virtual obj* loadDirect(int intern) override;
   virtual void call(int parmCnt,interp& interpreter) override; // crea un istanza di questa classe nello stack dell'interprete
-  virtual string print() const override {return "<class "+theStringIntern.get(name)+">";}
+  virtual string getName() const override {return superlevel->getName()+"."+theStringIntern.get(name);}
+  virtual string print() const override {return "<class "+getName()+">";}
   virtual void addBaseClass(classObj* c);
   //
-  virtual int getName(){return name;}
 };
 	
 // istanza di una classe, oggetto creato "lazy"?
 class instanceObj: public contextObj {
+  friend class methObj;	
+  friend class methFuncObj;
   classObj* theClass;
 public:
+  //
+  virtual void trace(Tracer& t) override {t(theClass);contextObj::trace(t);}
+  //
   instanceObj(classObj* c):contextObj{c->superlevel}{theClass=c;} // l'istanza vede il modulo della classe come sua base, cioè le procedure eseguite nell'istanza vedono quello che vede la classe come modulo
   virtual obj* load(int intern) override;
+  virtual obj* loadDirect(int intern) override;
   virtual void store(int intern, obj* value) override;
   // 
   virtual string print() const override {
@@ -1222,54 +1241,67 @@ public:
 	for(auto& [k,t]:types){
 	  s+=","+t->print()+" "+theStringIntern.get(k)+" ("+objs.at(k)->print()+")";
 	}
-	return "<instance of "+theStringIntern.get(theClass->name)+"> ("+s+")" ;
+	return "<instance of "+theClass->getName()+"> ("+s+")" ;
   }
 };
 
 class unboundMethObj: public procObj {
-  classObj* theClass;
 public:
-  explicit unboundMethObj(const procObj* p,classObj* c):procObj{p->prg}{name=p->name;pc=p->pc;prm=p->prm;theClass=c;}
-  virtual string print() const {return "<unbound methp "+theStringIntern.get(theClass->getName())+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  explicit unboundMethObj(const procObj* p,classObj* c):procObj{p->prg}{name=p->name;pc=p->pc;prm=p->prm;ctx=p->ctx;}
+  virtual string print() const {return "<unbound methp "+ctx->getName()+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override {throw domain_error("calling unbound method ... ");}
 };
 
 class unboundMethFuncObj: public funcObj {
-  classObj* theClass;
 public:
-  explicit unboundMethFuncObj(const funcObj* f,classObj* c):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;prm=f->prm;theClass=c;}
-  virtual string print() const {return "<unbound methf "+result_type->print()+" "+theStringIntern.get(theClass->getName())+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  explicit unboundMethFuncObj(const funcObj* f,classObj* c):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;prm=f->prm;ctx=c;}
+  virtual string print() const {return "<unbound methf "+result_type->print()+" "+ctx->getName()+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
   virtual void call(int parmCnt,interp& interpreter) override {throw domain_error("calling unbound methodf ... ");}
 };
 
 class methObj: public procObj {
+  classObj* theClass;	
 public:
-  explicit methObj(instanceObj* i, const procObj* p):procObj{p->prg}{name=p->name;pc=p->pc;ctx=i;prm=p->prm;}
-  virtual string print() const {return "<methp "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  //
+  virtual void trace(Tracer& t) override {t(theClass);procObj::trace(t);}
+  //
+  explicit methObj(instanceObj* i, const procObj* p):procObj{p->prg}{name=p->name;pc=p->pc;ctx=i;prm=p->prm;theClass=i->theClass;}
+  virtual string print() const {return "<methp "+theClass->getName()+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
 };
 
 class methFuncObj: public funcObj {
+  classObj* theClass;	
 public:
-  explicit methFuncObj(instanceObj* i, const funcObj* f):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;ctx=i;prm=f->prm;}
-  virtual string print() const {return "<methf "+result_type->print()+" "+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
+  //
+  virtual void trace(Tracer& t) override {t(theClass);funcObj::trace(t);}
+  //
+  explicit methFuncObj(instanceObj* i, const funcObj* f):funcObj{f->prg,f->result_type}{name=f->name;pc=f->pc;ctx=i;prm=f->prm;theClass=i->theClass;}
+  virtual string print() const {return "<methf "+result_type->print()+" "+theClass->getName()+"."+theStringIntern.get(name)+"("+prm->print()+") -- pcode>";}
 };
 
 classObj::classObj(int n, contextObj* c):contextObj{c}{
   name=n;
 }
 
-obj* classObj::load(int intern) { 
+obj* classObj::loadDirect(int intern) { 
   auto fu=objs.find(intern);  // --- Questo è poco efficiente: continua a cercare quello che non viene trovato nella classe, costa un po' di più il passaggio dall'istanza al modulo
   if (fu!=objs.end()){
 	obj* res=fu->second;  
 	// trovato nella classe, crea nell'istanza
 	switch (res->procType()){
+	  case 0:return res;
 	  case 1:return new unboundMethObj(dynamic_cast<const procObj*>(res),this);
 	  case 2:return new unboundMethFuncObj(dynamic_cast<const funcObj*>(res),this);
     }
   }	 
+  return nullptr;
+}
+
+obj* classObj::load(int intern) { 
+  obj* o=loadDirect(intern);
+  if (o!=nullptr) return o;
   //return contextObj::load(intern);
-  throw domain_error("loading object from class ... ");
+  throw domain_error("name '"+theStringIntern.get(intern)+"' not found in class "+getName());
 }
 
 void classObj::call(int parmCnt,interp& interpreter){
@@ -1283,13 +1315,13 @@ void classObj::addBaseClass(classObj* d){
   // bisognerà poi gestire i doppi
   cout << "class " << d->print() << endl;
   for(auto& [k,v]:d->objs) {
-    cout << " k:" << k << " value:" << v->print() << " types:" << d->types[k]->print() << endl;
+    cout << theStringIntern.get(k) << " value:" << v->print() << " type:" << d->types[k]->print() << endl;
     objs[k]=v;
     types[k]=d->types[k];
   }
 }
 
-obj* instanceObj::load(int intern) {
+obj* instanceObj::loadDirect(int intern) {
   // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
   auto ff=objs.find(intern);  
   if (ff!=objs.end()) return ff->second; // oggetto trovato nell'istanza
@@ -1303,17 +1335,24 @@ obj* instanceObj::load(int intern) {
 	  case 1:res=new methObj(this,dynamic_cast<const procObj*>(res));objs[intern]=res;break;
 	  case 2:res=new methFuncObj(this,dynamic_cast<const funcObj*>(res));objs[intern]=res;break;
     }
+	// bisogna ora mettere mettere il tipo della variabile/procedura
 	auto ft=theClass->types.find(intern);
-	// qui bisogna mettere il tipo della variabile
 	types[intern]=ft->second;
 	return res;
-  }
+  } 
+  return nullptr;
+}
+
+obj* instanceObj::load(int intern) {
+  obj* o=loadDirect(intern);
+  if (o!=nullptr) return o;
   /*
-  string err=theStringIntern.get(intern)+" name not found in istance of class "+theStringIntern.get(theClass->name);
+  string err="name '"+theStringIntern.get(intern)+"' not found in istance of class "+theClass->getName();
   cout << err << endl;
   throw out_of_range(err);
   */
-  return contextObj::load(intern);
+  //return contextObj::load(intern);
+  return theClass->superlevel->load(intern);
 }
 
 void instanceObj::store(int intern, obj* value){

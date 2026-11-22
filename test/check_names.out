@@ -1,0 +1,10 @@
+<func int check_names.doppio(int i) -- pcode>
+<proc check_names.p() -- pcode>
+<class check_names.myclass>
+<unbound methp check_names.myclass.p() -- pcode>
+<unbound methf int check_names.myclass.f() -- pcode>
+<func int check_names_module.ff(int i) -- pcode>
+<proc check_names_module.pp() -- pcode>
+<class check_names_module.mm>
+<unbound methp check_names_module.mm.mmpp() -- pcode>
+<unbound methf int check_names_module.mm.mmff() -- pcode>

@@ -1,0 +1,28 @@
+import check_names_module
+
+func int doppio(int i)
+  result:=i+i
+end  
+
+proc p()
+end
+
+class myclass
+  proc p()
+  end
+  func int f()
+  end
+end
+
+
+? doppio
+? p
+? myclass
+? myclass.p
+? myclass.f
+
+? check_names_module.ff
+? check_names_module.pp
+? check_names_module.mm
+? check_names_module.mm.mmpp
+? check_names_module.mm.mmff

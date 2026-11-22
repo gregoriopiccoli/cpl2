@@ -26,20 +26,20 @@ class ccc
   end  
 end
 
-? ccc
--- ccc.i:=10
--- ? 'cccc.i=',ccc.i,' cccc.k=',ccc.k,' ccc.p=',ccc.p
-? ccc.p
---ccc.p()
+? ccc,' = <class cccc>'
+ccc.i:=10
+? 'cccc.i=',ccc.i,' cccc.k=',ccc.k
+? ccc.p,' = <unbound methp c.ccc.p() -- pcode>'
+--ccc.p() -- per ora non si può chiamare
 
 var ccc c:=ccc()
-? 'c:',c,'=<instance of ccc> ()'
-? 'c.i:',c.i,'=12'                 // qui crea l'oggetto lazy "i" nell'istanza
+? c,' = <instance of c.ccc> ()'
+? c.i,'=10'                        // qui crea l'oggetto lazy "i" nell'istanza
 c.i:=100                           // qui assegna all'oggetto lazy "i" che è già stato creato nell'instanza quando è stato letto
 c.j:=200                           // qui crea l'oggetto lazy "j" che non era mai stato letto nell'istanza 
---? 'c.i:',c.i,'=100 ccc.i:',ccc.i,'=12 c.j:',c.j,'=200'
-? 'c.p:',c.p,'=<methp p() -- pcode>'
-? 'c.f:',c.f,'=<methf int f(int x) -- pcode>'
+? 'c.i:',c.i,'=100 ccc.i:',ccc.i,'=10 c.j:',c.j,'=200'
+? 'c.p:',c.p,' = <methp c.ccc.p() -- pcode>'
+? 'c.f:',c.f,' = <methf int c.ccc.f(int x) -- pcode>'
 c.p()                              // siccome non esiste ancora la procedura legata all'istanza, questa chiamata si comporta come se fosse di classe ERRORE
 --? 'c.i:',c.i,'=101 ccc.i:',ccc.i,'=12'
 ? 'c.f(2):',c.f(2),'=103'

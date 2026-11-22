@@ -25,5 +25,5 @@ class gamma(c3.beta)
 end
 
 ? gamma().addkkk
-? gamma().addkkk(1) // questo non funziona ... l'oggetto "metodo" non è collegato al suo contesto (modulo c3)
+--? gamma().addkkk(1) // questo non funziona ... l'oggetto "metodo" non è collegato al suo contesto (modulo c3)
 

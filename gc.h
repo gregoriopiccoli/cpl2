@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-//#define GC_DEBUG
+#define GC_DEBUG
 
 namespace gc {
 
@@ -61,6 +61,8 @@ public:
   int lockCnt() const {return locked;}
 #ifdef GC_DEBUG
   void checkLive(){assert(magic==MAGIC_LIVE);}
+  void kill(){magic=MAGIC_DEAD;}
+  void resuscitate(){magic=MAGIC_LIVE;}
 #endif
   virtual string print() const {return "???";}
 };
