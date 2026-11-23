@@ -1051,7 +1051,7 @@ protected:
 public:
   procObj(pcodeProgram& p):prg{p}{}
   procObj(int n, interp& i);
-  virtual ~procObj() override {/*prm->unlock();*/}
+  virtual ~procObj() override {}
   //
   procObj*& operator=(procObj*&) = delete;
   procObj(procObj&) = delete;
@@ -1143,7 +1143,7 @@ procObj::procObj(int n, interp& i):ctx{i.context},prg{*i.prg}{
   pc=i.pc; // setta il punto di partenza della procedura: dopo il blocco dei parametri
 };
 
-void procObj:: call(int parmCnt, interp& interpreter) {
+void procObj::call(int parmCnt, interp& interpreter) {
   // cout << this->print() << " parametri:" << prm->prmOrder.size() << " parametri passati:" << parmCnt << endl; 	
   // salva lo stato dell'interprete
   int retPc=interpreter.pc;                                 // il program counter attuale
@@ -1156,10 +1156,10 @@ void procObj:: call(int parmCnt, interp& interpreter) {
   // prg e contesto vanno settati prima di initParms, perché initParms può dover
   // valutare le espressioni dei parametri con valore di default
   interpreter.context=vars;                                  // setta le variabili come nuovo contesto dell'interprete
-  interpreter.prg=&prg;                                       // setta come programma il pcode della procedura
+  interpreter.prg=&prg;                                      // setta come programma il pcode della procedura
   prm->initParms(vars,interpreter,parmCnt);                  // crea le variabili dalla lista dei parametri
   // ora ha tolto dallo stack i parametri e sono state create delle variabili locali inizalizzate con i valori passati o con i loro valori di default
-  interpreter.pc=pc+1;                                       // mette il program counte alla posizione del codice della procedura
+  interpreter.pc=pc;                                         // mette il program counte alla posizione del codice della procedura    
   // ora può interpretare i pcode della procedura
   interpreter.run();
   // mette un nil che è sempre il risultato di una procedura
@@ -2354,7 +2354,7 @@ void makeProcOrFunc(interp& interpreter, int value, procObj* p, funcObj* f, obj*
   pc=interpreter.pc;
   //cout << "cerca fine proc " << pc << endl;
   int c=interpreter.prg->get(pc++).getCode();
-  while (c!=P_ENDPROC && c!=P_ENDFUNC)
+  while (c!=P_ENDPROC && c!=P_ENDFUNC && c!=P_ABSTRACT)
 	c=interpreter.prg->get(pc++).getCode();
   interpreter.pc=pc-1;
   //cout << "finita dichiarazione: " << p->print() << endl;
