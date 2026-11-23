@@ -145,6 +145,7 @@ pcode* makePCode(int c,const char* s){
 	case P_ENDFUNC:return new pcodeEndFunc();
 	case P_CLASS:return new pcodeClass(s);
 	case P_INHERIT: return new pcodeInherit(atoi(s));
+	case P_IMPLEMENTS: return new pcodeImplements(atoi(s));
 	case P_ENDCLASS: return new pcodeEndClass();
 	case P_IF_FALSE:return new pcodeIfFalse(atoi(s));
 	case P_CASE:return new pcodeCase(atoi(s));
@@ -825,6 +826,7 @@ protected:
   classObj* pending_class;
   friend class pcodeClass; 
   friend class pcodeInherit;
+  friend class pcodeImplements;
   friend class pcodeEndClass;
 public:
   vector<obj*> stack;
@@ -1055,6 +1057,7 @@ public:
   procObj(procObj&) = delete;
   //
   procParm* getParm() const {return prm;}               // la lista dei parametri, per risalire alla firma della func
+  contextObj* getCtx() const {return ctx;}              // dove e' stata dichiarata: per un metodo e' la classe che lo definisce
   //
   virtual void trace(Tracer& t) override {t(prm);t(ctx);}
   //
@@ -1214,10 +1217,14 @@ class classObj: public contextObj {
 protected:
   friend class instanceObj;
   vector<classObj*> baseClasses;
+  vector<classObj*> implementClasses;
+  // per ogni attributo (proprio o ereditato) la classe dove e' stato dichiarato, accanto a objs e types.
+  // I metodi non ci sono: la loro origine e' nel procObj stesso (getCtx()), condiviso con le classi derivate.
+  ankerl::unordered_dense::map<int,classObj*> origini;
   int name;
 public:
   //
-  virtual void trace(Tracer& t) override {for(auto& d:baseClasses) t(d);contextObj::trace(t);}
+  virtual void trace(Tracer& t) override {for(auto& d:baseClasses) t(d);for(auto& i:implementClasses) t(i);for(auto& [k,o]:origini) t(o);contextObj::trace(t);}
   //
   explicit classObj(int n, contextObj* c);
   virtual obj* load(int intern) override;
@@ -1226,7 +1233,9 @@ public:
   virtual string getName() const override {return superlevel->getName()+"."+theStringIntern.get(name);}
   virtual string print() const override {return "<class "+getName()+">";}
   virtual void addBaseClass(classObj* c);
+  virtual void addImplementClass(classObj* c){implementClasses.push_back(c);};
   virtual void expandBaseClasses();
+  virtual void checkImplementClasses();
   //
 };
 	
@@ -1427,21 +1436,86 @@ void classObj::expandBaseClasses(){
   // esplora le classi da cui deriva questa classe e mette tutti i metodi/attributi che trova se non sono già definiti
   // in questo modo prima mette i metodi della classe, poi aggiunge quelli delle classi da cui deriva
   // questa operazione viene chiamata dal pCode ENDCLASS
-  for(classObj* d:baseClasses){	
+  // Regole:
+  // - un nome gia' definito nella classe nasconde quello della base solo se entrambi sono metodi (proc/func):
+  //   un attributo non si ridefinisce, ne' si puo' sostituire un metodo con un attributo o viceversa
+  // - un metodo che arriva da due classi base diverse e' ambiguo: la classe deve ridefinirlo
+  // - un attributo che arriva da due classi base diverse e' un errore
+  // - lo stesso nome che arriva per due strade dalla stessa definizione (ereditarieta' a diamante) non e' un conflitto
+  auto errore=[this](const string& msg){
+	string err="class "+getName()+": "+msg;
+	cout << err << endl;
+	throw domain_error(err);
+  };
+  // L'origine di un metodo e' il procObj stesso: addBaseClass/expand copiano il puntatore, quindi lo stesso
+  // metodo arrivato per due strade e' lo stesso oggetto, e getCtx() e' la classe che lo ha definito.
+  // L'origine di un attributo e' in origini: il valore iniziale non lo identifica (theNil e le costanti sono condivisi).
+  auto eMetodo=[](obj* o){return o->procType()!=0;};
+  // dove e' stato definito il nome k che vale o nella classe c (per i messaggi)
+  auto daDove=[&](obj* o,classObj* c,int k)->string{
+	if (eMetodo(o)) return dynamic_cast<const procObj*>(o)->getCtx()->getName();
+	return c->origini.at(k)->getName();
+  };
+  // i nomi definiti nella classe stessa, prima di aggiungere quelli ereditati;
+  // gli attributi propri hanno come origine la classe stessa
+  ankerl::unordered_dense::set<int> propri;
+  for(auto& [k,v]:objs){
+	propri.insert(k);
+	if (!eMetodo(v)) origini[k]=this;
+  }
+  for(classObj* d:baseClasses){
     // ora deve aggiungere tutto quello che trova nella classe base a questa nuova classe
     //cout << "class " << d->print() << endl;
     for(auto& [k,v]:d->objs) {
-	  // aggiunge tutto quello che c'è nelle classi da cui deriva e che non trova già nella classe	
+	  string nome=theStringIntern.get(k);
+	  bool metodo=eMetodo(v);
 	  auto ff=objs.find(k);
-	  if (ff==objs.end()){	
-        //cout << theStringIntern.get(k) << " value:" << v->print() << " type:" << d->types[k]->print() << endl;
+	  if (ff==objs.end()){
+        // nome nuovo: si eredita
+        //cout << nome << " value:" << v->print() << " type:" << d->types[k]->print() << endl;
         objs[k]=v;
         types[k]=d->types[k];
+        if (!metodo) origini[k]=d->origini.at(k);
+        continue;
 	  }
+	  obj* esistente=ff->second;
+	  bool metodoEsistente=eMetodo(esistente);
+	  if (propri.count(k)){
+		// ridefinito nella classe: accettato solo se sono metodi tutti e due
+		if (!metodo) errore("attribute '"+nome+"' already defined in base class "+d->getName());
+		if (!metodoEsistente) errore("'"+nome+"' is a method in base class "+d->getName()+" and cannot be redefined as an attribute");
+		continue;
+	  }
+	  // gia' ereditato da un'altra classe base
+	  string da1=daDove(esistente,this,k),da2=daDove(v,d,k);
+	  if (metodo && metodoEsistente){
+		if (v==esistente) continue;                           // stesso metodo arrivato per due strade
+		errore("method '"+nome+"' inherited from "+da1+" and "+da2+" must be redefined in the class");
+	  }
+	  if (!metodo && !metodoEsistente){
+		if (origini.at(k)==d->origini.at(k)) continue;        // stesso attributo arrivato per due strade
+		errore("attribute '"+nome+"' inherited from both "+da1+" and "+da2);
+	  }
+	  errore("'"+nome+"' inherited from "+da1+" and "+da2+" as both a method and an attribute");
     }
   }
 }
 	
+void classObj::checkImplementClasses(){
+  // deve controllare che tutte le cose presenti nelle classi implementate ci siano nella classe attuale
+  for(auto& i:implementClasses) {
+	// cerca gli oggetti della classe implementata nella classe attuale  
+	for(auto& [k,v]:i->objs) {
+	  auto ff=objs.find(k);
+	  if (ff==objs.end()) {
+		// c'è un oggetto in una classe implementata che non esiste nella classe attuale
+		string err="class "+getName()+" do not implement "+i->getName()+"."+theStringIntern.get(k);
+		throw domain_error(err);
+	  }
+	}
+  }
+}
+
 obj* instanceObj::loadDirect(int intern) {
   // cerca tra gli oggetti già creati, se non trova l'oggetto lo crea cercando la definizione nella classe
   auto ff=objs.find(intern);  
@@ -2309,6 +2383,18 @@ void pcodeClass::exec(interp& interpreter) const {
   interpreter.pending_class=c;
 }
 
+bool implementsFollow(interp& interpreter){
+  bool res=false,stop=false;
+  int pc=interpreter.pc;
+  while (!res && !stop) {
+	pcodeProgram* prg=interpreter.prg;  
+	const pcode& ppp=(*prg)[pc++];
+	res=res||ppp.getCode()==P_IMPLEMENTS;
+	stop=ppp.getCode()==P_ENDCLASS || ppp.getCode()==P_FUNC; // la fine della classe o il primo metodo terminano la ricerca dell'istruzione implements
+  }
+  return res;
+}
+
 void pcodeInherit::exec(interp& interpreter) const {
   //cout << "inherit " << value << endl;	
   // mette la lista delle classi da cui deriva 
@@ -2322,6 +2408,24 @@ void pcodeInherit::exec(interp& interpreter) const {
   for(i=0;i<value;i++) interpreter.stack.pop_back();
   interpreter.sp-=value;
   // sostituisce il container corrente in modo che variabili, procedure e funzioni vengano aggiunte alla classe	
+  // ATTENZIONE: deve farlo solo se non segue una IMPLEMENTS
+  if (!implementsFollow(interpreter)){
+    interpreter.saved_ctx=interpreter.context;
+    interpreter.context=c;
+  }
+}
+
+void pcodeImplements::exec(interp& interpreter) const {
+  classObj* c=interpreter.pending_class;
+  int i;
+  for(i=0;i<value;i++){
+	classObj* d=static_cast<classObj*>(interpreter.stack[interpreter.sp-value+1+i]);
+    c->addImplementClass(d); 
+  }
+  // toglie le classi dallo stack
+  for(i=0;i<value;i++) interpreter.stack.pop_back();
+  interpreter.sp-=value;
+  // sostituisce il container corrente in modo che variabili, procedure e funzioni vengano aggiunte alla classe	
   interpreter.saved_ctx=interpreter.context;
   interpreter.context=c;
 }
@@ -2329,10 +2433,10 @@ void pcodeInherit::exec(interp& interpreter) const {
 void pcodeEndClass::exec(interp& interpreter) const {
   classObj* c=interpreter.pending_class;
   //cout << "end declaring class " << c->print() << endl;
-  c->expandBaseClasses();
+  c->expandBaseClasses();                                  // verifica anche i conflitti di nomi con le classi base
+  c->checkImplementClasses();
   // ripristina il contaner del modulo
   interpreter.context=interpreter.saved_ctx;
-  // DA FARE: qui bisogna verificare se i metodi sono coerenti con le superclassi (no due nomi uguali)
 }
 
 void pcodeStoreResult::exec(interp& interpreter) const {
@@ -2700,7 +2804,7 @@ int main(int argc, char** argv){
     stdGC().printLocked();
     cout << "--- end ---\n";
   }
-  if (testOpzione==1){
+  if (testOpzione==1 || gcOpzione){
     GCStats st=stdGC().stats();
     cout << "GC:" << st.totalPauseNs/1000000.0 << " ms. runs: " << st.collections << " mean: " << st.avgPauseUs()/1000.0 << " ms. max: " << st.maxPauseNs/1000000.0 << " ms." << endl;
   }

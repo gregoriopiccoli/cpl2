@@ -502,6 +502,12 @@ public:
   virtual void exec(interp& interpreter) const override;
 };
 
+class pcodeImplements: public ipcode {
+public:
+  explicit pcodeImplements(int v):ipcode(v){code=P_IMPLEMENTS;}
+  virtual void exec(interp& interpreter) const override;
+};
+
 class pcodeEndParm: public pcode {
 public:
   pcodeEndParm(){code=P_ENDPARM;}
